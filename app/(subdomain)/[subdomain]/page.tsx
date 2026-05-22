@@ -379,24 +379,36 @@ export default function ClientDashboard({
     [content]
   );
 
-  const contentForCounts = useMemo(() => {
-    let result = content;
+  const applyTimeFilter = (result: ContentEntry[]) => {
     if (dateRange?.from) {
       const from = dateRange.from;
       const to = dateRange.to
         ? new Date(dateRange.to.getFullYear(), dateRange.to.getMonth(), dateRange.to.getDate(), 23, 59, 59, 999)
         : from;
-      result = result.filter((entry) => {
+      return result.filter((entry) => {
         const date = new Date(entry.publicationDate);
         return date >= from && date <= to;
       });
-    } else if (selectedMonth !== "all") {
-      result = result.filter((entry) => {
+    }
+    if (selectedMonth !== "all") {
+      return result.filter((entry) => {
         const date = new Date(entry.publicationDate);
         const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
         return key === selectedMonth;
       });
     }
+    return result;
+  };
+
+  // Feeds the top-level stat cards — time filter only
+  const contentForStats = useMemo(
+    () => applyTimeFilter([...content]),
+    [content, selectedMonth, dateRange]
+  );
+
+  // Feeds the content table — all filters
+  const contentForCounts = useMemo(() => {
+    let result = applyTimeFilter([...content]);
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
       result = result.filter((e) => e.title.toLowerCase().includes(q));
@@ -449,18 +461,18 @@ export default function ClientDashboard({
     return <DashboardSkeleton clientName={clientName} />;
   }
 
-  const published   = filteredContent.filter((c) => c.status === "Published");
-  const inProgress  = filteredContent.filter((c) => c.status !== "Published");
-  const totalViews  = filteredContent
+  const published   = contentForStats.filter((c) => c.status === "Published");
+  const inProgress  = contentForStats.filter((c) => c.status !== "Published");
+  const totalViews  = contentForStats
     .filter((c) => !c.category || c.category === "Written" || c.category === "Video")
     .reduce((sum, c) => sum + (c.views ?? 0), 0);
-  const totalDownloads = filteredContent
+  const totalDownloads = contentForStats
     .filter((c) => c.category === "Package" || c.category === "Podcast")
     .reduce((sum, c) => sum + (c.downloads ?? 0), 0);
-  const totalAttendees = filteredContent
+  const totalAttendees = contentForStats
     .filter((c) => c.category === "Event")
     .reduce((sum, c) => sum + (c.attendees ?? 0), 0);
-  const totalReshares = filteredContent.reduce(
+  const totalReshares = contentForStats.reduce(
     (sum, c) => sum + (c.reshares?.length ?? 0), 0
   );
 
