@@ -493,8 +493,19 @@ export default function ClientDashboard({
         body: JSON.stringify({
           client: subdomain,
           content: filteredContent,
-          stats: { published: published.length, inProgress: inProgress.length, totalViews, totalReshares },
-          month: selectedMonth === "all" ? null : selectedMonth,
+          stats: {
+            published:      published.length,
+            inProgress:     inProgress.length,
+            totalViews,
+            totalDownloads,
+            totalAttendees,
+            totalReshares,
+          },
+          period: dateRange?.from && dateRange?.to
+            ? formatRangeLabel(dateRange)
+            : selectedMonth === "all"
+              ? "All Time"
+              : formatMonthLabel(selectedMonth),
         }),
       });
       if (!response.ok) throw new Error("Export failed");
