@@ -28,8 +28,11 @@ import {
   FileText, Video, MapPin, Mic, Package,
   Eye, Download, Users, Headphones, TrendingUp,
   ExternalLink, RefreshCw, CheckCircle2, Clock, AlertCircle,
-  Pencil, PlusCircle, Edit, Calendar,
+  Pencil, PlusCircle, Edit, Calendar, X,
 } from 'lucide-react'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { Calendar as CalendarPicker } from '@/components/ui/calendar'
+import type { DateRange } from 'react-day-picker'
 import { useQuery } from 'convex/react'
 import { api } from '@/convex/_generated/api'
 import { useRouter } from 'next/navigation'
@@ -60,8 +63,33 @@ export default function DashboardPage() {
   const { profile } = useUserContext()
   const [selectedMonth,  setSelectedMonth]  = useState<string>(currentMonthKey())
   const [categoryFilter, setCategoryFilter] = useState<string>('all')
+  const [dateRange,      setDateRange]      = useState<DateRange | undefined>(undefined)
+  const [rangeOpen,      setRangeOpen]      = useState(false)
   const [isTimeout,      setIsTimeout]      = useState(false)
   const [tourControls,   setTourControls]   = useState<{ startTour: () => void } | null>(null)
+
+  const handleMonthChange = (value: string) => {
+    setSelectedMonth(value)
+    setDateRange(undefined)
+  }
+
+  const handleRangeSelect = (range: DateRange | undefined) => {
+    setDateRange(range)
+    if (range?.from) setSelectedMonth('all')
+    if (range?.from && range?.to) setRangeOpen(false)
+  }
+
+  const clearDateRange = () => {
+    setDateRange(undefined)
+    setSelectedMonth(currentMonthKey())
+  }
+
+  const formatRangeLabel = (range: DateRange) => {
+    const fmt = (d: Date) => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+    if (range.from && range.to) return `${fmt(range.from)} – ${fmt(range.to)}`
+    if (range.from) return `From ${fmt(range.from)}`
+    return 'Date Range'
+  }
   const router = useRouter()
 
   const rawContent = useQuery(
@@ -102,7 +130,14 @@ export default function DashboardPage() {
   const filteredContent = useMemo(() => {
     if (!rawContent) return []
     let result = rawContent as ContentEntry[]
-    if (selectedMonth !== 'all') {
+    if (dateRange?.from) {
+      const from = dateRange.from
+      const to = dateRange.to ? new Date(dateRange.to.getFullYear(), dateRange.to.getMonth(), dateRange.to.getDate(), 23, 59, 59, 999) : from
+      result = result.filter((entry) => {
+        const date = new Date(entry.publicationDate)
+        return date >= from && date <= to
+      })
+    } else if (selectedMonth !== 'all') {
       result = result.filter((entry) => {
         const date = new Date(entry.publicationDate)
         const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
@@ -113,7 +148,7 @@ export default function DashboardPage() {
       result = result.filter((e) => (e.category ?? 'Written') === categoryFilter)
     }
     return result
-  }, [rawContent, selectedMonth, categoryFilter])
+  }, [rawContent, selectedMonth, categoryFilter, dateRange])
 
   if (!profile) return <PageLoader />
 
@@ -205,7 +240,7 @@ export default function DashboardPage() {
           </div>
 
           <div className="flex items-center gap-2 flex-wrap" data-tour="admin-filters">
-            <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+            <Select value={selectedMonth} onValueChange={handleMonthChange} disabled={!!dateRange?.from}>
               <SelectTrigger className="w-44 h-9 text-sm">
                 <Calendar className="h-3.5 w-3.5 text-muted-foreground shrink-0 mr-1" />
                 <SelectValue placeholder="Month" />
@@ -217,6 +252,35 @@ export default function DashboardPage() {
                 ))}
               </SelectContent>
             </Select>
+
+            <Popover open={rangeOpen} onOpenChange={setRangeOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant={dateRange?.from ? 'secondary' : 'outline'}
+                  size="sm"
+                  className="h-9 gap-1.5 text-sm font-normal"
+                >
+                  <Calendar className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                  {dateRange?.from ? formatRangeLabel(dateRange) : 'Date Range'}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="end">
+                <CalendarPicker
+                  mode="range"
+                  selected={dateRange}
+                  onSelect={handleRangeSelect}
+                  numberOfMonths={2}
+                  initialFocus
+                />
+                {dateRange?.from && (
+                  <div className="border-t p-2">
+                    <Button variant="ghost" size="sm" className="w-full gap-1.5 text-xs" onClick={clearDateRange}>
+                      <X className="h-3 w-3" />Clear range
+                    </Button>
+                  </div>
+                )}
+              </PopoverContent>
+            </Popover>
 
             <Select value={categoryFilter} onValueChange={setCategoryFilter}>
               <SelectTrigger className="w-36 h-9 text-sm">

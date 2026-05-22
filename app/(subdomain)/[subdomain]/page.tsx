@@ -49,6 +49,9 @@ import {
   Search,
   X,
 } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar as CalendarPicker } from "@/components/ui/calendar";
+import type { DateRange } from "react-day-picker";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import {
@@ -282,6 +285,8 @@ export default function ClientDashboard({
   const [selectedMonth, setSelectedMonth] = useState<string>(
     searchParams.get("month") ?? "all"
   );
+  const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
+  const [rangeOpen, setRangeOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [platformFilter, setPlatformFilter] = useState("all");
@@ -304,12 +309,35 @@ export default function ClientDashboard({
   const handleMonthChange = useCallback(
     (value: string) => {
       setSelectedMonth(value);
+      setDateRange(undefined);
       const p = new URLSearchParams(searchParams.toString());
       if (value === "all") { p.delete("month"); } else { p.set("month", value); }
       router.replace(`${pathname}?${p.toString()}`, { scroll: false });
     },
     [pathname, router, searchParams]
   );
+
+  const handleRangeSelect = (range: DateRange | undefined) => {
+    setDateRange(range);
+    if (range?.from) {
+      setSelectedMonth("all");
+      const p = new URLSearchParams(searchParams.toString());
+      p.delete("month");
+      router.replace(`${pathname}?${p.toString()}`, { scroll: false });
+    }
+    if (range?.from && range?.to) setRangeOpen(false);
+  };
+
+  const clearDateRange = () => {
+    setDateRange(undefined);
+  };
+
+  const formatRangeLabel = (range: DateRange) => {
+    const fmt = (d: Date) => d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+    if (range.from && range.to) return `${fmt(range.from)} – ${fmt(range.to)}`;
+    if (range.from) return `From ${fmt(range.from)}`;
+    return "Date Range";
+  };
 
   const copyToClipboard = (text: string, id: string) => {
     navigator.clipboard.writeText(text);
@@ -353,7 +381,16 @@ export default function ClientDashboard({
 
   const contentForCounts = useMemo(() => {
     let result = content;
-    if (selectedMonth !== "all") {
+    if (dateRange?.from) {
+      const from = dateRange.from;
+      const to = dateRange.to
+        ? new Date(dateRange.to.getFullYear(), dateRange.to.getMonth(), dateRange.to.getDate(), 23, 59, 59, 999)
+        : from;
+      result = result.filter((entry) => {
+        const date = new Date(entry.publicationDate);
+        return date >= from && date <= to;
+      });
+    } else if (selectedMonth !== "all") {
       result = result.filter((entry) => {
         const date = new Date(entry.publicationDate);
         const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
@@ -367,7 +404,7 @@ export default function ClientDashboard({
     if (platformFilter !== "all") result = result.filter((e) => e.platform === platformFilter);
     if (statusFilter !== "all")   result = result.filter((e) => e.status === statusFilter);
     return result;
-  }, [content, selectedMonth, searchQuery, platformFilter, statusFilter]);
+  }, [content, selectedMonth, dateRange, searchQuery, platformFilter, statusFilter]);
 
   const categoryCounts = useMemo(() => {
     const counts: Record<string, number> = { all: contentForCounts.length };
@@ -542,7 +579,7 @@ export default function ClientDashboard({
 
             <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
               {/* Month */}
-              <Select value={selectedMonth} onValueChange={handleMonthChange}>
+              <Select value={selectedMonth} onValueChange={handleMonthChange} disabled={!!dateRange?.from}>
                 <SelectTrigger className="w-full sm:w-36 bg-card h-9 text-sm">
                   <Calendar className="hidden sm:flex h-3.5 w-3.5 text-muted-foreground shrink-0" />
                   <SelectValue placeholder="Month" />
@@ -554,6 +591,36 @@ export default function ClientDashboard({
                   ))}
                 </SelectContent>
               </Select>
+
+              {/* Date range */}
+              <Popover open={rangeOpen} onOpenChange={setRangeOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant={dateRange?.from ? "secondary" : "outline"}
+                    size="sm"
+                    className="h-9 gap-1.5 text-sm font-normal bg-card"
+                  >
+                    <Calendar className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                    {dateRange?.from ? formatRangeLabel(dateRange) : "Date Range"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="end">
+                  <CalendarPicker
+                    mode="range"
+                    selected={dateRange}
+                    onSelect={handleRangeSelect}
+                    numberOfMonths={2}
+                    initialFocus
+                  />
+                  {dateRange?.from && (
+                    <div className="border-t p-2">
+                      <Button variant="ghost" size="sm" className="w-full gap-1.5 text-xs" onClick={clearDateRange}>
+                        <X className="h-3 w-3" />Clear range
+                      </Button>
+                    </div>
+                  )}
+                </PopoverContent>
+              </Popover>
 
               {/* Platform */}
               <Select value={platformFilter} onValueChange={setPlatformFilter}>
@@ -582,9 +649,9 @@ export default function ClientDashboard({
               </Select>
 
               {/* Clear */}
-              {[searchQuery, categoryFilter, platformFilter, statusFilter, selectedMonth].some(
+              {([searchQuery, categoryFilter, platformFilter, statusFilter, selectedMonth].some(
                 (v) => v && v !== "all"
-              ) && (
+              ) || !!dateRange?.from) && (
                 <Button
                   type="button"
                   variant="ghost"
@@ -595,6 +662,7 @@ export default function ClientDashboard({
                     setCategoryFilter("all");
                     setPlatformFilter("all");
                     setStatusFilter("all");
+                    setDateRange(undefined);
                     handleMonthChange("all");
                   }}
                 >
