@@ -1,0 +1,46 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# A second push to the same branch makes the first run irrelevant.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Typecheck, lint, test, build
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      # .npmrc pins legacy-peer-deps, which `npm ci` honours.
+      - run: npm ci
+
+      # `convex/_generated` is committed, so there is no codegen step here — it
+      # would need a deploy key and would fail. The trade-off is that stale
+      # generated types are possible; the typecheck below is what catches it,
+      # because a schema change without a matching codegen will not compile.
+      - run: npm run typecheck
+
+      - run: npm run lint
+
+      - run: npm test
+
+      - name: Build
+        run: npm run build
+        env:
+          # The build only needs these to exist. Real values live in Vercel;
+          # the app is written to degrade rather than throw when they are absent,
+          # and that behaviour is worth exercising here.
+          NEXT_PUBLIC_CONVEX_URL: https://example.convex.cloud
+          NEXT_PUBLIC_ROOT_DOMAIN: devrel.studio
