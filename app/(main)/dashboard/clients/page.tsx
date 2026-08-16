@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useMemo, useState, useRef } from 'react'
 import { useUserContext } from '@/contexts/user-context'
 import { useQuery, useMutation } from 'convex/react'
 import { api } from '@/convex/_generated/api'
@@ -50,8 +50,16 @@ import {
   Plus, MoreVertical, Building2, Mail, Globe,
   DollarSign, Calendar, FileText, Loader2, Users,
   TrendingUp, Edit3, Trash2, ExternalLink, KeyRound,
+  Wallet, CalendarOff,
 } from 'lucide-react'
 import { AdminTour, AdminTourTriggerButton, TourVariant } from '@/components/admin-onboarding-tour'
+import {
+  costPerPiece,
+  formatMoney,
+  tenureLabel,
+  totalBilled,
+  totalBilledAcross,
+} from '@/lib/retainer'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -312,6 +320,8 @@ export default function ClientsPage() {
   const userId = profile?._id
 
   const clients = useQuery(api.clients.getClients, userId ? {} : 'skip')
+  // Only used for the per-client delivery count on each card.
+  const content = useQuery(api.content.getAllContent, userId ? {} : 'skip')
   const createClient = useMutation(api.clients.createClient)
   const updateClient = useMutation(api.clients.updateClient)
   const deleteClient = useMutation(api.clients.deleteClient)
@@ -327,6 +337,26 @@ export default function ClientsPage() {
   const totalRetainer  = activeClients.reduce((sum, c) => sum + (c.monthlyRetainer ?? 0), 0)
   const avgRetainer    = activeClients.length ? Math.round(totalRetainer / activeClients.length) : 0
   const sym            = (currency: string) => CURRENCY_SYMBOL[currency as Currency] ?? '$'
+
+  // Lifetime value across the whole roster, ended engagements included — the
+  // question is "what has this book of business been worth", not "what is it
+  // worth this month".
+  const lifetimeBilled = totalBilledAcross(clients ?? [])
+
+  // How many pieces each client has had delivered. Entries are tagged with the
+  // client's slug, so a client with no slug has nothing to count against it.
+  const piecesByClient = useMemo(() => {
+    const counts = new Map<string, number>()
+    for (const entry of content ?? []) {
+      const key = entry.client?.trim().toLowerCase()
+      if (!key) continue
+      counts.set(key, (counts.get(key) ?? 0) + 1)
+    }
+    return counts
+  }, [content])
+
+  const piecesFor = (client: Doc<'clients'>) =>
+    client.slug ? (piecesByClient.get(client.slug) ?? 0) : 0
 
   const openAdd  = () => { setEditTarget(null); setDialogOpen(true) }
   const openEdit = (client: Doc<'clients'>) => { setEditTarget(client); setDialogOpen(true) }
@@ -431,20 +461,28 @@ export default function ClientsPage() {
       </div>
 
       {/* Stats row */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8" data-tour="clients-stats">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-8" data-tour="clients-stats">
         {[
-          { label: 'Active clients',      value: activeClients.length,  icon: Users,      suffix: '' },
-          { label: 'Monthly retainer',    value: totalRetainer,         icon: DollarSign, prefix: '$', suffix: '/mo' },
-          { label: 'Average retainer',    value: avgRetainer,           icon: TrendingUp, prefix: '$', suffix: '/mo' },
-        ].map(({ label, value, icon: Icon, prefix = '', suffix }) => (
+          { label: 'Active clients',   value: activeClients.length,  icon: Users,      hint: `${clients?.length ?? 0} total` },
+          { label: 'Monthly retainer', value: totalRetainer,         icon: DollarSign, prefix: '$', suffix: '/mo', hint: 'Active clients only' },
+          { label: 'Average retainer', value: avgRetainer,           icon: TrendingUp, prefix: '$', suffix: '/mo', hint: 'Per active client' },
+          {
+            label: 'Total earned',
+            value: lifetimeBilled,
+            icon: Wallet,
+            prefix: '$',
+            hint: 'Retainer × months, all time',
+          },
+        ].map(({ label, value, icon: Icon, prefix = '', suffix = '', hint }) => (
           <Card key={label}>
             <CardContent className="p-5 flex items-center gap-4">
               <div className="h-10 w-10 rounded-lg bg-accent/10 flex items-center justify-center shrink-0">
                 <Icon className="h-5 w-5 text-accent" />
               </div>
-              <div>
-                <p className="text-2xl font-bold text-foreground">{prefix}{value.toLocaleString()}{suffix}</p>
+              <div className="min-w-0">
+                <p className="text-2xl font-bold text-foreground truncate">{prefix}{value.toLocaleString()}{suffix}</p>
                 <p className="text-xs text-muted-foreground mt-0.5">{label}</p>
+                {hint && <p className="text-[11px] text-muted-foreground/70">{hint}</p>}
               </div>
             </CardContent>
           </Card>
@@ -536,7 +574,21 @@ export default function ClientsPage() {
                   {client.startDate && (
                     <div className="flex items-center gap-2">
                       <Calendar className="h-3.5 w-3.5 shrink-0" />
-                      <span>Since {formatDate(client.startDate)}</span>
+                      <span>
+                        Since {formatDate(client.startDate)}
+                        {tenureLabel(client.startDate, client.endDate) && (
+                          <span className="text-muted-foreground/70">
+                            {' · '}
+                            {tenureLabel(client.startDate, client.endDate)}
+                          </span>
+                        )}
+                      </span>
+                    </div>
+                  )}
+                  {client.endDate && (
+                    <div className="flex items-center gap-2">
+                      <CalendarOff className="h-3.5 w-3.5 shrink-0" />
+                      <span>Ended {formatDate(client.endDate)}</span>
                     </div>
                   )}
                   {client.notes && (
@@ -546,6 +598,61 @@ export default function ClientsPage() {
                     </div>
                   )}
                 </div>
+
+                {/* Engagement value */}
+                {(() => {
+                  const billed = totalBilled(client)
+                  if (billed === null) return null
+
+                  const months = Math.round(billed / (client.monthlyRetainer ?? 1))
+                  const pieces = piecesFor(client)
+                  const perPiece = costPerPiece(client, pieces)
+                  const isEstimate = client.status === 'Paused'
+
+                  return (
+                    <div className="rounded-lg border border-border bg-muted/30 p-3">
+                      <div className="flex items-baseline justify-between gap-2">
+                        <span className="text-xs text-muted-foreground">
+                          {isEstimate ? 'Est. earned' : client.status === 'Ended' ? 'Total earned' : 'Earned to date'}
+                        </span>
+                        <span className="text-base font-semibold text-foreground tabular-nums">
+                          {formatMoney(billed, client.currency)}
+                        </span>
+                      </div>
+
+                      <p className="mt-1 text-[11px] text-muted-foreground/80">
+                        {formatMoney(client.monthlyRetainer ?? 0, client.currency)}/mo ×{' '}
+                        {months} month{months === 1 ? '' : 's'}
+                      </p>
+
+                      <div className="mt-2 grid grid-cols-2 gap-2 border-t border-border pt-2">
+                        <div>
+                          <p className="text-sm font-medium text-foreground tabular-nums">
+                            {pieces || '—'}
+                          </p>
+                          <p className="text-[11px] text-muted-foreground">
+                            {pieces === 1 ? 'piece delivered' : 'pieces delivered'}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-foreground tabular-nums">
+                            {perPiece === null ? '—' : formatMoney(perPiece, client.currency)}
+                          </p>
+                          <p className="text-[11px] text-muted-foreground">per piece</p>
+                        </div>
+                      </div>
+
+                      {/* Paused engagements have no pause date recorded, so the
+                          figure assumes continuous billing. Say so rather than
+                          present an estimate as fact. */}
+                      {isEstimate && (
+                        <p className="mt-2 text-[11px] text-amber-700 dark:text-amber-300">
+                          Assumes continuous billing — pauses are not tracked.
+                        </p>
+                      )}
+                    </div>
+                  )
+                })()}
 
                 {/* Footer */}
                 <div className="mt-auto pt-3 border-t border-border flex items-center justify-between gap-3">
