@@ -6,12 +6,12 @@ import {
   ContentEntry,
   getMonthsFromContent,
   formatMonthLabel,
-  getMetricValue,
-  getMetricLabel,
-  getCategoryColor,
   CATEGORIES,
   type Category,
 } from '@/lib/types'
+import { aggregate, categoryOf } from '@/lib/metrics'
+import { CATEGORY_META, getCategoryColor } from '@/lib/category-meta'
+import { EntryMetric } from '@/components/dashboard/entry-metric'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -25,8 +25,7 @@ import {
 } from '@/components/ui/chart'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts'
 import {
-  FileText, Video, MapPin, Mic, Package,
-  Eye, Download, Users, Headphones, TrendingUp,
+  FileText, Eye, Download, Users, Star,
   ExternalLink, RefreshCw, CheckCircle2, Clock, AlertCircle,
   Pencil, PlusCircle, Edit, Calendar, X,
 } from 'lucide-react'
@@ -37,17 +36,8 @@ import { useQuery } from 'convex/react'
 import { api } from '@/convex/_generated/api'
 import { useRouter } from 'next/navigation'
 import { useUserContext } from '@/contexts/user-context'
-import { Id } from '@/convex/_generated/dataModel'
 import PageLoader from '@/components/page-loader'
 import { AdminTour, AdminTourTriggerButton } from '@/components/admin-onboarding-tour'
-
-const CATEGORY_ICONS: Record<string, React.ElementType> = {
-  Written: FileText,
-  Video:   Video,
-  Event:   MapPin,
-  Podcast: Mic,
-  Package: Package,
-}
 
 const chartConfig = {
   published:  { label: 'Published',   color: 'hsl(var(--accent))' },
@@ -94,7 +84,7 @@ export default function DashboardPage() {
 
   const rawContent = useQuery(
     api.content.getAllContent,
-    profile?._id ? { userId: profile._id as Id<"users"> } : "skip"
+    profile?._id ? {} : "skip"
   )
 
   useEffect(() => {
@@ -174,17 +164,7 @@ export default function DashboardPage() {
 
   // ── Derived stats ─────────────────────────────────────────────────────────────
 
-  const published      = filteredContent.filter((c) => c.status === 'Published')
-  const inProgress     = filteredContent.filter((c) => c.status !== 'Published')
-  const totalViews     = filteredContent
-    .filter((c) => !c.category || c.category === 'Written' || c.category === 'Video')
-    .reduce((sum, c) => sum + (c.views ?? 0), 0)
-  const totalDownloads = filteredContent
-    .filter((c) => c.category === 'Package' || c.category === 'Podcast')
-    .reduce((sum, c) => sum + (c.downloads ?? 0), 0)
-  const totalAttendees = filteredContent
-    .filter((c) => c.category === 'Event')
-    .reduce((sum, c) => sum + (c.attendees ?? 0), 0)
+  const totals = aggregate(filteredContent)
 
   const byMonth: Record<string, ContentEntry[]> = {}
   for (const entry of filteredContent) {
@@ -198,28 +178,10 @@ export default function DashboardPage() {
     switch (status) {
       case 'Published':       return <Badge variant="secondary" className="gap-1 font-normal text-xs shrink-0"><CheckCircle2 className="h-3 w-3" />Published</Badge>
       case 'Draft':           return <Badge variant="outline"   className="gap-1 font-normal text-xs shrink-0"><Pencil className="h-3 w-3" />Draft</Badge>
-      case 'Waiting Approval':return <Badge variant="outline"   className="gap-1 font-normal text-xs text-amber-600 border-amber-300 shrink-0"><AlertCircle className="h-3 w-3" />Waiting</Badge>
+      case 'Waiting Approval':return <Badge variant="outline"   className="gap-1 font-normal text-xs text-amber-600 border-amber-300 dark:text-amber-400 dark:border-amber-500/40 shrink-0"><AlertCircle className="h-3 w-3" />Waiting</Badge>
       case 'Scheduled':       return <Badge variant="outline"   className="gap-1 font-normal text-xs shrink-0"><Clock className="h-3 w-3" />Scheduled</Badge>
       default:                return <Badge variant="secondary" className="text-xs shrink-0">{status}</Badge>
     }
-  }
-
-  const getMetricDisplay = (entry: ContentEntry) => {
-    const cat   = entry.category ?? 'Written'
-    const value = getMetricValue(entry)
-    if (value === 0) return null
-    const Icon = cat === 'Event' ? Users : cat === 'Podcast' ? Headphones : cat === 'Package' ? Download : Eye
-    return (
-      <span className="flex items-center gap-1">
-        <Icon className="h-3 w-3" />
-        {value.toLocaleString()} {getMetricLabel(entry.category).toLowerCase()}
-        {cat === 'Package' && (entry.weeklyDownloads ?? 0) > 0 && (
-          <span className="text-muted-foreground/70 flex items-center gap-0.5 ml-0.5">
-            · <TrendingUp className="h-2.5 w-2.5" /> {entry.weeklyDownloads!.toLocaleString()}/wk
-          </span>
-        )}
-      </span>
-    )
   }
 
   // ── Render ────────────────────────────────────────────────────────────────────
@@ -289,7 +251,7 @@ export default function DashboardPage() {
               <SelectContent>
                 <SelectItem value="all">All Types</SelectItem>
                 {CATEGORIES.map((cat) => {
-                  const Icon = CATEGORY_ICONS[cat]
+                  const Icon = CATEGORY_META[cat].icon
                   return (
                     <SelectItem key={cat} value={cat}>
                       <span className="flex items-center gap-2"><Icon className="h-3.5 w-3.5" />{cat}</span>
@@ -310,13 +272,14 @@ export default function DashboardPage() {
         </div>
 
         {/* Stat cards */}
-        <div className="mb-6 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4" data-tour="admin-stats">
+        <div className="mb-6 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4" data-tour="admin-stats">
           {[
-            { label: 'Published',   value: published.length,    icon: null },
-            { label: 'In Progress', value: inProgress.length,   icon: null },
-            { label: 'Views',       value: totalViews,          icon: Eye },
-            { label: 'Downloads',   value: totalDownloads,      icon: Download },
-            { label: 'Attendees',   value: totalAttendees,      icon: Users },
+            { label: 'Published',   value: totals.published,  icon: null },
+            { label: 'In Progress', value: totals.inProgress, icon: null },
+            { label: 'Views',       value: totals.views,      icon: Eye },
+            { label: 'Downloads',   value: totals.downloads,  icon: Download },
+            { label: 'Attendees',   value: totals.attendees,  icon: Users },
+            { label: 'Stars',       value: totals.stars,      icon: Star },
           ].map(({ label, value, icon: Icon }) => (
             <div key={label} className="rounded-xl border border-border bg-card p-5">
               {Icon && (
@@ -387,7 +350,7 @@ export default function DashboardPage() {
               {CATEGORIES.map((cat) => {
                 const entries = filteredContent.filter((e) => (e.category ?? 'Written') === cat)
                 if (entries.length === 0) return null
-                const Icon = CATEGORY_ICONS[cat]
+                const Icon = CATEGORY_META[cat].icon
                 const pct = filteredContent.length > 0 ? Math.round((entries.length / filteredContent.length) * 100) : 0
                 return (
                   <div key={cat}>
@@ -414,21 +377,19 @@ export default function DashboardPage() {
           {Object.entries(byMonth)
             .sort(([a], [b]) => new Date(b).getTime() - new Date(a).getTime())
             .map(([month, entries]) => {
-              const monthPublished = entries.filter((e) => e.status === 'Published').length
-              const monthViews     = entries.filter((e) => !e.category || e.category === 'Written' || e.category === 'Video').reduce((s, e) => s + (e.views ?? 0), 0)
-              const monthAttend    = entries.filter((e) => e.category === 'Event').reduce((s, e) => s + (e.attendees ?? 0), 0)
-              const monthDl        = entries.filter((e) => e.category === 'Package' || e.category === 'Podcast').reduce((s, e) => s + (e.downloads ?? 0), 0)
+              const monthTotals = aggregate(entries)
 
               return (
                 <div key={month} className="rounded-xl border border-border bg-card overflow-hidden">
                   <div className="flex items-start sm:items-center justify-between border-b border-border px-4 py-3 bg-muted/30">
                     <h3 className="font-medium text-foreground">{month}</h3>
                     <div className="flex flex-col sm:flex-row items-end sm:items-center gap-1 sm:gap-3 text-xs text-muted-foreground ml-auto">
-                      {monthViews > 0    && <span className="flex items-center gap-1"><Eye className="h-3 w-3" />{monthViews.toLocaleString()} views</span>}
-                      {monthAttend > 0   && <span className="flex items-center gap-1"><Users className="h-3 w-3" />{monthAttend.toLocaleString()} attendees</span>}
-                      {monthDl > 0       && <span className="flex items-center gap-1"><Download className="h-3 w-3" />{monthDl.toLocaleString()} downloads</span>}
+                      {monthTotals.views > 0     && <span className="flex items-center gap-1"><Eye className="h-3 w-3" />{monthTotals.views.toLocaleString()} views</span>}
+                      {monthTotals.attendees > 0 && <span className="flex items-center gap-1"><Users className="h-3 w-3" />{monthTotals.attendees.toLocaleString()} attendees</span>}
+                      {monthTotals.downloads > 0 && <span className="flex items-center gap-1"><Download className="h-3 w-3" />{monthTotals.downloads.toLocaleString()} downloads</span>}
+                      {monthTotals.stars > 0     && <span className="flex items-center gap-1"><Star className="h-3 w-3" />{monthTotals.stars.toLocaleString()} stars</span>}
                       <span className="hidden sm:inline text-border">|</span>
-                      <span>{monthPublished} of {entries.length} delivered</span>
+                      <span>{monthTotals.published} of {entries.length} delivered</span>
                     </div>
                   </div>
 
@@ -439,9 +400,8 @@ export default function DashboardPage() {
                         return (order[a.status] ?? 4) - (order[b.status] ?? 4)
                       })
                       .map((entry, idx) => {
-                        const cat  = (entry.category ?? 'Written') as Category
-                        const Icon = CATEGORY_ICONS[cat] ?? FileText
-                        const metric = getMetricDisplay(entry)
+                        const cat  = categoryOf(entry)
+                        const Icon = CATEGORY_META[cat].icon
 
                         return (
                           <div key={entry._id} className="flex flex-col gap-2 px-4 py-4">
@@ -467,6 +427,11 @@ export default function DashboardPage() {
                                 {entry.category === 'Package' && entry.packageName && (
                                   <p className="text-xs text-muted-foreground font-mono mt-0.5">{entry.packageName}</p>
                                 )}
+                                {entry.category === 'Demo' && (entry.stack || entry.repoUrl) && (
+                                  <p className="text-xs text-muted-foreground mt-0.5">
+                                    {[entry.stack, entry.repoUrl].filter(Boolean).join(' · ')}
+                                  </p>
+                                )}
                               </div>
                               <div className="flex items-center gap-2 shrink-0">
                                 {getStatusBadge(entry.status)}
@@ -485,7 +450,7 @@ export default function DashboardPage() {
                               <span>{entry.platform}</span>
                               <span>{entry.contentType}</span>
                               <span>{new Date(entry.publicationDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
-                              {metric && <span className="flex items-center gap-1">{metric}</span>}
+                              <EntryMetric entry={entry} />
                             </div>
                           </div>
                         )

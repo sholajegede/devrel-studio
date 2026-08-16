@@ -1,5 +1,15 @@
 import React from 'react'
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer'
+import {
+  CATEGORY_METRIC,
+  CATEGORY_PDF_COLOR,
+  aggregate,
+  aggregateByCategory,
+  categoryOf,
+  formatCompact,
+  getMetricValue,
+} from '@/lib/metrics'
+import { CATEGORIES } from '@/lib/types'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -19,6 +29,9 @@ export interface ReportContentItem {
   eventLocation?: string
   podcastName?: string
   packageName?: string
+  repoUrl?: string
+  stack?: string
+  stars?: number
   reshares?: { platform: string; link: string; date: string }[]
 }
 
@@ -31,6 +44,7 @@ export interface ReportData {
     totalViews: number
     totalDownloads: number
     totalAttendees: number
+    totalStars?: number
     totalReshares: number
   }
   period: string
@@ -58,6 +72,7 @@ const C = {
   event:    '#7c3aed',
   podcast:  '#ea580c',
   package:  '#059669',
+  demo:     '#0f766e',
 }
 
 // ── Styles ────────────────────────────────────────────────────────────────────
@@ -209,30 +224,31 @@ const s = StyleSheet.create({
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-function fmtNum(n: number): string {
-  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`
-  if (n >= 1_000)     return `${(n / 1_000).toFixed(1)}K`
-  return n.toLocaleString()
-}
+const fmtNum = formatCompact
 
 function fmtDate(d: string): string {
   return new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
 }
 
-function getMetric(item: ReportContentItem): string {
-  if (item.category === 'Event')   return (item.attendees ?? 0) > 0 ? `${fmtNum(item.attendees!)} att.` : '—'
-  if (item.category === 'Podcast') return (item.downloads  ?? 0) > 0 ? `${fmtNum(item.downloads!)} dl.` : '—'
-  if (item.category === 'Package') {
-    if ((item.weeklyDownloads ?? 0) > 0) return `${fmtNum(item.weeklyDownloads!)}/wk`
-    if ((item.downloads ?? 0) > 0)       return `${fmtNum(item.downloads!)} dl.`
-    return '—'
-  }
-  return (item.views ?? 0) > 0 ? `${fmtNum(item.views!)} views` : '—'
+/** Short metric label per category, e.g. "12.4K views", "480 stars". */
+const METRIC_SUFFIX: Record<string, string> = {
+  views: 'views', downloads: 'dl.', attendees: 'att.', stars: 'stars',
 }
 
-const CAT_COLOR: Record<string, string> = {
-  Written: C.written, Video: C.video, Event: C.event, Podcast: C.podcast, Package: C.package,
+function getMetric(item: ReportContentItem): string {
+  // Packages prefer the weekly trend when there is one.
+  if (categoryOf(item) === 'Package' && (item.weeklyDownloads ?? 0) > 0) {
+    return `${fmtNum(item.weeklyDownloads!)}/wk`
+  }
+
+  const value = getMetricValue(item)
+  if (value === 0) return '—'
+
+  const { key } = CATEGORY_METRIC[categoryOf(item)]
+  return `${fmtNum(value)} ${METRIC_SUFFIX[key]}`
 }
+
+const CAT_COLOR = CATEGORY_PDF_COLOR
 
 const STATUS_CFG: Record<string, { bg: string; fg: string; label: string }> = {
   'Published':        { bg: C.pubBg,       fg: C.pubFg,      label: 'Published' },
@@ -240,8 +256,6 @@ const STATUS_CFG: Record<string, { bg: string; fg: string; label: string }> = {
   'Waiting Approval': { bg: C.reviewBg,    fg: C.reviewFg,   label: 'In Review' },
   'Scheduled':        { bg: C.scheduledBg, fg: C.scheduledFg, label: 'Scheduled' },
 }
-
-const CATEGORIES = ['Written', 'Video', 'Event', 'Podcast', 'Package']
 
 const STATUS_ORDER: Record<string, number> = { Published: 0, 'Waiting Approval': 1, Draft: 2, Scheduled: 3 }
 
@@ -293,27 +307,22 @@ export function createReportDocument(data: ReportData) {
 
   // Group by month
   const byMonth: Record<string, ReportContentItem[]> = {}
+  const monthOrder: Record<string, number> = {}
   for (const item of content) {
-    const key = new Date(item.publicationDate).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+    const date = new Date(item.publicationDate)
+    const key = date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
     if (!byMonth[key]) byMonth[key] = []
     byMonth[key].push(item)
+    monthOrder[key] = date.getFullYear() * 12 + date.getMonth()
   }
+  // Newest month first, sorted on a real ordinal rather than by re-parsing the
+  // localized label.
   const sortedMonths = Object.entries(byMonth).sort(
-    ([a], [b]) => new Date(b).getTime() - new Date(a).getTime()
+    ([a], [b]) => monthOrder[b] - monthOrder[a]
   )
 
   // Category aggregates
-  const catCounts: Record<string, number> = {}
-  const catViews:  Record<string, number> = {}
-  const catDl:     Record<string, number> = {}
-  const catAtt:    Record<string, number> = {}
-  for (const item of content) {
-    const cat = item.category ?? 'Written'
-    catCounts[cat] = (catCounts[cat] ?? 0) + 1
-    catViews[cat]  = (catViews[cat]  ?? 0) + (item.views     ?? 0)
-    catDl[cat]     = (catDl[cat]     ?? 0) + (item.downloads ?? 0)
-    catAtt[cat]    = (catAtt[cat]    ?? 0) + (item.attendees ?? 0)
-  }
+  const byCategory = aggregateByCategory(content)
   const total = content.length || 1
 
   return (
@@ -339,6 +348,9 @@ export function createReportDocument(data: ReportData) {
             { label: 'Total Views', value: stats.totalViews     > 0 ? fmtNum(stats.totalViews)     : '—' },
             { label: 'Downloads',   value: stats.totalDownloads > 0 ? fmtNum(stats.totalDownloads) : '—' },
             { label: 'Attendees',   value: stats.totalAttendees > 0 ? fmtNum(stats.totalAttendees) : '—' },
+            ...((stats.totalStars ?? 0) > 0
+              ? [{ label: 'Stars', value: fmtNum(stats.totalStars!) }]
+              : []),
             { label: 'Reshares',    value: stats.totalReshares  > 0 ? String(stats.totalReshares)  : '—' },
           ].map((stat, i) => (
             <View key={stat.label} style={[s.statCard, i % 3 === 2 ? { marginRight: 0 } : {}]}>
@@ -352,14 +364,17 @@ export function createReportDocument(data: ReportData) {
         <Text style={s.sectionLabel}>CONTENT BREAKDOWN</Text>
         <View style={s.divider} />
         <View style={s.breakdownSection}>
-          {CATEGORIES.filter(cat => (catCounts[cat] ?? 0) > 0).map(cat => {
-            const count = catCounts[cat] ?? 0
-            const pct   = count / total
-            const color = CAT_COLOR[cat] ?? C.muted
+          {CATEGORIES.filter(cat => byCategory[cat].count > 0).map(cat => {
+            const totals = byCategory[cat]
+            const count  = totals.count
+            const pct    = count / total
+            const color  = CAT_COLOR[cat] ?? C.muted
+
+            // Each category reports only the metric it owns.
+            const { key, label } = CATEGORY_METRIC[cat]
             const parts = [`${count} ${count === 1 ? 'item' : 'items'}`]
-            if (cat === 'Event'                  && (catAtt[cat] ?? 0) > 0) parts.push(`${fmtNum(catAtt[cat])} attendees`)
-            if ((cat === 'Package' || cat === 'Podcast') && (catDl[cat] ?? 0) > 0) parts.push(`${fmtNum(catDl[cat])} downloads`)
-            if ((cat === 'Written' || cat === 'Video')   && (catViews[cat] ?? 0) > 0) parts.push(`${fmtNum(catViews[cat])} views`)
+            if (totals[key] > 0) parts.push(`${fmtNum(totals[key])} ${label.toLowerCase()}`)
+
             return (
               <View key={cat} style={s.breakdownRow}>
                 <View style={[s.breakdownDot, { backgroundColor: color }]} />
@@ -382,24 +397,20 @@ export function createReportDocument(data: ReportData) {
                 <Text style={[s.tableHeadCell, { flex: 1 }]}>TOTAL</Text>
                 <Text style={[s.tableHeadCell, { flex: 1 }]}>PUBLISHED</Text>
                 <Text style={[s.tableHeadCell, { flex: 1 }]}>VIEWS</Text>
-                <Text style={[s.tableHeadCell, { flex: 1 }]}>DL / ATT.</Text>
+                <Text style={[s.tableHeadCell, { flex: 1 }]}>DL/ATT/STARS</Text>
                 <Text style={[s.tableHeadCell, { flex: 1 }]}>RESHARES</Text>
               </View>
               {sortedMonths.map(([month, items], idx) => {
-                const pub   = items.filter(i => i.status === 'Published').length
-                const views = items.filter(i => !i.category || i.category === 'Written' || i.category === 'Video').reduce((n, i) => n + (i.views ?? 0), 0)
-                const dl    = items.filter(i => i.category === 'Package' || i.category === 'Podcast').reduce((n, i) => n + (i.downloads ?? 0), 0)
-                const att   = items.filter(i => i.category === 'Event').reduce((n, i) => n + (i.attendees ?? 0), 0)
-                const res   = items.reduce((n, i) => n + (i.reshares?.length ?? 0), 0)
+                const m = aggregate(items)
                 const isLast = idx === sortedMonths.length - 1
                 return (
                   <View key={month} style={[s.tableRow, idx % 2 !== 0 ? s.tableRowAlt : {}, isLast ? s.tableRowLast : {}]}>
                     <Text style={[s.cellText, { flex: 3 }]}>{month}</Text>
                     <Text style={[s.cellText, { flex: 1 }]}>{items.length}</Text>
-                    <Text style={[s.cellText, { flex: 1 }]}>{pub}</Text>
-                    <Text style={[s.cellText, { flex: 1 }]}>{views > 0 ? fmtNum(views) : '—'}</Text>
-                    <Text style={[s.cellText, { flex: 1 }]}>{dl > 0 ? fmtNum(dl) : att > 0 ? fmtNum(att) : '—'}</Text>
-                    <Text style={[s.cellText, { flex: 1 }]}>{res > 0 ? String(res) : '—'}</Text>
+                    <Text style={[s.cellText, { flex: 1 }]}>{m.published}</Text>
+                    <Text style={[s.cellText, { flex: 1 }]}>{m.views > 0 ? fmtNum(m.views) : '—'}</Text>
+                    <Text style={[s.cellText, { flex: 1 }]}>{m.downloads > 0 ? fmtNum(m.downloads) : m.attendees > 0 ? fmtNum(m.attendees) : m.stars > 0 ? fmtNum(m.stars) : '—'}</Text>
+                    <Text style={[s.cellText, { flex: 1 }]}>{m.reshares > 0 ? String(m.reshares) : '—'}</Text>
                   </View>
                 )
               })}
@@ -417,11 +428,7 @@ export function createReportDocument(data: ReportData) {
         <View style={s.divider} />
 
         {sortedMonths.map(([month, items]) => {
-          const pub  = items.filter(i => i.status === 'Published').length
-          const views = items.filter(i => !i.category || i.category === 'Written' || i.category === 'Video').reduce((n, i) => n + (i.views ?? 0), 0)
-          const dl   = items.filter(i => i.category === 'Package' || i.category === 'Podcast').reduce((n, i) => n + (i.downloads ?? 0), 0)
-          const att  = items.filter(i => i.category === 'Event').reduce((n, i) => n + (i.attendees ?? 0), 0)
-          const res  = items.reduce((n, i) => n + (i.reshares?.length ?? 0), 0)
+          const m = aggregate(items)
           const sorted = [...items].sort((a, b) => (STATUS_ORDER[a.status] ?? 4) - (STATUS_ORDER[b.status] ?? 4))
 
           return (
@@ -430,11 +437,12 @@ export function createReportDocument(data: ReportData) {
               <View style={s.monthHeader}>
                 <Text style={s.monthTitle}>{month}</Text>
                 <View style={s.monthMetaRow}>
-                  <Text style={s.monthMeta}>{pub} of {items.length} published</Text>
-                  {views > 0 && <Text style={s.monthMeta}>{fmtNum(views)} views</Text>}
-                  {att   > 0 && <Text style={s.monthMeta}>{fmtNum(att)} attendees</Text>}
-                  {dl    > 0 && <Text style={s.monthMeta}>{fmtNum(dl)} downloads</Text>}
-                  {res   > 0 && <Text style={s.monthMeta}>{res} reshares</Text>}
+                  <Text style={s.monthMeta}>{m.published} of {items.length} published</Text>
+                  {m.views     > 0 && <Text style={s.monthMeta}>{fmtNum(m.views)} views</Text>}
+                  {m.attendees > 0 && <Text style={s.monthMeta}>{fmtNum(m.attendees)} attendees</Text>}
+                  {m.downloads > 0 && <Text style={s.monthMeta}>{fmtNum(m.downloads)} downloads</Text>}
+                  {m.stars     > 0 && <Text style={s.monthMeta}>{fmtNum(m.stars)} stars</Text>}
+                  {m.reshares  > 0 && <Text style={s.monthMeta}>{m.reshares} reshares</Text>}
                 </View>
               </View>
 
@@ -449,7 +457,7 @@ export function createReportDocument(data: ReportData) {
                   <Text style={[s.tableHeadCell, { width: COL.date }]}>DATE</Text>
                 </View>
                 {sorted.map((item, idx) => {
-                  const cat     = item.category ?? 'Written'
+                  const cat     = categoryOf(item)
                   const catColor = CAT_COLOR[cat] ?? C.muted
                   const reshares = item.reshares?.length ?? 0
                   const isLast   = idx === sorted.length - 1
@@ -461,6 +469,7 @@ export function createReportDocument(data: ReportData) {
                         {item.category === 'Event'   && item.eventName   && <Text style={s.cellMuted}>{item.eventName}{item.eventLocation ? ` · ${item.eventLocation}` : ''}</Text>}
                         {item.category === 'Podcast' && item.podcastName && <Text style={s.cellMuted}>{item.podcastName}</Text>}
                         {item.category === 'Package' && item.packageName && <Text style={s.cellMuted}>{item.packageName}</Text>}
+                        {item.category === 'Demo'    && (item.stack || item.repoUrl) && <Text style={s.cellMuted}>{[item.stack, item.repoUrl].filter(Boolean).join(' · ')}</Text>}
                         {reshares > 0 && <Text style={s.cellAccent}>{reshares} reshare{reshares > 1 ? 's' : ''}</Text>}
                       </View>
                       {/* Category */}

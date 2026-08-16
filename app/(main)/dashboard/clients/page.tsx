@@ -34,6 +34,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { ClientAccessDialog } from '@/components/dashboard/client-access-dialog'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -48,7 +49,7 @@ import { toast } from 'sonner'
 import {
   Plus, MoreVertical, Building2, Mail, Globe,
   DollarSign, Calendar, FileText, Loader2, Users,
-  TrendingUp, Edit3, Trash2, ExternalLink,
+  TrendingUp, Edit3, Trash2, ExternalLink, KeyRound,
 } from 'lucide-react'
 import { AdminTour, AdminTourTriggerButton, TourVariant } from '@/components/admin-onboarding-tour'
 
@@ -81,8 +82,8 @@ const EMPTY_FORM: ClientFormData = {
 }
 
 const STATUS_STYLES: Record<ClientStatus, string> = {
-  Active: 'bg-emerald-100 text-emerald-700 border-emerald-200',
-  Paused: 'bg-yellow-100 text-yellow-700 border-yellow-200',
+  Active: 'bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-300 dark:border-emerald-500/25',
+  Paused: 'bg-yellow-100 text-yellow-700 border-yellow-200 dark:bg-yellow-500/10 dark:text-yellow-300 dark:border-yellow-500/25',
   Ended:  'bg-muted text-muted-foreground border-border',
 }
 
@@ -94,12 +95,12 @@ const CURRENCY_SYMBOL: Record<Currency, string> = {
 
 function avatarColor(name: string) {
   const colors = [
-    'bg-violet-100 text-violet-700',
-    'bg-blue-100 text-blue-700',
-    'bg-teal-100 text-teal-700',
-    'bg-rose-100 text-rose-700',
-    'bg-orange-100 text-orange-700',
-    'bg-indigo-100 text-indigo-700',
+    'bg-violet-100 text-violet-700 dark:bg-violet-500/10 dark:text-violet-300',
+    'bg-blue-100 text-blue-700 dark:bg-blue-500/10 dark:text-blue-300',
+    'bg-teal-100 text-teal-700 dark:bg-teal-500/10 dark:text-teal-300',
+    'bg-rose-100 text-rose-700 dark:bg-rose-500/10 dark:text-rose-300',
+    'bg-orange-100 text-orange-700 dark:bg-orange-500/10 dark:text-orange-300',
+    'bg-indigo-100 text-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-300',
   ]
   return colors[name.charCodeAt(0) % colors.length]
 }
@@ -310,7 +311,7 @@ export default function ClientsPage() {
   const { profile } = useUserContext()
   const userId = profile?._id
 
-  const clients = useQuery(api.clients.getClients, userId ? { userId } : 'skip')
+  const clients = useQuery(api.clients.getClients, userId ? {} : 'skip')
   const createClient = useMutation(api.clients.createClient)
   const updateClient = useMutation(api.clients.updateClient)
   const deleteClient = useMutation(api.clients.deleteClient)
@@ -318,6 +319,7 @@ export default function ClientsPage() {
   const [dialogOpen,  setDialogOpen]  = useState(false)
   const [deleteId,    setDeleteId]    = useState<Id<'clients'> | null>(null)
   const [editTarget,  setEditTarget]  = useState<Doc<'clients'> | null>(null)
+  const [accessTarget, setAccessTarget] = useState<Doc<'clients'> | null>(null)
   const [isSaving,    setIsSaving]    = useState(false)
   const [tourControls, setTourControls] = useState<{ startTour: () => void } | null>(null)
 
@@ -352,7 +354,6 @@ export default function ClientsPage() {
         toast.success('Client updated')
       } else {
         await createClient({
-          userId,
           name: data.name,
           company: data.company,
           email: data.email || undefined,
@@ -503,6 +504,9 @@ export default function ClientsPage() {
                         <DropdownMenuItem onClick={() => openEdit(client)}>
                           <Edit3 className="h-3.5 w-3.5 mr-2" /> Edit
                         </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => setAccessTarget(client)}>
+                          <KeyRound className="h-3.5 w-3.5 mr-2" /> Dashboard access
+                        </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem
                           onClick={() => setDeleteId(client._id)}
@@ -559,8 +563,26 @@ export default function ClientsPage() {
                     )}
                   </div>
                   {client.slug ? (
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span
+                        title={
+                          client.isPublic
+                            ? 'Anyone with the link can view'
+                            : client.accessCodeHash
+                              ? 'Access code required'
+                              : 'Unprotected — anyone with the link can view'
+                        }
+                        className={`inline-flex items-center gap-1 rounded-md px-1.5 py-1 text-xs ${
+                          client.accessCodeHash && !client.isPublic
+                            ? 'text-emerald-700 bg-emerald-50 dark:text-emerald-300 dark:bg-emerald-500/10'
+                            : 'text-amber-700 bg-amber-50 dark:text-amber-300 dark:bg-amber-500/10'
+                        }`}
+                      >
+                        <KeyRound className="h-3 w-3" />
+                        {client.accessCodeHash && !client.isPublic ? 'Coded' : 'Open'}
+                      </span>
                     <a
-                      href={`/${client.slug}`}
+                      href={`https://${client.slug}.${process.env.NEXT_PUBLIC_ROOT_DOMAIN}`}
                       target="_blank"
                       rel="noreferrer"
                       className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-muted/50 px-2.5 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors shrink-0"
@@ -568,6 +590,7 @@ export default function ClientsPage() {
                       <ExternalLink className="h-3 w-3" />
                       View dashboard
                     </a>
+                    </div>
                   ) : null}
                 </div>
               </CardContent>
@@ -575,6 +598,17 @@ export default function ClientsPage() {
           ))}
         </div>
       )}
+
+      {/* Dashboard access dialog — read the live doc so code/visibility stay current */}
+      <ClientAccessDialog
+        client={
+          accessTarget
+            ? clients?.find((c) => c._id === accessTarget._id) ?? accessTarget
+            : null
+        }
+        open={!!accessTarget}
+        onOpenChange={(open) => { if (!open) setAccessTarget(null) }}
+      />
 
       {/* Form dialog */}
       <ClientFormDialog

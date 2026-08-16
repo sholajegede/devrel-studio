@@ -1,6 +1,16 @@
 import { Id } from './_generated/dataModel'
-import { mutation, query } from './_generated/server'
-import { v } from 'convex/values'
+import { MutationCtx, internalMutation, mutation, query } from './_generated/server'
+import { ConvexError, v } from 'convex/values'
+import { getCurrentUser } from './model/auth'
+import {
+  getCurrentWorkspace,
+  planHolder,
+  readInWorkspace,
+  requireInWorkspace,
+  requireWorkspace,
+} from './model/workspaces'
+import { planOf } from './model/plans'
+import { ensurePersonalWorkspace } from './model/workspaces'
 
 const categoryValidator = v.optional(v.union(
   v.literal("Written"),
@@ -8,6 +18,7 @@ const categoryValidator = v.optional(v.union(
   v.literal("Event"),
   v.literal("Podcast"),
   v.literal("Package"),
+  v.literal("Demo"),
 ))
 
 const statusValidator = v.union(
@@ -49,27 +60,86 @@ const entryFields = {
   attendees: v.optional(v.number()),
   // Podcast
   podcastName: v.optional(v.string()),
+  // Demo
+  repoUrl: v.optional(v.string()),
+  stack: v.optional(v.string()),
+  stars: v.optional(v.number()),
 }
 
 // ── Queries ───────────────────────────────────────────────────────────────────
 
+// ⚠ PUBLIC — this is the only unauthenticated read in the app. It powers the
+// client dashboard at [slug].devrel.studio, which managers visit without an
+// account. The manager access-code gate in the subdomain layout is what decides
+// whether a visitor gets this far.
+//
+// The argument is a *slug*, not a free-text client name. It is resolved to a
+// single client row first, and entries are then read within that row's owner.
+// Reading by client name alone (the previous behaviour) merged the content of
+// every DevRel who happened to use the same name for a client.
 export const getContentByClient = query({
   args: { client: v.string() },
   handler: async (ctx, args) => {
-    return await ctx.db
-      .query('contentEntries')
-      .withIndex('by_client', (q) => q.eq('client', args.client))
-      .order('desc')
-      .collect()
+    const slug = args.client.trim().toLowerCase()
+
+    const client = await ctx.db
+      .query('clients')
+      .withIndex('by_slug', (q) => q.eq('slug', slug))
+      .first()
+
+    // No client owns this slug — there is nobody to attribute entries to, so
+    // there is nothing safe to return.
+    if (!client) return []
+
+    // `contentEntries.client` is a free-text label chosen in the content form,
+    // which historically could be the slug, the client name, or the company.
+    // Accept any of them, but only ever within this client's owner.
+    const keys = new Set(
+      [client.slug, client.name, client.company]
+        .filter((k): k is string => !!k)
+        .map((k) => k.trim()),
+    )
+
+    const seen = new Set<string>()
+    const entries = []
+    for (const key of keys) {
+      // Read through the workspace so entries logged by any member of a shared
+      // workspace appear on the client's dashboard, not only the owner's.
+      const rows = client.workspaceId
+        ? await ctx.db
+            .query('contentEntries')
+            .withIndex('by_workspace_and_client', (q) =>
+              q.eq('workspaceId', client.workspaceId).eq('client', key),
+            )
+            .collect()
+        : await ctx.db
+            .query('contentEntries')
+            .withIndex('by_user_and_client', (q) =>
+              q.eq('userId', client.userId).eq('client', key),
+            )
+            .collect()
+      for (const row of rows) {
+        if (seen.has(row._id)) continue
+        seen.add(row._id)
+        entries.push(row)
+      }
+    }
+
+    return entries.sort((a, b) =>
+      b.publicationDate.localeCompare(a.publicationDate),
+    )
   },
 })
 
 export const getAllContent = query({
-  args: { userId: v.id("users") },
-  handler: async (ctx, args) => {
+  args: {},
+  handler: async (ctx) => {
+    const context = await getCurrentWorkspace(ctx)
+    if (!context) return []
+
     return await ctx.db
       .query('contentEntries')
-      .filter((q) => q.eq(q.field('userId'), args.userId))
+      .withIndex('by_workspace', (q) => q.eq('workspaceId', context.workspaceId))
       .order('desc')
       .collect()
   },
@@ -78,8 +148,12 @@ export const getAllContent = query({
 export const getContentByStatus = query({
   args: { status: v.string() },
   handler: async (ctx, args) => {
+    const context = await getCurrentWorkspace(ctx)
+    if (!context) return []
+
     return await ctx.db
       .query('contentEntries')
+      .withIndex('by_workspace', (q) => q.eq('workspaceId', context.workspaceId))
       .filter((q) => q.eq(q.field('status'), args.status))
       .order('desc')
       .collect()
@@ -89,15 +163,19 @@ export const getContentByStatus = query({
 export const getContentById = query({
   args: { id: v.id('contentEntries') },
   handler: async (ctx, args) => {
-    return await ctx.db.get(args.id)
+    return await readInWorkspace(ctx, args.id)
   },
 })
 
 export const getRetainerContent = query({
   args: { fromDate: v.string() },
   handler: async (ctx, args) => {
+    const context = await getCurrentWorkspace(ctx)
+    if (!context) return []
+
     return await ctx.db
       .query('contentEntries')
+      .withIndex('by_workspace', (q) => q.eq('workspaceId', context.workspaceId))
       .filter((q) => q.gte(q.field('publicationDate'), args.fromDate))
       .filter((q) => q.eq(q.field('status'), 'Published'))
       .order('desc')
@@ -108,14 +186,32 @@ export const getRetainerContent = query({
 // ── Mutations ─────────────────────────────────────────────────────────────────
 
 export const createContent = mutation({
-  args: {
-    userId: v.id("users"),
-    ...entryFields,
-  },
+  args: entryFields,
   handler: async (ctx, args) => {
+    const { user, workspace, workspaceId } = await requireWorkspace(ctx, 'editor')
+
+    // Limits belong to whoever owns the workspace, not to whoever is typing —
+    // otherwise an invited member's own plan would decide the allowance.
+    const plan = planOf(await planHolder(ctx, workspace))
+    if (plan.maxEntries !== null) {
+      const existing = await ctx.db
+        .query('contentEntries')
+        .withIndex('by_workspace', (q) => q.eq('workspaceId', workspaceId))
+        .collect()
+
+      if (existing.length >= plan.maxEntries) {
+        throw new ConvexError(
+          `The ${plan.name} includes ${plan.maxEntries} content entries. ` +
+            `Upgrade for unlimited entries.`,
+        )
+      }
+    }
+
     const now = new Date().toISOString()
     const id = await ctx.db.insert('contentEntries', {
       ...args,
+      userId: user._id,
+      workspaceId,
       updatedAt: now,
     })
     return id
@@ -125,29 +221,75 @@ export const createContent = mutation({
 export const updateContent = mutation({
   args: {
     id: v.id('contentEntries'),
-    userId: v.id("users"),
     ...entryFields,
   },
   handler: async (ctx, args) => {
     const { id, ...rest } = args
+    await requireInWorkspace(ctx, id, 'editor')
+
     const now = new Date().toISOString()
     await ctx.db.patch(id, { ...rest, updatedAt: now })
     return id
   },
 })
 
+/**
+ * Move an entry along the pipeline without touching anything else.
+ *
+ * `updateContent` requires the whole entry, so the board would otherwise have
+ * to round-trip every field just to change one — and would clobber concurrent
+ * edits made in the form.
+ */
+export const setContentStatus = mutation({
+  args: { id: v.id('contentEntries'), status: statusValidator },
+  handler: async (ctx, args) => {
+    await requireInWorkspace(ctx, args.id, 'editor')
+    await ctx.db.patch(args.id, {
+      status: args.status,
+      updatedAt: new Date().toISOString(),
+    })
+    return args.id
+  },
+})
+
 export const deleteContent = mutation({
   args: { id: v.id('contentEntries') },
   handler: async (ctx, args) => {
+    // Deleting is the one content action an editor cannot do.
+    await requireInWorkspace(ctx, args.id, 'admin')
     await ctx.db.delete(args.id)
     return args.id
   },
 })
 
-export const seedSampleData = mutation({
-  args: {},
-  handler: async (ctx) => {
-    const userId = "jd74y8z0rpgr93h8ky8fd10a0d801pfz" as Id<"users">;
+/**
+ * Resolve who seeded rows belong to, and which workspace they land in.
+ *
+ * The workspace matters: entries without a `workspaceId` are invisible to every
+ * list query after the workspace migration, so a seeder that omitted it would
+ * appear to succeed and produce nothing on screen.
+ */
+async function seedTarget(ctx: MutationCtx, email: string) {
+  const user = await ctx.db
+    .query("users")
+    .filter((q) => q.eq(q.field("email"), email.trim().toLowerCase()))
+    .first();
+
+  if (!user) throw new ConvexError(`No user with the email ${email}`);
+
+  const workspaceId = await ensurePersonalWorkspace(ctx, user);
+  return { userId: user._id, workspaceId };
+}
+
+// Internal only — was a public mutation with a hardcoded user id, which let any
+// visitor write rows into that account. Run it from the Convex dashboard or CLI.
+export const seedSampleData = internalMutation({
+  args: { email: v.string() },
+  handler: async (ctx, args) => {
+    // Was a hardcoded user id that no longer existed in any deployment, so every
+    // row it wrote was orphaned on insert. The target is now named explicitly:
+    //   npx convex run content:seedSampleData '{"email":"you@example.com"}'
+    const { userId, workspaceId } = await seedTarget(ctx, args.email);
 
     const sampleData = [
       // July 2025 - Week 1
@@ -249,7 +391,7 @@ export const seedSampleData = mutation({
     for (const data of sampleData) {
       try {
         const now = new Date().toISOString()
-        await ctx.db.insert('contentEntries', { ...data, updatedAt: now })
+        await ctx.db.insert('contentEntries', { ...data, userId, workspaceId, updatedAt: now })
         inserted++
       } catch (e) {
         console.error('Error inserting sample data:', e)
@@ -262,14 +404,14 @@ export const seedSampleData = mutation({
 
 // ── February 2026 demo data — every category, platform, status & metric ──────
 
-export const seedFebruaryDemo = mutation({
-  args: {},
-  handler: async (ctx) => {
-    // Resolve userId dynamically — look up from existing content, then users table
-    const existingEntry = await ctx.db.query("contentEntries").first()
-    const firstUser = !existingEntry ? await ctx.db.query("users").first() : null
-    const userId = existingEntry?.userId ?? firstUser?._id
-    if (!userId) return { inserted: 0, total: 0, error: "No user found in database" }
+// Internal only — same reason as seedSampleData: it was public and wrote rows
+// into whichever user it found first in the database.
+export const seedFebruaryDemo = internalMutation({
+  args: { email: v.string() },
+  handler: async (ctx, args) => {
+    // Previously guessed the target from whichever row happened to be first,
+    // which meant re-running it could dump demo content into a real account.
+    const { userId, workspaceId } = await seedTarget(ctx, args.email)
     const now = new Date().toISOString()
 
     const entries = [
@@ -577,7 +719,7 @@ export const seedFebruaryDemo = mutation({
     let inserted = 0
     for (const data of entries) {
       try {
-        await ctx.db.insert("contentEntries", { ...data, updatedAt: now })
+        await ctx.db.insert("contentEntries", { ...data, userId, workspaceId, updatedAt: now })
         inserted++
       } catch (e) {
         console.error("Error inserting demo entry:", e)

@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import {
-  FileText, Video, MapPin, Mic, Package,
+  FileText, Video, MapPin, Mic, Package, Rocket,
   Eye, Download, Users, BarChart3, Link2,
   Share2, CheckCircle, ArrowRight, Zap,
   CheckCircle2, Star,
@@ -155,8 +155,8 @@ function BeforeAfter() {
 
       <div className="grid gap-6 md:grid-cols-2">
         {/* Before */}
-        <div className="rounded-2xl border border-red-100 bg-red-50/40 p-8">
-          <p className="text-sm font-semibold text-red-600 mb-5 flex items-center gap-2">
+        <div className="rounded-2xl border border-red-100 bg-red-50/40 dark:border-red-500/25 dark:bg-red-500/10 p-8">
+          <p className="text-sm font-semibold text-red-600 dark:text-red-300 mb-5 flex items-center gap-2">
             <span className="h-2 w-2 rounded-full bg-red-500 inline-block" />
             Before DevRel Studio
           </p>
@@ -169,8 +169,8 @@ function BeforeAfter() {
               'Zero visibility between reporting periods',
               'Proving ROI feels impossible without historic data',
             ].map((item) => (
-              <li key={item} className="flex items-start gap-3 text-sm text-red-700/80">
-                <span className="mt-1 h-4 w-4 shrink-0 rounded-full bg-red-100 text-red-500 flex items-center justify-center text-xs font-bold">✕</span>
+              <li key={item} className="flex items-start gap-3 text-sm text-red-700/80 dark:text-red-200/80">
+                <span className="mt-1 h-4 w-4 shrink-0 rounded-full bg-red-100 text-red-500 dark:bg-red-500/20 dark:text-red-300 flex items-center justify-center text-xs font-bold">✕</span>
                 {item}
               </li>
             ))}
@@ -215,9 +215,9 @@ const FEATURES = [
   },
   {
     icon: FileText,
-    title: 'Five content categories',
+    title: 'Six content categories',
     description:
-      'Written, Video, Event, Podcast, Package — each with the right fields. Views for articles, attendees for events, weekly download trends for npm packages. No generic one-size-fits-all forms.',
+      'Written, Video, Event, Podcast, Package, Demo — each with the right fields. Views for articles, attendees for events, weekly download trends for npm packages, stars for demo apps. No generic one-size-fits-all forms.',
   },
   {
     icon: Link2,
@@ -285,11 +285,12 @@ function Features() {
 // ─── Content categories ───────────────────────────────────────────────────────
 
 const CONTENT_CATS = [
-  { icon: FileText, name: 'Written',  metric: 'Views',     bg: 'bg-blue-50',   text: 'text-blue-600',   border: 'border-blue-100',   examples: ['Blog posts', 'Tutorials', 'Docs', 'Case studies', 'Newsletters'] },
-  { icon: Video,    name: 'Video',    metric: 'Views',     bg: 'bg-purple-50', text: 'text-purple-600', border: 'border-purple-100', examples: ['YouTube videos', 'Loom walkthroughs', 'Course modules', 'Conference recordings'] },
-  { icon: MapPin,   name: 'Event',    metric: 'Attendees', bg: 'bg-orange-50', text: 'text-orange-600', border: 'border-orange-100', examples: ['Conference talks', 'Meetups', 'Webinars', 'Workshops', 'Keynotes'] },
-  { icon: Mic,      name: 'Podcast',  metric: 'Downloads', bg: 'bg-pink-50',   text: 'text-pink-600',   border: 'border-pink-100',   examples: ['Guest appearances', 'Interview shows', 'Solo episodes'] },
-  { icon: Package,  name: 'Package',  metric: 'Downloads + weekly trend', bg: 'bg-teal-50', text: 'text-teal-600', border: 'border-teal-100', examples: ['npm packages', 'SDKs', 'CLI tools', 'Convex components', 'Libraries'] },
+  { icon: FileText, name: 'Written',  metric: 'Views',     bg: 'bg-blue-50 dark:bg-blue-500/10',   text: 'text-blue-600 dark:text-blue-300',   border: 'border-blue-100 dark:border-blue-500/25',   examples: ['Blog posts', 'Tutorials', 'Docs', 'Case studies', 'Newsletters'] },
+  { icon: Video,    name: 'Video',    metric: 'Views',     bg: 'bg-purple-50 dark:bg-purple-500/10', text: 'text-purple-600 dark:text-purple-300', border: 'border-purple-100 dark:border-purple-500/25', examples: ['YouTube videos', 'Loom walkthroughs', 'Course modules', 'Conference recordings'] },
+  { icon: MapPin,   name: 'Event',    metric: 'Attendees', bg: 'bg-orange-50 dark:bg-orange-500/10', text: 'text-orange-600 dark:text-orange-300', border: 'border-orange-100 dark:border-orange-500/25', examples: ['Conference talks', 'Meetups', 'Webinars', 'Workshops', 'Keynotes'] },
+  { icon: Mic,      name: 'Podcast',  metric: 'Downloads', bg: 'bg-pink-50 dark:bg-pink-500/10',   text: 'text-pink-600 dark:text-pink-300',   border: 'border-pink-100 dark:border-pink-500/25',   examples: ['Guest appearances', 'Interview shows', 'Solo episodes'] },
+  { icon: Package,  name: 'Package',  metric: 'Downloads + weekly trend', bg: 'bg-teal-50 dark:bg-teal-500/10', text: 'text-teal-600 dark:text-teal-300', border: 'border-teal-100 dark:border-teal-500/25', examples: ['npm packages', 'SDKs', 'CLI tools', 'Convex components', 'Libraries'] },
+  { icon: Rocket,   name: 'Demo',     metric: 'GitHub stars', bg: 'bg-emerald-50 dark:bg-emerald-500/10', text: 'text-emerald-600 dark:text-emerald-300', border: 'border-emerald-100 dark:border-emerald-500/25', examples: ['Demo apps', 'Starter kits', 'Sample projects', 'Reference implementations'] },
 ]
 
 function ContentCategories() {
@@ -298,7 +299,7 @@ function ContentCategories() {
       <div className="text-center mb-14">
         <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
           One dashboard.{' '}
-          <span className="text-accent">Five content types.</span>
+          <span className="text-accent">Six content types.</span>
         </h2>
         <p className="text-muted-foreground max-w-lg mx-auto">
           DevRel work doesn&apos;t fit neatly into a spreadsheet column. Each category in DevRel Studio
@@ -306,7 +307,7 @@ function ContentCategories() {
         </p>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {CONTENT_CATS.map(({ icon: Icon, name, metric, bg, text, border, examples }) => (
           <div key={name} className={`rounded-2xl border ${border} ${bg} p-5`}>
             <div className={`mb-3 h-10 w-10 rounded-xl border ${border} bg-white flex items-center justify-center ${text}`}>
@@ -468,7 +469,7 @@ const FAQ_ITEMS = [
   { q: 'What is your refund policy?',                  a: 'Full refund within 14 days of purchase, no questions asked. If DevRel Studio isn\'t working for you, just email us.' },
   { q: 'Do clients need to create an account?',        a: 'No. The client dashboard is a read-only URL that requires no login. Just share the link — it works in any browser.' },
   { q: 'Can multiple people use one account?',         a: 'Starter and Pro are single-user. The Agency plan includes up to 5 team member seats. Contact us for larger teams.' },
-  { q: 'What content types does DevRel Studio track?', a: 'Five categories: Written (blogs, tutorials, docs), Video (YouTube, Loom), Event (conferences, meetups, webinars), Podcast (guest spots, episodes), and Package (npm, SDKs, CLI tools).' },
+  { q: 'What content types does DevRel Studio track?', a: 'Six categories: Written (blogs, tutorials, docs), Video (YouTube, Loom), Event (conferences, meetups, webinars), Podcast (guest spots, episodes), Package (npm, SDKs, CLI tools), and Demo (demo apps, starter kits).' },
 ]
 
 function FAQ() {

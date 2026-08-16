@@ -18,8 +18,14 @@ yarn-error.log*
 
 # env files
 .env*
+# ...but the template is documentation, not a secret, and every new environment
+# needs it. It holds placeholders and localhost URLs only.
+!.env.example
 .dev_values
 .prod_values
+
+# local agent tooling
+.claude/
 
 # vercel
 .vercel

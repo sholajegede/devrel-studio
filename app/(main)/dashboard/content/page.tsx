@@ -10,11 +10,11 @@ import {
   PLATFORMS,
   getMonthsFromContent,
   formatMonthLabel,
-  getMetricValue,
-  getMetricLabel,
-  getCategoryColor,
-  type Category,
 } from '@/lib/types'
+import { categoryOf } from '@/lib/metrics'
+import { CATEGORY_META, getCategoryColor } from '@/lib/category-meta'
+import { PlatformIcon } from '@/lib/platform-meta'
+import { EntryMetric } from '@/components/dashboard/entry-metric'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -32,24 +32,16 @@ import {
 } from '@/components/ui/alert-dialog'
 import {
   Search, ExternalLink, Edit, Trash2, PlusCircle, Download,
-  Eye, Link2, CheckCircle2, Pencil, AlertCircle, Clock,
-  FileText, Video, MapPin, Mic, Package,
-  Users, Headphones, TrendingUp, RefreshCw,
+  Link2, CheckCircle2, Pencil, AlertCircle, Clock,
+  FileText, RefreshCw,
 } from 'lucide-react'
-import { useMutation, useQuery } from 'convex/react'
+import { useAction, useMutation, useQuery } from 'convex/react'
 import { api } from '@/convex/_generated/api'
 import { Id } from '@/convex/_generated/dataModel'
 import { useRouter } from 'next/navigation'
 import { useUserContext } from '@/contexts/user-context'
 import PageLoader from '@/components/page-loader'
-
-const CATEGORY_ICONS: Record<string, React.ElementType> = {
-  Written: FileText,
-  Video:   Video,
-  Event:   MapPin,
-  Podcast: Mic,
-  Package: Package,
-}
+import { toast } from 'sonner'
 
 export default function ContentListPage() {
   const { profile } = useUserContext()
@@ -61,11 +53,14 @@ export default function ContentListPage() {
   const [deleteId,       setDeleteId]       = useState<Id<"contentEntries"> | null>(null)
   const [contentTourControls, setContentTourControls] = useState<{ startTour: () => void } | null>(null)
   const [isTimeout,      setIsTimeout]      = useState(false)
+  const [isSyncing,      setIsSyncing]      = useState(false)
   const router = useRouter()
+
+  const syncMyStats = useAction(api.sync.syncMyStats)
 
   const content = useQuery(
     api.content.getAllContent,
-    profile?._id ? { userId: profile._id as Id<"users"> } : "skip"
+    profile?._id ? {} : "skip"
   )
 
   const deleteEntry = useMutation(api.content.deleteContent)
@@ -135,15 +130,48 @@ export default function ContentListPage() {
     setPlatformFilter('all')
   }
 
+  // ── Stat sync ─────────────────────────────────────────────────────────────
+  // npm downloads and GitHub stars refresh on a daily cron; this is the manual
+  // "don't wait until tomorrow" path. Only entries that carry a package name or
+  // repo URL can be synced, so the button hides when there are none.
+
+  const syncableCount = useMemo(() => {
+    if (!content) return 0
+    return (content as ContentEntry[]).filter(
+      (c) => c.packageName?.trim() || c.repoUrl?.trim()
+    ).length
+  }, [content])
+
+  const refreshStats = async () => {
+    setIsSyncing(true)
+    try {
+      const result = await syncMyStats({})
+      if (result.total === 0) {
+        toast.info('Nothing to sync yet')
+      } else if (result.failed > 0) {
+        toast.warning(
+          `Updated ${result.synced} of ${result.total} — ${result.failed} could not be reached`
+        )
+      } else {
+        toast.success(`Updated ${result.synced} ${result.synced === 1 ? 'entry' : 'entries'}`)
+      }
+    } catch (error) {
+      console.error('[content] stat sync failed:', error)
+      toast.error('Could not refresh stats. Please try again.')
+    } finally {
+      setIsSyncing(false)
+    }
+  }
+
   const exportToCSV = () => {
     const headers = [
       'Category', 'Title', 'Link', 'Tracking Link', 'Platform',
-      'Publication Date', 'Status', 'Views', 'Downloads', 'Attendees',
+      'Publication Date', 'Status', 'Views', 'Downloads', 'Attendees', 'Stars',
       'Content Type', 'Tags', 'Notes',
     ]
     const rows = filteredContent.map((c) => [
       c.category ?? 'Written', c.title, c.link, c.trackingLink, c.platform,
-      c.publicationDate, c.status, c.views ?? '', c.downloads ?? '', c.attendees ?? '',
+      c.publicationDate, c.status, c.views ?? '', c.downloads ?? '', c.attendees ?? '', c.stars ?? '',
       c.contentType, c.tags.join('; '), c.notes,
     ])
     const csv = [headers, ...rows]
@@ -162,29 +190,10 @@ export default function ContentListPage() {
     switch (status) {
       case 'Published':        return <Badge variant="secondary" className="gap-1 font-normal"><CheckCircle2 className="h-3 w-3" />Published</Badge>
       case 'Draft':            return <Badge variant="outline"   className="gap-1 font-normal"><Pencil className="h-3 w-3" />Draft</Badge>
-      case 'Waiting Approval': return <Badge variant="outline"   className="gap-1 font-normal text-amber-600 border-amber-300"><AlertCircle className="h-3 w-3" />Waiting</Badge>
+      case 'Waiting Approval': return <Badge variant="outline"   className="gap-1 font-normal text-amber-600 border-amber-300 dark:text-amber-400 dark:border-amber-500/40"><AlertCircle className="h-3 w-3" />Waiting</Badge>
       case 'Scheduled':        return <Badge variant="outline"   className="gap-1 font-normal"><Clock className="h-3 w-3" />Scheduled</Badge>
       default:                 return <Badge variant="secondary">{status}</Badge>
     }
-  }
-
-  const getMetricDisplay = (entry: ContentEntry) => {
-    const cat   = entry.category ?? 'Written'
-    const value = getMetricValue(entry)
-    const label = getMetricLabel(entry.category)
-    if (value === 0) return null
-    const Icon = cat === 'Event' ? Users : cat === 'Podcast' ? Headphones : cat === 'Package' ? Download : Eye
-    return (
-      <span className="flex items-center gap-1">
-        <Icon className="h-3 w-3" />
-        {value.toLocaleString()} {label.toLowerCase()}
-        {cat === 'Package' && (entry.weeklyDownloads ?? 0) > 0 && (
-          <span className="text-muted-foreground/70 flex items-center gap-0.5 ml-1">
-            · <TrendingUp className="h-2.5 w-2.5" /> {entry.weeklyDownloads!.toLocaleString()}/wk
-          </span>
-        )}
-      </span>
-    )
   }
 
   const months = content ? getMonthsFromContent(content as ContentEntry[]) : []
@@ -224,6 +233,21 @@ export default function ContentListPage() {
         </div>
         <div className="flex gap-2">
           <AdminTourTriggerButton onStartTour={() => contentTourControls?.startTour()} />
+          {syncableCount > 0 && (
+            <Button
+              variant="outline"
+              onClick={refreshStats}
+              disabled={isSyncing}
+              size="sm"
+              className="gap-1.5 bg-transparent"
+              title={`Pull fresh download counts and stars for ${syncableCount} ${
+                syncableCount === 1 ? 'entry' : 'entries'
+              }`}
+            >
+              <RefreshCw className={`h-3.5 w-3.5 ${isSyncing ? 'animate-spin' : ''}`} />
+              {isSyncing ? 'Syncing…' : 'Refresh stats'}
+            </Button>
+          )}
           <Button variant="outline" onClick={exportToCSV} size="sm" className="gap-1.5 bg-transparent">
             <Download className="h-3.5 w-3.5" />Export CSV
           </Button>
@@ -271,7 +295,7 @@ export default function ContentListPage() {
               <SelectContent>
                 <SelectItem value="all">All Types</SelectItem>
                 {CATEGORIES.map((cat) => {
-                  const Icon = CATEGORY_ICONS[cat]
+                  const Icon = CATEGORY_META[cat].icon
                   return (
                     <SelectItem key={cat} value={cat}>
                       <span className="flex items-center gap-2">
@@ -342,9 +366,8 @@ export default function ContentListPage() {
           </Card>
         ) : (
           filteredContent.map((entry) => {
-            const cat    = (entry.category ?? 'Written') as Category
-            const Icon   = CATEGORY_ICONS[cat] ?? FileText
-            const metric = getMetricDisplay(entry)
+            const cat    = categoryOf(entry)
+            const Icon   = CATEGORY_META[cat].icon
 
             return (
               <Card key={entry._id} className="transition-colors hover:border-foreground/20">
@@ -372,6 +395,11 @@ export default function ContentListPage() {
                         {entry.category === 'Package' && entry.packageName && (
                           <p className="text-xs text-muted-foreground font-mono mt-0.5">{entry.packageName}</p>
                         )}
+                        {entry.category === 'Demo' && (entry.stack || entry.repoUrl) && (
+                          <p className="text-xs text-muted-foreground mt-0.5">
+                            {[entry.stack, entry.repoUrl].filter(Boolean).join(' · ')}
+                          </p>
+                        )}
                       </div>
                       <div className="flex items-center gap-2 shrink-0">
                         {getStatusBadge(entry.status)}
@@ -382,14 +410,17 @@ export default function ContentListPage() {
                       <Badge variant="outline" className={`gap-1 text-xs ${getCategoryColor(cat)}`}>
                         <Icon className="h-3 w-3" />{cat}
                       </Badge>
-                      <span>{entry.platform}</span>
+                      <span className="inline-flex items-center gap-1.5">
+                        <PlatformIcon platform={entry.platform} size={13} />
+                        {entry.platform}
+                      </span>
                       <span>{entry.contentType}</span>
                       <span>
                         {new Date(entry.publicationDate).toLocaleDateString('en-US', {
                           month: 'short', day: 'numeric', year: 'numeric',
                         })}
                       </span>
-                      {metric && <span className="flex items-center gap-1">{metric}</span>}
+                      <EntryMetric entry={entry} />
                     </div>
 
                     {entry.trackingLink && (cat === 'Written' || cat === 'Video') && (

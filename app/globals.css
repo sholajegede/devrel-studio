@@ -38,39 +38,46 @@
   --sidebar-ring: #38b2ac;
 }
 
+/*
+ * Dark palette. This was the stock shadcn neutral set, which turned the teal
+ * accent grey and gave --card the same value as --background, so every card
+ * lost its edge. These are the light tokens restated for a dark ground: the
+ * brand teal is kept (lifted a step, since #38b2ac is too dim against near
+ * black), and card/popover/sidebar each sit on their own step above the page.
+ */
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.145 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.145 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.985 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.396 0.141 25.723);
-  --destructive-foreground: oklch(0.637 0.237 25.331);
-  --border: oklch(0.269 0 0);
-  --input: oklch(0.269 0 0);
-  --ring: oklch(0.439 0 0);
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(0.269 0 0);
-  --sidebar-ring: oklch(0.439 0 0);
+  --background: #14181d;
+  --foreground: #e6e9ec;
+  --card: #1b2027;
+  --card-foreground: #e6e9ec;
+  --popover: #1b2027;
+  --popover-foreground: #e6e9ec;
+  --primary: #e6e9ec;
+  --primary-foreground: #1b2027;
+  --secondary: #252c35;
+  --secondary-foreground: #e6e9ec;
+  --muted: #222831;
+  --muted-foreground: #9aa5b1;
+  --accent: #4fd1c5;
+  --accent-foreground: #10231f;
+  --destructive: #f87171;
+  --destructive-foreground: #1b2027;
+  --border: #2b323b;
+  --input: #2b323b;
+  --ring: #4fd1c5;
+  --chart-1: #4fd1c5;
+  --chart-2: #9aa5b1;
+  --chart-3: #718096;
+  --chart-4: #38b2ac;
+  --chart-5: #e6e9ec;
+  --sidebar: #171c22;
+  --sidebar-foreground: #e6e9ec;
+  --sidebar-primary: #4fd1c5;
+  --sidebar-primary-foreground: #10231f;
+  --sidebar-accent: #252c35;
+  --sidebar-accent-foreground: #e6e9ec;
+  --sidebar-border: #2b323b;
+  --sidebar-ring: #4fd1c5;
 }
 
 @theme inline {

@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 const Header = () => {
   return (
@@ -12,6 +13,7 @@ const Header = () => {
         </a>
 
         <div className="flex items-center gap-4">
+          <ThemeToggle />
           <span className="hidden sm:inline-flex items-center gap-2 px-3 py-1.5 bg-foreground/5 rounded-full text-sm font-medium">
             <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
             <span className="text-muted-foreground">Beta</span>

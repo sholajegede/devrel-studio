@@ -9,6 +9,7 @@ const STORAGE_KEYS = {
   "add-entry":"devrel-add-entry-tour-v1",
   content:    "devrel-content-tour-v1",
   clients:    "devrel-clients-tour-v1",
+  pipeline:   "devrel-pipeline-tour-v1",
   members:    "devrel-members-tour-v1",
   billing:    "devrel-billing-tour-v1",
   settings:   "devrel-settings-tour-v1",
@@ -65,6 +66,16 @@ const CLIENTS_STEPS: TourStep[] = [
   { target: "body", title: "Linking clients to content", content: "The slug shown on each client card (e.g. 'kinde') is what you use in the Client field when logging content entries — keeping everything connected.", position: "center", highlight: false },
 ];
 
+// ── Pipeline ──────────────────────────────────────────────────────────────────
+const PIPELINE_STEPS: TourStep[] = [
+  { target: "body", title: "Your Pipeline", content: "Everything in flight, as a board. Four lanes by status, so you can see what's stuck without reading a table.", position: "center", highlight: false },
+  { target: '[data-tour="pipeline-summary"]', title: "What Needs Attention", content: "How many pieces are in flight, how many have slipped past their planned date, and what's due in the next two weeks.", position: "bottom", highlight: true },
+  { target: '[data-tour="pipeline-filter"]', title: "Focus on One Client", content: "Filter the whole board down to a single client — useful right before a check-in call. Appears once you have more than one client.", position: "bottom", highlight: true },
+  { target: '[data-tour="pipeline-board"]', title: "Four Lanes", content: "Draft, Waiting Approval, Scheduled, and Published. Cards show the client, platform, and planned date; anything overdue turns amber.", position: "top", highlight: true },
+  { target: '[data-tour="pipeline-card"]', title: "Move Work Along", content: "Open a card's menu and pick a lane to change its status. It saves immediately — no need to open the full edit form.", position: "right", highlight: true },
+  { target: "body", title: "That's the board", content: "Restart this tour any time from the Tour button in the top-right.", position: "center", highlight: false },
+];
+
 // ── Members ───────────────────────────────────────────────────────────────────
 const MEMBERS_STEPS: TourStep[] = [
   { target: "body", title: "Team Members", content: "Manage who can access your workspace. You're the Owner and always have full control.", position: "center", highlight: false },
@@ -77,7 +88,7 @@ const MEMBERS_STEPS: TourStep[] = [
 const BILLING_STEPS: TourStep[] = [
   { target: "body", title: "Billing & Licensing", content: "One-time fee model — no subscriptions, no recurring charges. This page shows your active plan and lets you upgrade any time.", position: "center", highlight: false },
   { target: '[data-tour="billing-plan"]', title: "Your Current Plan", content: "Shows your active license, included limits, and spend so far. You're on the Free Trial — unlimited time, limited entries.", position: "bottom", highlight: true },
-  { target: '[data-tour="billing-plans"]', title: "Upgrade Options", content: "Starter $49, Pro $149, Agency $349. Upgrading only costs the price difference — never the full plan price again.", position: "top", highlight: true },
+  { target: '[data-tour="billing-plans"]', title: "Upgrade Options", content: "Starter $49, Pro $149, Agency $349. Each is a one-time purchase; upgrading later is a separate purchase at the new plan's price.", position: "top", highlight: true },
   { target: '[data-tour="billing-receipts"]', title: "Receipts & License", content: "License key and downloadable invoices appear here after purchase. Download any time for accounting.", position: "top", highlight: true },
 ];
 
@@ -95,6 +106,7 @@ const STEPS_MAP: Record<TourVariant, TourStep[]> = {
   "add-entry":ADD_ENTRY_STEPS,
   content:    CONTENT_STEPS,
   clients:    CLIENTS_STEPS,
+  pipeline:   PIPELINE_STEPS,
   members:    MEMBERS_STEPS,
   billing:    BILLING_STEPS,
   settings:   SETTINGS_STEPS,

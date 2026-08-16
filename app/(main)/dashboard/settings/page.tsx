@@ -2,15 +2,27 @@
 
 import { useState, useEffect } from 'react'
 import { useUserContext } from '@/contexts/user-context'
-import { useMutation } from 'convex/react'
+import { useMutation, useQuery } from 'convex/react'
 import { api } from '@/convex/_generated/api'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
 import { toast } from 'sonner'
-import { Loader2, AlertTriangle } from 'lucide-react'
+import { useTheme } from 'next-themes'
+import {
+  Loader2,
+  AlertTriangle,
+  Check,
+  Copy,
+  ExternalLink,
+  Monitor,
+  Moon,
+  Sun,
+  X as XIcon,
+} from 'lucide-react'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -41,6 +53,272 @@ function SettingSection({
       </div>
       <div>{children}</div>
     </div>
+  )
+}
+
+// ── Appearance ────────────────────────────────────────────────────────────────
+
+const THEME_OPTIONS = [
+  { value: 'light', label: 'Light', icon: Sun },
+  { value: 'dark', label: 'Dark', icon: Moon },
+  { value: 'system', label: 'System', icon: Monitor },
+] as const
+
+function ThemeSetting() {
+  const { theme, setTheme } = useTheme()
+  const [mounted, setMounted] = useState(false)
+
+  // The server has no idea which theme the browser resolved, so rendering the
+  // selection before mount would flag a hydration mismatch and briefly show the
+  // wrong option as active.
+  useEffect(() => setMounted(true), [])
+
+  return (
+    <Card data-tour="settings-appearance">
+      <CardContent className="p-6">
+        <div className="grid gap-3 sm:grid-cols-3">
+          {THEME_OPTIONS.map((option) => {
+            const isActive = mounted && theme === option.value
+            return (
+              <button
+                key={option.value}
+                type="button"
+                onClick={() => setTheme(option.value)}
+                aria-pressed={isActive}
+                className={`flex items-center gap-2.5 rounded-lg border p-3 text-sm transition-colors ${
+                  isActive
+                    ? 'border-accent bg-accent/10 text-foreground'
+                    : 'border-border text-muted-foreground hover:border-foreground/20 hover:text-foreground'
+                }`}
+              >
+                <option.icon className="h-4 w-4 shrink-0" />
+                {option.label}
+                {isActive && <Check className="ml-auto h-3.5 w-3.5 text-accent" />}
+              </button>
+            )
+          })}
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
+
+// ── Public portfolio ──────────────────────────────────────────────────────────
+
+function PortfolioSettings() {
+  const { profile, setProfile } = useUserContext()
+  const updatePortfolio = useMutation(api.portfolio.updatePortfolio)
+
+  const [form, setForm] = useState({
+    handle: '',
+    bio: '',
+    websiteUrl: '',
+    githubUsername: '',
+    twitterUsername: '',
+  })
+  const [isSaving, setIsSaving] = useState(false)
+  const [copied, setCopied] = useState(false)
+
+  useEffect(() => {
+    if (!profile) return
+    setForm({
+      handle: profile.handle ?? '',
+      bio: profile.bio ?? '',
+      websiteUrl: profile.websiteUrl ?? '',
+      githubUsername: profile.githubUsername ?? '',
+      twitterUsername: profile.twitterUsername ?? '',
+    })
+  }, [profile])
+
+  const trimmedHandle = form.handle.trim().toLowerCase().replace(/^@/, '')
+  const handleChanged = trimmedHandle !== (profile?.handle ?? '')
+
+  // Only ask the server while the handle is both non-empty and actually new —
+  // otherwise every keystroke on the bio would fire an availability check.
+  const availability = useQuery(
+    api.portfolio.isHandleAvailable,
+    trimmedHandle && handleChanged ? { handle: trimmedHandle } : 'skip'
+  )
+
+  const set = (field: keyof typeof form, value: string) =>
+    setForm((prev) => ({ ...prev, [field]: value }))
+
+  const portfolioUrl = profile?.handle
+    ? `${typeof window !== 'undefined' ? window.location.origin : ''}/@${profile.handle}`
+    : null
+
+  const copyUrl = () => {
+    if (!portfolioUrl) return
+    navigator.clipboard.writeText(portfolioUrl)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!profile) return
+
+    setIsSaving(true)
+    try {
+      await updatePortfolio({
+        handle: trimmedHandle,
+        bio: form.bio,
+        websiteUrl: form.websiteUrl,
+        githubUsername: form.githubUsername,
+        twitterUsername: form.twitterUsername,
+      })
+
+      setProfile({
+        ...profile,
+        handle: trimmedHandle || undefined,
+        bio: form.bio.trim() || undefined,
+        websiteUrl: form.websiteUrl.trim() || undefined,
+        githubUsername: form.githubUsername.trim().replace(/^@/, '') || undefined,
+        twitterUsername: form.twitterUsername.trim().replace(/^@/, '') || undefined,
+      })
+
+      toast.success(
+        trimmedHandle ? 'Portfolio updated' : 'Portfolio unpublished'
+      )
+    } catch (error) {
+      const message =
+        error instanceof Error && 'data' in error && typeof error.data === 'string'
+          ? error.data
+          : 'Could not save your portfolio'
+      toast.error(message)
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  return (
+    <Card>
+      <CardContent className="p-6">
+        <form onSubmit={handleSave} className="space-y-4">
+
+          <div className="space-y-1.5">
+            <Label htmlFor="handle">Handle</Label>
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-muted-foreground">/@</span>
+              <Input
+                id="handle"
+                value={form.handle}
+                onChange={(e) => set('handle', e.target.value)}
+                placeholder="yourname"
+                autoCapitalize="none"
+                autoCorrect="off"
+                spellCheck={false}
+              />
+            </div>
+
+            {trimmedHandle && handleChanged && availability && (
+              <p
+                className={`flex items-center gap-1.5 text-xs ${
+                  availability.available ? 'text-emerald-600' : 'text-destructive'
+                }`}
+              >
+                {availability.available ? (
+                  <><Check className="h-3 w-3" />@{trimmedHandle} is available</>
+                ) : (
+                  <><XIcon className="h-3 w-3" />{availability.reason}</>
+                )}
+              </p>
+            )}
+
+            {!trimmedHandle && (
+              <p className="text-xs text-muted-foreground">
+                Leave empty to keep your portfolio unpublished.
+              </p>
+            )}
+          </div>
+
+          {portfolioUrl && (
+            <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-muted/40 px-3 py-2.5">
+              <span className="flex-1 truncate font-mono text-xs text-muted-foreground">
+                {portfolioUrl}
+              </span>
+              <button
+                type="button"
+                onClick={copyUrl}
+                className="inline-flex items-center gap-1 rounded px-2 py-1 text-xs text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+              >
+                {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+                {copied ? 'Copied' : 'Copy'}
+              </button>
+              <a
+                href={`/@${profile!.handle}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 rounded px-2 py-1 text-xs text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+              >
+                <ExternalLink className="h-3 w-3" />
+                View
+              </a>
+            </div>
+          )}
+
+          <div className="space-y-1.5">
+            <Label htmlFor="bio">Bio</Label>
+            <Textarea
+              id="bio"
+              value={form.bio}
+              onChange={(e) => set('bio', e.target.value)}
+              placeholder="Developer advocate writing about auth, billing and the boring parts of SaaS."
+              rows={3}
+              maxLength={500}
+            />
+            <p className="text-xs text-muted-foreground">
+              {form.bio.length}/500
+            </p>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="websiteUrl">Website</Label>
+              <Input
+                id="websiteUrl"
+                value={form.websiteUrl}
+                onChange={(e) => set('websiteUrl', e.target.value)}
+                placeholder="yoursite.com"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="githubUsername">GitHub</Label>
+              <Input
+                id="githubUsername"
+                value={form.githubUsername}
+                onChange={(e) => set('githubUsername', e.target.value)}
+                placeholder="username"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="twitterUsername">X / Twitter</Label>
+              <Input
+                id="twitterUsername"
+                value={form.twitterUsername}
+                onChange={(e) => set('twitterUsername', e.target.value)}
+                placeholder="username"
+              />
+            </div>
+          </div>
+
+          <div className="flex justify-end pt-2">
+            <Button
+              type="submit"
+              size="sm"
+              disabled={
+                isSaving ||
+                (!!trimmedHandle && handleChanged && availability?.available === false)
+              }
+              className="gap-2 bg-accent text-accent-foreground hover:bg-accent/90"
+            >
+              {isSaving && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+              {isSaving ? 'Saving…' : 'Save portfolio'}
+            </Button>
+          </div>
+        </form>
+      </CardContent>
+    </Card>
   )
 }
 
@@ -80,7 +358,6 @@ export default function SettingsPage() {
     setIsSaving(true)
     try {
       await updateUser({
-        userId: profile._id,
         firstName: form.firstName,
         lastName: form.lastName,
       })
@@ -97,7 +374,7 @@ export default function SettingsPage() {
     if (!profile) return
     setIsDeleting(true)
     try {
-      await deleteUser({ userId: profile._id })
+      await deleteUser({})
       window.location.href = '/api/auth/logout'
     } catch {
       toast.error('Failed to delete account. Please contact support.')
@@ -175,33 +452,22 @@ export default function SettingsPage() {
 
         <Separator />
 
-        {/* Preferences */}
+        {/* Appearance */}
         <SettingSection
-          title="Preferences"
-          description="Appearance and notification settings for your workspace."
+          title="Appearance"
+          description="Choose a theme. System follows your operating system setting and changes with it."
         >
-          <Card data-tour="settings-preferences">
-            <CardContent className="p-0 divide-y divide-border">
-              <div className="flex items-center justify-between px-6 py-4">
-                <div>
-                  <p className="text-sm font-medium text-foreground">Theme</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">Light mode only at this time.</p>
-                </div>
-                <div className="rounded-md border border-border bg-muted px-3 py-1.5 text-xs text-muted-foreground">
-                  Light
-                </div>
-              </div>
-              <div className="flex items-center justify-between px-6 py-4">
-                <div>
-                  <p className="text-sm font-medium text-foreground">Email notifications</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">Product updates and account alerts.</p>
-                </div>
-                <div className="rounded-md border border-border bg-muted px-3 py-1.5 text-xs text-muted-foreground">
-                  Coming soon
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          <ThemeSetting />
+        </SettingSection>
+
+        <Separator />
+
+        {/* Public portfolio */}
+        <SettingSection
+          title="Public portfolio"
+          description="Claim a handle to publish everything you've shipped at devrel.studio/@handle. Only Published entries appear — drafts, scheduled work and client names stay private."
+        >
+          <PortfolioSettings />
         </SettingSection>
 
         <Separator />

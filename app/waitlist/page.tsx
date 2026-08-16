@@ -45,14 +45,19 @@ export default function WaitlistPage() {
         body: JSON.stringify(formData)
       })
 
+      const result = await response.json().catch(() => ({}))
+
       if (!response.ok) {
-        const error = await response.json()
-        toast.error(error.message || 'Failed to join waitlist')
+        toast.error(result.message || 'Failed to join waitlist')
         return
       }
 
       setIsSubmitted(true)
-      toast.success('Successfully joined the waitlist!')
+      toast.success(
+        result.alreadyJoined
+          ? "You're already on the waitlist!"
+          : 'Successfully joined the waitlist!'
+      )
     } catch (error) {
       console.error('[v0] Waitlist error:', error)
       toast.error('Something went wrong. Please try again.')

@@ -102,7 +102,7 @@ const FAQ = [
   },
   {
     q: 'Can I upgrade to a higher plan later?',
-    a: 'Yes — you pay only the price difference. If you bought Starter for $49 and want Pro, you pay $100 to upgrade, not the full $149.',
+    a: "Yes — upgrading is a separate one-time purchase at the new plan's price. Your current plan stays active until the upgrade completes.",
   },
   {
     q: 'What counts as a "client workspace"?',

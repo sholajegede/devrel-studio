@@ -1,10 +1,8 @@
 import { Id } from "@/convex/_generated/dataModel"
 
-export const CLIENTS = ['kinde', 'clerk', 'v0'] as const;
-
 // ── Categories ────────────────────────────────────────────────────────────────
 
-export const CATEGORIES = ['Written', 'Video', 'Event', 'Podcast', 'Package'] as const;
+export const CATEGORIES = ['Written', 'Video', 'Event', 'Podcast', 'Package', 'Demo'] as const;
 export type Category = typeof CATEGORIES[number];
 
 // ── Platforms per category ────────────────────────────────────────────────────
@@ -18,6 +16,7 @@ export const PLATFORMS_BY_CATEGORY: Record<Category, readonly string[]> = {
   Event: [], // free-text — conference names vary too much for a dropdown
   Podcast: ['Spotify', 'Apple Podcasts', 'YouTube Podcasts', 'Other'],
   Package: ['npm', 'GitHub', 'Other'],
+  Demo: ['Vercel', 'Netlify', 'Cloudflare Pages', 'GitHub', 'Other'],
 };
 
 // ── Sub-types per category ────────────────────────────────────────────────────
@@ -28,6 +27,7 @@ export const SUBTYPES_BY_CATEGORY: Record<Category, readonly string[]> = {
   Event: ['Conference Talk', 'Workshop', 'Meetup', 'Panel', 'Keynote', 'Other'],
   Podcast: ['Guest Appearance', 'Host', 'Solo Episode', 'Other'],
   Package: ['Convex Component', 'Library', 'CLI Tool', 'Other'],
+  Demo: ['Full App', 'Starter Kit', 'Sample', 'Other'],
 };
 
 // ── Reshare platforms ─────────────────────────────────────────────────────────
@@ -80,6 +80,13 @@ export interface ContentEntry {
   attendees?: number;
   // Podcast
   podcastName?: string;
+  // Demo
+  repoUrl?: string;
+  stack?: string;
+  stars?: number;
+  // Set by the npm / GitHub sync job — see convex/sync.ts
+  statsSyncedAt?: string;
+  statsSyncError?: string;
   updatedAt: string;
 }
 
@@ -138,30 +145,7 @@ export function formatMonthLabel(monthKey: string): string {
   return date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
 }
 
-export function getMetricLabel(category?: Category): string {
-  switch (category) {
-    case 'Event':   return 'Attendees';
-    case 'Podcast': return 'Listeners';
-    case 'Package': return 'Downloads';
-    default:        return 'Views';
-  }
-}
-
-export function getMetricValue(entry: ContentEntry): number {
-  const cat = entry.category;
-  if (cat === 'Event')   return entry.attendees ?? 0;
-  if (cat === 'Package') return entry.downloads ?? 0;
-  if (cat === 'Podcast') return entry.downloads ?? 0;
-  return entry.views ?? 0;
-}
-
-export function getCategoryColor(category?: Category): string {
-  switch (category) {
-    case 'Written': return 'bg-blue-50 text-blue-700 border-blue-200';
-    case 'Video':   return 'bg-red-50 text-red-700 border-red-200';
-    case 'Event':   return 'bg-purple-50 text-purple-700 border-purple-200';
-    case 'Podcast': return 'bg-orange-50 text-orange-700 border-orange-200';
-    case 'Package': return 'bg-emerald-50 text-emerald-700 border-emerald-200';
-    default:        return 'bg-stone-50 text-stone-600 border-stone-200';
-  }
-}
+// Metric and presentation helpers now live in lib/metrics.ts and
+// lib/category-meta.tsx. Re-exported here so existing imports keep working.
+export { getMetricLabel, getMetricValue } from './metrics'
+export { getCategoryColor } from './category-meta'

@@ -51,7 +51,7 @@ const STEPS: TourStep[] = [
     target: '[data-tour="category-pills"]',
     title: "Filter by Content Type",
     content:
-      "Jump between Written, Video, Event, Podcast, and Package with one click. The count on each pill reflects how many pieces match your other active filters.",
+      "Jump between Written, Video, Event, Podcast, Package, and Demo with one click. The count on each pill reflects how many pieces match your other active filters.",
     position: "bottom",
     highlight: true,
   },

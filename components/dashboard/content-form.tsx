@@ -10,10 +10,10 @@ import {
   SUBTYPES_BY_CATEGORY,
   STATUSES,
   DEFAULT_TAGS,
-  CLIENTS,
   RESHARE_PLATFORMS,
   Reshare,
 } from "@/lib/types";
+import { CATEGORY_META } from "@/lib/category-meta";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -35,63 +35,25 @@ import {
   Share2,
   Plus,
   Trash2,
-  FileText,
-  Video,
   MapPin,
   Mic,
-  Package,
   Download,
   Users,
   Headphones,
   Hash,
+  Github,
+  Star,
+  Layers,
 } from "lucide-react";
-import { useMutation } from "convex/react";
+import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { useUserContext } from "@/contexts/user-context";
-import { Id } from "@/convex/_generated/dataModel";
+import Link from "next/link";
 
 interface ContentFormProps {
   existingEntry?: ContentEntry;
   onSuccess?: () => void;
 }
-
-// ── Category metadata ─────────────────────────────────────────────────────────
-
-const CATEGORY_META: Record<
-  Category,
-  { icon: React.ElementType; label: string; description: string; color: string }
-> = {
-  Written: {
-    icon: FileText,
-    label: "Written",
-    description: "Articles, tutorials, guides",
-    color: "border-blue-300 bg-blue-50 text-blue-700",
-  },
-  Video: {
-    icon: Video,
-    label: "Video",
-    description: "YouTube, Loom, recordings",
-    color: "border-red-300 bg-red-50 text-red-700",
-  },
-  Event: {
-    icon: MapPin,
-    label: "Event",
-    description: "Talks, conferences, meetups",
-    color: "border-purple-300 bg-purple-50 text-purple-700",
-  },
-  Podcast: {
-    icon: Mic,
-    label: "Podcast",
-    description: "Episodes, appearances",
-    color: "border-orange-300 bg-orange-50 text-orange-700",
-  },
-  Package: {
-    icon: Package,
-    label: "Package",
-    description: "npm packages, Convex Components",
-    color: "border-emerald-300 bg-emerald-50 text-emerald-700",
-  },
-};
 
 // ── Title label per category ──────────────────────────────────────────────────
 
@@ -100,6 +62,7 @@ function getTitleLabel(category: Category): string {
     case "Event":   return "Talk Title";
     case "Podcast": return "Episode Title";
     case "Package": return "Package Display Name";
+    case "Demo":    return "Demo Name";
     default:        return "Post Title";
   }
 }
@@ -111,6 +74,11 @@ export function ContentForm({ existingEntry, onSuccess }: ContentFormProps) {
 
   const createContent = useMutation(api.content.createContent);
   const updateContent = useMutation(api.content.updateContent);
+
+  // The client dashboard resolves a slug to one client row, so an entry has to
+  // be tagged with a slug that actually exists — hence the real client list
+  // rather than a hardcoded one.
+  const clients = useQuery(api.clients.getClients);
 
   // ── Category ──────────────────────────────────────────────────────────────
 
@@ -141,6 +109,10 @@ export function ContentForm({ existingEntry, onSuccess }: ContentFormProps) {
     attendees: existingEntry?.attendees?.toString() || "0",
     // Podcast
     podcastName: existingEntry?.podcastName || "",
+    // Demo
+    repoUrl: existingEntry?.repoUrl || "",
+    stack: existingEntry?.stack || "",
+    stars: existingEntry?.stars?.toString() || "0",
   });
 
   const [selectedTags, setSelectedTags] = useState<string[]>(
@@ -170,6 +142,9 @@ export function ContentForm({ existingEntry, onSuccess }: ContentFormProps) {
       eventLocation: "",
       attendees: "0",
       podcastName: "",
+      repoUrl: "",
+      stack: "",
+      stars: "0",
     }));
     setErrors({});
   };
@@ -208,7 +183,8 @@ export function ContentForm({ existingEntry, onSuccess }: ContentFormProps) {
     if (!formData.publicationDate)  e.publicationDate = "Date is required";
     if (!formData.status)           e.status = "Status is required";
     if (!formData.contentType)      e.contentType = "Sub-type is required";
-    if (category !== "Event" && !formData.platform) e.platform = "Platform is required";
+    if (category !== "Event" && category !== "Demo" && !formData.platform) e.platform = "Platform is required";
+    if (category === "Demo" && !formData.repoUrl.trim()) e.repoUrl = "GitHub repo link is required";
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -220,7 +196,6 @@ export function ContentForm({ existingEntry, onSuccess }: ContentFormProps) {
     if (!validate() || !profile?._id) return;
 
     const base = {
-      userId: profile._id as Id<"users">,
       client: formData.client || "",
       category,
       title: formData.title,
@@ -255,6 +230,12 @@ export function ContentForm({ existingEntry, onSuccess }: ContentFormProps) {
             podcastName: formData.podcastName || undefined,
             downloads: parseInt(formData.downloads) || 0,
           }
+        : category === "Demo"
+        ? {
+            repoUrl: formData.repoUrl || undefined,
+            stack: formData.stack || undefined,
+            stars: parseInt(formData.stars) || 0,
+          }
         : {};
 
     const entryData = { ...base, ...categoryFields };
@@ -265,6 +246,16 @@ export function ContentForm({ existingEntry, onSuccess }: ContentFormProps) {
       } else {
         await createContent(entryData);
       }
+
+      // The public portfolio is statically cached, so a newly published piece
+      // would otherwise take up to 5 minutes to appear on /@handle — long enough
+      // to send someone a link to a page that does not show the work yet. Fire
+      // and forget: a failed refresh just means the page waits for its own
+      // revalidation, which is not worth blocking the redirect over.
+      if (entryData.status === "Published") {
+        void fetch("/api/portfolio/revalidate", { method: "POST" }).catch(() => {});
+      }
+
       if (onSuccess) {
         onSuccess();
       } else {
@@ -289,7 +280,7 @@ export function ContentForm({ existingEntry, onSuccess }: ContentFormProps) {
           <CardTitle className="text-base text-foreground">Content Category</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
             {CATEGORIES.map((cat) => {
               const meta = CATEGORY_META[cat];
               const Icon = meta.icon;
@@ -301,7 +292,7 @@ export function ContentForm({ existingEntry, onSuccess }: ContentFormProps) {
                   onClick={() => handleCategoryChange(cat)}
                   className={`flex flex-col items-center gap-2 rounded-xl border-2 p-4 text-center transition-all hover:shadow-sm ${
                     isSelected
-                      ? meta.color + " border-current shadow-sm"
+                      ? meta.selectorClass + " border-current shadow-sm"
                       : "border-border bg-background text-muted-foreground hover:border-foreground/30"
                   }`}
                 >
@@ -330,16 +321,49 @@ export function ContentForm({ existingEntry, onSuccess }: ContentFormProps) {
             <Select
               value={formData.client || undefined}
               onValueChange={(v) => handleInputChange("client", v)}
+              disabled={!clients || clients.length === 0}
             >
               <SelectTrigger className="bg-input border-border text-foreground">
-                <SelectValue placeholder="Select client" />
+                <SelectValue
+                  placeholder={
+                    clients === undefined
+                      ? "Loading clients…"
+                      : clients.length === 0
+                        ? "No clients yet"
+                        : "Select client"
+                  }
+                />
               </SelectTrigger>
               <SelectContent>
-                {CLIENTS.map((c) => (
-                  <SelectItem key={c} value={c} className="capitalize">{c}</SelectItem>
-                ))}
+                {(clients ?? [])
+                  .filter((c) => !!c.slug)
+                  .map((c) => (
+                    <SelectItem key={c._id} value={c.slug!}>
+                      {c.company || c.name}
+                      <span className="ml-2 text-xs text-muted-foreground">
+                        /{c.slug}
+                      </span>
+                    </SelectItem>
+                  ))}
               </SelectContent>
             </Select>
+            {clients && clients.length === 0 && (
+              <p className="text-xs text-muted-foreground">
+                <Link href="/dashboard/clients" className="underline hover:text-foreground">
+                  Add a client
+                </Link>{" "}
+                first — entries are attributed to a client dashboard by its slug.
+              </p>
+            )}
+            {clients && clients.length > 0 && clients.every((c) => !c.slug) && (
+              <p className="text-xs text-muted-foreground">
+                None of your clients have a dashboard slug yet.{" "}
+                <Link href="/dashboard/clients" className="underline hover:text-foreground">
+                  Add one
+                </Link>{" "}
+                to make their dashboard reachable.
+              </p>
+            )}
             {formData.client && (
               <Button
                 type="button" variant="ghost" size="sm"
@@ -364,6 +388,7 @@ export function ContentForm({ existingEntry, onSuccess }: ContentFormProps) {
                 category === "Event"   ? "e.g. Building Auth for AI Apps" :
                 category === "Podcast" ? "e.g. DevRel in the AI era" :
                 category === "Package" ? "e.g. Convex Rate Limiter" :
+                category === "Demo"    ? "e.g. Next.js Auth Starter Kit" :
                 "Enter title"
               }
               className="bg-input border-border text-foreground"
@@ -447,10 +472,46 @@ export function ContentForm({ existingEntry, onSuccess }: ContentFormProps) {
             </div>
           )}
 
-          {/* Platform dropdown (Written / Video / Podcast / Package) */}
+          {/* Demo: repo link + tech stack */}
+          {category === "Demo" && (
+            <>
+              <div className="space-y-2 md:col-span-2">
+                <Label htmlFor="repoUrl" className="flex items-center gap-2 text-foreground">
+                  <Github className="h-4 w-4" />
+                  GitHub Repo Link *
+                </Label>
+                <Input
+                  id="repoUrl"
+                  type="url"
+                  value={formData.repoUrl}
+                  onChange={(e) => handleInputChange("repoUrl", e.target.value)}
+                  placeholder="https://github.com/org/repo"
+                  className="bg-input border-border text-foreground font-mono text-sm"
+                />
+                {errors.repoUrl && <p className="text-xs text-destructive">{errors.repoUrl}</p>}
+              </div>
+              <div className="space-y-2 md:col-span-2">
+                <Label htmlFor="stack" className="flex items-center gap-2 text-foreground">
+                  <Layers className="h-4 w-4" />
+                  Tech Stack
+                </Label>
+                <Input
+                  id="stack"
+                  value={formData.stack}
+                  onChange={(e) => handleInputChange("stack", e.target.value)}
+                  placeholder="e.g. Next.js, Convex, Tailwind"
+                  className="bg-input border-border text-foreground"
+                />
+              </div>
+            </>
+          )}
+
+          {/* Platform dropdown (Written / Video / Podcast / Package / Demo) */}
           {category !== "Event" && (
             <div className="space-y-2">
-              <Label className="text-foreground">Platform *</Label>
+              <Label className="text-foreground">
+                {category === "Demo" ? "Platform (optional)" : "Platform *"}
+              </Label>
               <Select
                 value={formData.platform}
                 onValueChange={(v) => handleInputChange("platform", v)}
@@ -541,12 +602,16 @@ export function ContentForm({ existingEntry, onSuccess }: ContentFormProps) {
             </div>
           )}
 
-          {/* Package / Event link (optional recording or npm page) */}
-          {(category === "Package" || category === "Event") && (
+          {/* Package / Event / Demo link (optional recording, npm page or deployment) */}
+          {(category === "Package" || category === "Event" || category === "Demo") && (
             <div className="space-y-2 md:col-span-2">
               <Label htmlFor="link" className="flex items-center gap-2 text-foreground">
                 <ExternalLink className="h-4 w-4" />
-                {category === "Package" ? "npm / Package Link" : "Recording or Event Page (optional)"}
+                {category === "Package"
+                  ? "npm / Package Link"
+                  : category === "Demo"
+                  ? "Live / Deploy Link (optional)"
+                  : "Recording or Event Page (optional)"}
               </Label>
               <Input
                 id="link"
@@ -633,6 +698,25 @@ export function ContentForm({ existingEntry, onSuccess }: ContentFormProps) {
                 min="0"
                 value={formData.downloads}
                 onChange={(e) => handleInputChange("downloads", e.target.value)}
+                placeholder="0"
+                className="bg-input border-border text-foreground"
+              />
+            </div>
+          )}
+
+          {/* Demo: GitHub stars */}
+          {category === "Demo" && (
+            <div className="space-y-2">
+              <Label htmlFor="stars" className="flex items-center gap-2 text-foreground">
+                <Star className="h-4 w-4" />
+                GitHub Stars
+              </Label>
+              <Input
+                id="stars"
+                type="number"
+                min="0"
+                value={formData.stars}
+                onChange={(e) => handleInputChange("stars", e.target.value)}
                 placeholder="0"
                 className="bg-input border-border text-foreground"
               />

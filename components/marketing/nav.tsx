@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import { Button } from '@/components/ui/button'
+import { ThemeToggle } from '@/components/theme-toggle'
 
 export function MarketingNav() {
   return (
@@ -21,6 +22,7 @@ export function MarketingNav() {
         </nav>
 
         <div className="flex items-center gap-3">
+          <ThemeToggle />
           <Link href="/dashboard" className="hidden sm:block">
             <Button variant="ghost" size="sm">Sign in</Button>
           </Link>

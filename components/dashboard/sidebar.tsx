@@ -7,14 +7,17 @@ import { useState, useEffect } from 'react'
 import { cn } from '@/lib/utils'
 import {
   LayoutDashboard, FileText, Users, CreditCard, Settings,
-  PlusCircle, X, Menu, LogOut, Building2,
+  PlusCircle, X, Menu, LogOut, Building2, KanbanSquare,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useUserContext } from '@/contexts/user-context'
+import { WorkspaceSwitcher } from '@/components/dashboard/workspace-switcher'
+import { ThemeToggle } from '@/components/theme-toggle'
 import { LogoutLink } from '@kinde-oss/kinde-auth-nextjs'
 
 const NAV_ITEMS = [
   { href: '/dashboard',          label: 'Overview',     icon: LayoutDashboard, exact: true },
+  { href: '/dashboard/pipeline', label: 'Pipeline',     icon: KanbanSquare,    exact: false },
   { href: '/dashboard/content',  label: 'All Content',  icon: FileText,        exact: false },
   { href: '/dashboard/clients',  label: 'Clients',      icon: Building2,       exact: false },
   { href: '/dashboard/members',  label: 'Members',      icon: Users,           exact: false },
@@ -62,6 +65,9 @@ function SidebarInner({ onClose }: { onClose?: () => void }) {
           </button>
         )}
       </div>
+
+      {/* Workspace switcher — renders nothing unless there is a choice to make */}
+      <WorkspaceSwitcher onNavigate={onClose} />
 
       {/* Nav */}
       <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-0.5">
@@ -122,6 +128,7 @@ function SidebarInner({ onClose }: { onClose?: () => void }) {
               <p className="text-sm font-medium text-foreground truncate">{displayName}</p>
               <p className="text-xs text-muted-foreground truncate">{profile.email}</p>
             </div>
+            <ThemeToggle className="h-7 w-7 shrink-0" />
             <LogoutLink>
               <button
                 type="button"

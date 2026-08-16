@@ -22,6 +22,15 @@ interface UserData {
   lastName?: string;
   imageUrl?: string;
   imageStorageId?: Id<"_storage">;
+  // Public portfolio — see convex/portfolio.ts
+  handle?: string;
+  bio?: string;
+  websiteUrl?: string;
+  githubUsername?: string;
+  twitterUsername?: string;
+  // Billing — see convex/billing.ts
+  plan?: string;
+  planStatus?: string;
 }
 
 type UserContextType = {
@@ -37,9 +46,10 @@ export function UserProvider({ children }: { children: ReactNode }) {
   const { user, isAuthenticated, isLoading } = useKindeBrowserClient();
   const userId = user?.id;
 
+  // Resolved from the verified token on the Convex side — no id is sent up.
   const fetchedProfile = useQuery(
-    api.users.getUserByKindeId,
-    userId ? { kindeId: userId } : "skip"
+    api.users.getCurrentUserProfile,
+    userId ? {} : "skip"
   );
   
   const [profile, setProfile] = useState<UserData | undefined>(undefined);

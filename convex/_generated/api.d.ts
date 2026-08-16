@@ -8,9 +8,20 @@
  * @module
  */
 
+import type * as billing from "../billing.js";
 import type * as clients from "../clients.js";
 import type * as content from "../content.js";
+import type * as crons from "../crons.js";
+import type * as email from "../email.js";
 import type * as http from "../http.js";
+import type * as managerAccess from "../managerAccess.js";
+import type * as members from "../members.js";
+import type * as migrations from "../migrations.js";
+import type * as model_auth from "../model/auth.js";
+import type * as model_plans from "../model/plans.js";
+import type * as model_workspaces from "../model/workspaces.js";
+import type * as portfolio from "../portfolio.js";
+import type * as sync from "../sync.js";
 import type * as users from "../users.js";
 import type * as waitlist from "../waitlist.js";
 
@@ -21,9 +32,20 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  billing: typeof billing;
   clients: typeof clients;
   content: typeof content;
+  crons: typeof crons;
+  email: typeof email;
   http: typeof http;
+  managerAccess: typeof managerAccess;
+  members: typeof members;
+  migrations: typeof migrations;
+  "model/auth": typeof model_auth;
+  "model/plans": typeof model_plans;
+  "model/workspaces": typeof model_workspaces;
+  portfolio: typeof portfolio;
+  sync: typeof sync;
   users: typeof users;
   waitlist: typeof waitlist;
 }>;

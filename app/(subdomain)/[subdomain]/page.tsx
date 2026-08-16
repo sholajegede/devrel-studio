@@ -6,12 +6,23 @@ import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import {
   getMonthsFromContent,
   formatMonthLabel,
-  getCategoryColor,
   CATEGORIES,
   STATUSES,
   type Category,
   type ContentEntry,
 } from "@/lib/types";
+import {
+  CATEGORY_METRIC,
+  aggregate,
+  categoryOf,
+  getMetricValue,
+} from "@/lib/metrics";
+import {
+  CATEGORY_META,
+  categoryMetricIcon,
+  getCategoryColor,
+} from "@/lib/category-meta";
+import { PlatformIcon } from "@/lib/platform-meta";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -38,13 +49,8 @@ import {
   RefreshCw,
   ChevronUp,
   ChevronDown,
-  FileText,
-  Video,
-  MapPin,
-  Mic,
-  Package,
   Users,
-  Headphones,
+  Star,
   TrendingUp,
   Search,
   X,
@@ -58,30 +64,7 @@ import {
   OnboardingTour,
   TourTriggerButton,
 } from "@/components/onboarding-tour";
-
-// ─── Category icon map ────────────────────────────────────────────────────────
-
-const CATEGORY_ICONS: Record<string, React.ElementType> = {
-  Written: FileText,
-  Video:   Video,
-  Event:   MapPin,
-  Podcast: Mic,
-  Package: Package,
-};
-
-const PLATFORM_FAVICONS: Record<string, string> = {
-  LinkedIn:     "https://www.google.com/s2/favicons?domain=linkedin.com&sz=32",
-  "Twitter/X":  "https://www.google.com/s2/favicons?domain=x.com&sz=32",
-  "Hacker News":"https://www.google.com/s2/favicons?domain=news.ycombinator.com&sz=32",
-  "Dev.to":     "https://www.google.com/s2/favicons?domain=dev.to&sz=32",
-  Reddit:       "https://www.google.com/s2/favicons?domain=reddit.com&sz=32",
-  YouTube:      "https://www.google.com/s2/favicons?domain=youtube.com&sz=32",
-  GitHub:       "https://www.google.com/s2/favicons?domain=github.com&sz=32",
-  freeCodeCamp: "https://www.google.com/s2/favicons?domain=freecodecamp.org&sz=32",
-  Spotify:      "https://www.google.com/s2/favicons?domain=spotify.com&sz=32",
-  "Apple Podcasts": "https://www.google.com/s2/favicons?domain=podcasts.apple.com&sz=32",
-  npm:          "https://www.google.com/s2/favicons?domain=npmjs.com&sz=32",
-};
+import { ThemeToggle } from "@/components/theme-toggle";
 
 // ─── Skeleton components ──────────────────────────────────────────────────────
 
@@ -117,8 +100,8 @@ function DashboardSkeleton({ clientName }: { clientName: string }) {
     <div className="min-h-screen bg-background">
       <DashboardHeader clientName={clientName} />
       <main className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 py-8">
-        <div className="mb-8 grid grid-cols-2 sm:grid-cols-5 gap-4">
-          {[...Array(5)].map((_, i) => <StatCardSkeleton key={i} />)}
+        <div className="mb-8 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+          {[...Array(6)].map((_, i) => <StatCardSkeleton key={i} />)}
         </div>
         <div className="mb-6 flex items-center justify-between">
           <SkeletonBlock className="h-6 w-28" />
@@ -169,6 +152,7 @@ function DashboardHeader({
             </div>
           </div>
           <div className="flex items-center gap-3">
+            <ThemeToggle />
             {tourControls && <TourTriggerButton onStartTour={tourControls.startTour} />}
             <Badge variant="outline" className="bg-accent/10 text-accent border-accent/20">
               Client: {clientName}
@@ -183,60 +167,48 @@ function DashboardHeader({
 // ─── Metric cell — adapts to category ────────────────────────────────────────
 
 function MetricCell({ entry }: { entry: ContentEntry }) {
-  const cat = entry.category;
+  const category = categoryOf(entry);
+  const { label } = CATEGORY_METRIC[category];
+  const Icon = categoryMetricIcon(category);
+  const value = getMetricValue(entry);
 
-  if (cat === "Event") {
-    return entry.attendees && entry.attendees > 0 ? (
-      <span className="flex items-center gap-1.5 text-sm text-muted-foreground">
-        <Users className="h-3.5 w-3.5" />
-        {entry.attendees.toLocaleString()}
-      </span>
-    ) : (
-      <span className="text-sm text-muted-foreground/50" title="Attendees not yet recorded">Pending</span>
-    );
-  }
-
-  if (cat === "Podcast") {
-    return entry.downloads && entry.downloads > 0 ? (
-      <span className="flex items-center gap-1.5 text-sm text-muted-foreground">
-        <Headphones className="h-3.5 w-3.5" />
-        {entry.downloads.toLocaleString()}
-      </span>
-    ) : (
-      <span className="text-sm text-muted-foreground/50" title="Listener count not yet recorded">Pending</span>
-    );
-  }
-
-  if (cat === "Package") {
+  // Packages are the one category with two numbers worth showing at once.
+  if (category === "Package") {
     const hasData = (entry.downloads ?? 0) > 0 || (entry.weeklyDownloads ?? 0) > 0;
-    return hasData ? (
-      <div className="space-y-0.5">
-        {(entry.weeklyDownloads ?? 0) > 0 && (
-          <span className="flex items-center gap-1 text-xs text-muted-foreground">
-            <TrendingUp className="h-3 w-3" />
-            {entry.weeklyDownloads!.toLocaleString()}/wk
-          </span>
-        )}
-        {(entry.downloads ?? 0) > 0 && (
-          <span className="flex items-center gap-1 text-xs text-muted-foreground">
-            <Download className="h-3 w-3" />
-            {entry.downloads!.toLocaleString()} total
-          </span>
-        )}
-      </div>
-    ) : (
-      <span className="text-sm text-muted-foreground/50" title="Downloads not yet recorded">Pending</span>
+    if (hasData) {
+      return (
+        <div className="space-y-0.5">
+          {(entry.weeklyDownloads ?? 0) > 0 && (
+            <span className="flex items-center gap-1 text-xs text-muted-foreground">
+              <TrendingUp className="h-3 w-3" />
+              {entry.weeklyDownloads!.toLocaleString()}/wk
+            </span>
+          )}
+          {(entry.downloads ?? 0) > 0 && (
+            <span className="flex items-center gap-1 text-xs text-muted-foreground">
+              <Download className="h-3 w-3" />
+              {entry.downloads!.toLocaleString()} total
+            </span>
+          )}
+        </div>
+      );
+    }
+  } else if (value > 0) {
+    return (
+      <span className="flex items-center gap-1.5 text-sm text-muted-foreground">
+        <Icon className="h-3.5 w-3.5" />
+        {value.toLocaleString()}
+      </span>
     );
   }
 
-  // Written / Video — views
-  return (entry.views ?? 0) > 0 ? (
-    <span className="flex items-center gap-1.5 text-sm text-muted-foreground">
-      <Eye className="h-3.5 w-3.5" />
-      {entry.views!.toLocaleString()}
+  return (
+    <span
+      className="text-sm text-muted-foreground/50"
+      title={`${label} not yet recorded`}
+    >
+      Pending
     </span>
-  ) : (
-    <span className="text-sm text-muted-foreground/50" title="Views not yet recorded">Pending</span>
   );
 }
 
@@ -244,7 +216,7 @@ function MetricCell({ entry }: { entry: ContentEntry }) {
 
 function CategoryBadge({ category }: { category?: Category }) {
   const cat = category ?? "Written";
-  const Icon = CATEGORY_ICONS[cat] ?? FileText;
+  const Icon = CATEGORY_META[cat].icon;
   return (
     <Badge variant="outline" className={`gap-1 text-xs ${getCategoryColor(cat)}`}>
       <Icon className="h-3 w-3" />
@@ -260,13 +232,13 @@ function getStatusConfig(status: string) {
     case "Published":
       return { icon: CheckCircle2, label: "Published", className: "bg-accent/10 text-accent border-accent/20" };
     case "Draft":
-      return { icon: FileEdit, label: "Draft", className: "bg-stone-50 text-stone-600 border-stone-200" };
+      return { icon: FileEdit, label: "Draft", className: "bg-stone-50 text-stone-600 border-stone-200 dark:bg-stone-500/10 dark:text-stone-300 dark:border-stone-500/25" };
     case "Waiting Approval":
-      return { icon: Clock, label: "In Review", className: "bg-amber-50 text-amber-700 border-amber-200" };
+      return { icon: Clock, label: "In Review", className: "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-500/10 dark:text-amber-300 dark:border-amber-500/25" };
     case "Scheduled":
-      return { icon: Calendar, label: "Scheduled", className: "bg-slate-50 text-slate-600 border-slate-200" };
+      return { icon: Calendar, label: "Scheduled", className: "bg-slate-50 text-slate-600 border-slate-200 dark:bg-slate-500/10 dark:text-slate-300 dark:border-slate-500/25" };
     default:
-      return { icon: Clock, label: status, className: "bg-stone-50 text-stone-600 border-stone-200" };
+      return { icon: Clock, label: status, className: "bg-stone-50 text-stone-600 border-stone-200 dark:bg-stone-500/10 dark:text-stone-300 dark:border-stone-500/25" };
   }
 }
 
@@ -461,27 +433,18 @@ export default function ClientDashboard({
     return <DashboardSkeleton clientName={clientName} />;
   }
 
-  const published   = contentForStats.filter((c) => c.status === "Published");
-  const inProgress  = contentForStats.filter((c) => c.status !== "Published");
-  const totalViews  = contentForStats
-    .filter((c) => !c.category || c.category === "Written" || c.category === "Video")
-    .reduce((sum, c) => sum + (c.views ?? 0), 0);
-  const totalDownloads = contentForStats
-    .filter((c) => c.category === "Package" || c.category === "Podcast")
-    .reduce((sum, c) => sum + (c.downloads ?? 0), 0);
-  const totalAttendees = contentForStats
-    .filter((c) => c.category === "Event")
-    .reduce((sum, c) => sum + (c.attendees ?? 0), 0);
-  const totalReshares = contentForStats.reduce(
-    (sum, c) => sum + (c.reshares?.length ?? 0), 0
-  );
+  const totals = aggregate(contentForStats);
 
   const byMonth: Record<string, ContentEntry[]> = {};
+  // Sorted on this rather than by re-parsing the localized label, which is only
+  // a Date by coincidence of "August 2026" happening to parse.
+  const monthOrder: Record<string, number> = {};
   for (const entry of filteredContent) {
     const date = new Date(entry.publicationDate);
     const key = date.toLocaleDateString("en-US", { month: "long", year: "numeric" });
     if (!byMonth[key]) byMonth[key] = [];
     byMonth[key].push(entry);
+    monthOrder[key] = date.getFullYear() * 12 + date.getMonth();
   }
 
   const exportToPDF = async () => {
@@ -494,12 +457,13 @@ export default function ClientDashboard({
           client: subdomain,
           content: filteredContent,
           stats: {
-            published:      published.length,
-            inProgress:     inProgress.length,
-            totalViews,
-            totalDownloads,
-            totalAttendees,
-            totalReshares,
+            published:      totals.published,
+            inProgress:     totals.inProgress,
+            totalViews:     totals.views,
+            totalDownloads: totals.downloads,
+            totalAttendees: totals.attendees,
+            totalStars:     totals.stars,
+            totalReshares:  totals.reshares,
           },
           period: dateRange?.from && dateRange?.to
             ? formatRangeLabel(dateRange)
@@ -536,14 +500,14 @@ export default function ClientDashboard({
       <main className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 py-8">
 
         {/* ── Stat cards ── */}
-        <div className="mb-8 grid grid-cols-2 sm:grid-cols-5 gap-4" data-tour="stats-cards">
+        <div className="mb-8 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4" data-tour="stats-cards">
           <div className="rounded-xl border border-border bg-card p-5">
             <p className="text-sm text-muted-foreground">Published</p>
-            <p className="mt-1 text-3xl font-semibold text-foreground">{published.length}</p>
+            <p className="mt-1 text-3xl font-semibold text-foreground">{totals.published}</p>
           </div>
           <div className="rounded-xl border border-border bg-card p-5">
             <p className="text-sm text-muted-foreground">In Progress</p>
-            <p className="mt-1 text-3xl font-semibold text-foreground">{inProgress.length}</p>
+            <p className="mt-1 text-3xl font-semibold text-foreground">{totals.inProgress}</p>
           </div>
           <div className="rounded-xl border border-border bg-card p-5">
             <div className="flex items-center gap-1.5 mb-1">
@@ -551,7 +515,7 @@ export default function ClientDashboard({
               <p className="text-sm text-muted-foreground">Views</p>
             </div>
             <p className="text-3xl font-semibold text-foreground">
-              {totalViews > 0 ? totalViews.toLocaleString() : "—"}
+              {totals.views > 0 ? totals.views.toLocaleString() : "—"}
             </p>
           </div>
           <div className="rounded-xl border border-border bg-card p-5">
@@ -560,7 +524,7 @@ export default function ClientDashboard({
               <p className="text-sm text-muted-foreground">Downloads</p>
             </div>
             <p className="text-3xl font-semibold text-foreground">
-              {totalDownloads > 0 ? totalDownloads.toLocaleString() : "—"}
+              {totals.downloads > 0 ? totals.downloads.toLocaleString() : "—"}
             </p>
           </div>
           <div className="rounded-xl border border-border bg-card p-5">
@@ -569,7 +533,16 @@ export default function ClientDashboard({
               <p className="text-sm text-muted-foreground">Attendees</p>
             </div>
             <p className="text-3xl font-semibold text-foreground">
-              {totalAttendees > 0 ? totalAttendees.toLocaleString() : "—"}
+              {totals.attendees > 0 ? totals.attendees.toLocaleString() : "—"}
+            </p>
+          </div>
+          <div className="rounded-xl border border-border bg-card p-5">
+            <div className="flex items-center gap-1.5 mb-1">
+              <Star className="h-3.5 w-3.5 text-muted-foreground" />
+              <p className="text-sm text-muted-foreground">Stars</p>
+            </div>
+            <p className="text-3xl font-semibold text-foreground">
+              {totals.stars > 0 ? totals.stars.toLocaleString() : "—"}
             </p>
           </div>
         </div>
@@ -731,7 +704,7 @@ export default function ClientDashboard({
             {CATEGORIES.map((cat) => {
               const count = categoryCounts[cat] ?? 0;
               if (count === 0) return null;
-              const Icon = CATEGORY_ICONS[cat];
+              const Icon = CATEGORY_META[cat as Category].icon;
               return (
                 <button
                   key={cat}
@@ -758,45 +731,42 @@ export default function ClientDashboard({
         {/* ── Content tables by month ── */}
         <div className="space-y-8 mr-4 ml-4 sm:mr-0 sm:ml-0">
           {Object.entries(byMonth)
-            .sort(([a], [b]) => new Date(b).getTime() - new Date(a).getTime())
+            .sort(([a], [b]) => monthOrder[b] - monthOrder[a])
             .map(([month, entries], monthIndex) => {
-              const monthPublished = entries.filter((e) => e.status === "Published").length;
-              const monthViews = entries
-                .filter((e) => !e.category || e.category === "Written" || e.category === "Video")
-                .reduce((sum, e) => sum + (e.views ?? 0), 0);
-              const monthAttendees = entries
-                .filter((e) => e.category === "Event")
-                .reduce((sum, e) => sum + (e.attendees ?? 0), 0);
-              const monthDownloads = entries
-                .filter((e) => e.category === "Package" || e.category === "Podcast")
-                .reduce((sum, e) => sum + (e.downloads ?? 0), 0);
+              const monthTotals = aggregate(entries);
 
               return (
                 <section key={month}>
                   <div className="mb-4 flex items-start sm:items-center justify-between border-b border-border pb-2">
                     <h3 className="font-medium text-foreground whitespace-nowrap">{month}</h3>
                     <div className="flex flex-col sm:flex-row items-end sm:items-center gap-1 sm:gap-4 ml-auto">
-                      {monthViews > 0 && (
+                      {monthTotals.views > 0 && (
                         <span className="flex items-center gap-1 text-xs sm:text-sm text-muted-foreground">
                           <Eye className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
-                          {monthViews.toLocaleString()} views
+                          {monthTotals.views.toLocaleString()} views
                         </span>
                       )}
-                      {monthAttendees > 0 && (
+                      {monthTotals.attendees > 0 && (
                         <span className="flex items-center gap-1 text-xs sm:text-sm text-muted-foreground">
                           <Users className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
-                          {monthAttendees.toLocaleString()} attendees
+                          {monthTotals.attendees.toLocaleString()} attendees
                         </span>
                       )}
-                      {monthDownloads > 0 && (
+                      {monthTotals.downloads > 0 && (
                         <span className="flex items-center gap-1 text-xs sm:text-sm text-muted-foreground">
                           <Download className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
-                          {monthDownloads.toLocaleString()} downloads
+                          {monthTotals.downloads.toLocaleString()} downloads
+                        </span>
+                      )}
+                      {monthTotals.stars > 0 && (
+                        <span className="flex items-center gap-1 text-xs sm:text-sm text-muted-foreground">
+                          <Star className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+                          {monthTotals.stars.toLocaleString()} stars
                         </span>
                       )}
                       <span className="text-muted-foreground hidden sm:inline-flex">|</span>
                       <span className="text-xs sm:text-sm text-muted-foreground whitespace-nowrap">
-                        {monthPublished} of {entries.length} delivered
+                        {monthTotals.published} of {entries.length} delivered
                       </span>
                     </div>
                   </div>
@@ -826,7 +796,9 @@ export default function ClientDashboard({
                             const aOrder = statusOrder[a.status] ?? 4;
                             const bOrder = statusOrder[b.status] ?? 4;
                             if (aOrder !== bOrder) return aOrder - bOrder;
-                            return new Date(a.publicationDate).getTime() - new Date(b.publicationDate).getTime();
+                            // Newest first, matching the month sections above and
+                            // the order the Convex query returns.
+                            return new Date(b.publicationDate).getTime() - new Date(a.publicationDate).getTime();
                           })
                           .map((entry, entryIndex) => {
                             const statusConfig = getStatusConfig(entry.status);
@@ -885,6 +857,22 @@ export default function ClientDashboard({
                                       {entry.category === "Package" && entry.packageName && (
                                         <p className="text-xs text-muted-foreground font-mono mt-1">{entry.packageName}</p>
                                       )}
+                                      {entry.category === "Demo" && (entry.stack || entry.repoUrl) && (
+                                        <p className="text-xs text-muted-foreground mt-1">
+                                          {entry.stack}
+                                          {entry.stack && entry.repoUrl ? " · " : ""}
+                                          {entry.repoUrl && (
+                                            <a
+                                              href={ensureHttps(entry.repoUrl)}
+                                              target="_blank"
+                                              rel="noopener noreferrer"
+                                              className="text-accent hover:text-accent/80 transition-colors"
+                                            >
+                                              Repo
+                                            </a>
+                                          )}
+                                        </p>
+                                      )}
                                     </div>
                                   </td>
 
@@ -896,15 +884,7 @@ export default function ClientDashboard({
                                   {/* Platform */}
                                   <td className="px-4 py-4">
                                     <div className="flex items-center gap-1.5">
-                                      {PLATFORM_FAVICONS[entry.platform] && (
-                                        <img
-                                          src={PLATFORM_FAVICONS[entry.platform]}
-                                          alt={entry.platform}
-                                          width={14}
-                                          height={14}
-                                          className="rounded-sm shrink-0"
-                                        />
-                                      )}
+                                      <PlatformIcon platform={entry.platform} size={14} />
                                       <span className="text-sm text-muted-foreground">{entry.platform}</span>
                                     </div>
                                   </td>
@@ -980,16 +960,7 @@ export default function ClientDashboard({
                                                   key={idx}
                                                   className="flex items-center gap-3 p-3 bg-card rounded-lg border border-border"
                                                 >
-                                                  <img
-                                                    src={
-                                                      PLATFORM_FAVICONS[reshare.platform] ??
-                                                      `https://www.google.com/s2/favicons?domain=${reshare.platform.toLowerCase()}.com&sz=32`
-                                                    }
-                                                    alt={reshare.platform}
-                                                    width={20}
-                                                    height={20}
-                                                    className="rounded-sm"
-                                                  />
+                                                  <PlatformIcon platform={reshare.platform} size={20} />
                                                   <div className="flex-1 min-w-0">
                                                     <p className="text-sm font-medium text-foreground">{reshare.platform}</p>
                                                     <p className="text-xs text-muted-foreground">
