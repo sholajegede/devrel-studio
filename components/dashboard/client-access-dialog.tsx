@@ -19,11 +19,13 @@ import {
   AlertCircle,
   Check,
   Copy,
+  Globe,
   KeyRound,
   Loader2,
   LogOut,
   Mail,
   RefreshCw,
+  ShieldCheck,
 } from 'lucide-react'
 
 export function ClientAccessDialog({
@@ -38,6 +40,10 @@ export function ClientAccessDialog({
   const [code, setCode] = useState<string | null>(null)
   const [isWorking, setIsWorking] = useState(false)
   const [copied, setCopied] = useState(false)
+  // Shown in the dialog itself, not only as a toast. A toast that is missed —
+  // or, as was the case until now, never rendered at all — leaves a failed
+  // action looking identical to one that did nothing.
+  const [error, setError] = useState<string | null>(null)
 
   const setClientPublic = useMutation(api.managerAccess.setClientPublic)
   const revokeSessions = useMutation(api.managerAccess.revokeManagerSessions)
@@ -56,6 +62,7 @@ export function ClientAccessDialog({
 
   const handleGenerate = async (emailIt = false) => {
     setIsWorking(true)
+    setError(null)
     try {
       const response = await fetch('/api/manager-access/code', {
         method: 'POST',
@@ -69,7 +76,9 @@ export function ClientAccessDialog({
       const body = await response.json()
 
       if (!response.ok) {
-        toast.error(body.error ?? 'Could not create the code')
+        const message = body.error ?? 'Could not create the code'
+        setError(message)
+        toast.error(message)
         return
       }
 
@@ -87,7 +96,9 @@ export function ClientAccessDialog({
         )
       }
     } catch {
-      toast.error('Could not create the code')
+      const message = 'Could not reach the server. Check your connection and try again.'
+      setError(message)
+      toast.error(message)
     } finally {
       setIsWorking(false)
     }
@@ -95,12 +106,16 @@ export function ClientAccessDialog({
 
   const handleRemove = async () => {
     setIsWorking(true)
+    setError(null)
     try {
       const response = await fetch(`/api/manager-access/code?clientId=${client._id}`, {
         method: 'DELETE',
       })
       if (!response.ok) {
-        toast.error('Could not remove the code')
+        const body = await response.json().catch(() => ({}))
+        const message = body.error ?? 'Could not remove the code'
+        setError(message)
+        toast.error(message)
         return
       }
       setCode(null)
@@ -129,11 +144,23 @@ export function ClientAccessDialog({
   }
 
   const handleTogglePublic = async (next: boolean) => {
+    setError(null)
     try {
       await setClientPublic({ clientId: client._id, isPublic: next })
-      toast.success(next ? 'Dashboard is public' : 'Dashboard requires a code')
-    } catch {
-      toast.error('Could not update visibility')
+      toast.success(
+        next
+          ? 'Anyone with the link can now open this dashboard'
+          : hasCode
+            ? 'The access code is required again'
+            : 'Link sharing off — set a code to actually restrict access',
+      )
+    } catch (err) {
+      const message =
+        err && typeof err === 'object' && 'data' in err && typeof err.data === 'string'
+          ? err.data
+          : 'Could not update visibility'
+      setError(message)
+      toast.error(message)
     }
   }
 
@@ -147,7 +174,7 @@ export function ClientAccessDialog({
     <Dialog
       open={open}
       onOpenChange={(next) => {
-        if (!next) setCode(null)
+        if (!next) { setCode(null); setError(null) }
         onOpenChange(next)
       }}
     >
@@ -169,6 +196,50 @@ export function ClientAccessDialog({
           </div>
         ) : (
           <div className="space-y-5">
+            {/* Who can currently open this — the one thing the dialog must
+                answer, stated before any control that changes it. The three
+                states are genuinely different and were previously only
+                inferable by reading the toggle and the code section together. */}
+            {(() => {
+              const state = isPublic
+                ? {
+                    icon: Globe,
+                    label: 'Open to anyone with the link',
+                    detail: 'No code is asked for, even though one may be set.',
+                    tone: 'border-sky-200 bg-sky-50/60 text-sky-900 dark:border-sky-500/30 dark:bg-sky-500/10 dark:text-sky-200',
+                  }
+                : hasCode
+                  ? {
+                      icon: ShieldCheck,
+                      label: 'Protected by an access code',
+                      detail: 'Visitors must enter the code before seeing anything.',
+                      tone: 'border-emerald-200 bg-emerald-50/60 text-emerald-900 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-200',
+                    }
+                  : {
+                      icon: AlertCircle,
+                      label: 'Unprotected',
+                      detail: 'Anyone who knows or guesses the link can read this dashboard. Create a code to close it.',
+                      tone: 'border-amber-200 bg-amber-50/60 text-amber-900 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-200',
+                    }
+
+              return (
+                <div className={`flex items-start gap-2.5 rounded-lg border p-3 ${state.tone}`}>
+                  <state.icon className="mt-0.5 h-4 w-4 shrink-0" />
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium">{state.label}</p>
+                    <p className="text-xs opacity-80">{state.detail}</p>
+                  </div>
+                </div>
+              )
+            })()}
+
+            {error && (
+              <div className="flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
+                <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                <p>{error}</p>
+              </div>
+            )}
+
             {/* Dashboard URL */}
             <div className="space-y-2">
               <Label className="text-xs text-muted-foreground">Dashboard link</Label>

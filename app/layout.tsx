@@ -4,6 +4,7 @@ import { Inter } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
 import { AppProviders } from "@/providers/ConvexKindeProvider"
 import { ThemeProvider } from "@/components/theme-provider"
+import { Toaster } from "@/components/ui/sonner"
 import { TooltipProvider } from "@/components/ui/tooltip"
 // @ts-ignore TS2307: Cannot find module or type declarations for side-effect import of './globals.css'.
 import "./globals.css";
@@ -36,6 +37,11 @@ export default function RootLayout({
           >
             <TooltipProvider>
               {children}
+              {/* Every toast.success/error in the app went nowhere without this:
+                  the component existed but was never rendered, so 48 call sites
+                  across the dashboard gave no feedback at all — successes and
+                  failures alike looked identical to nothing happening. */}
+              <Toaster richColors closeButton position="top-right" />
               <Analytics />
             </TooltipProvider>
           </ThemeProvider>
