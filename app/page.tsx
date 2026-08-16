@@ -2,11 +2,9 @@ import Link from 'next/link'
 import Image from 'next/image'
 import {
   FileText, Video, MapPin, Mic, Package, Rocket,
-  Eye, Download, Users, BarChart3, Link2,
-  Share2, CheckCircle, ArrowRight, Zap,
-  CheckCircle2, Star,
+  Eye, Download, BarChart3, Link2,
+  Share2, Check, ArrowRight, Minus,
 } from 'lucide-react'
-import { Button } from '@/components/ui/button'
 import {
   Accordion,
   AccordionContent,
@@ -16,83 +14,156 @@ import {
 import { MarketingNav } from '@/components/marketing/nav'
 import { MarketingFooter } from '@/components/marketing/footer'
 
+// ─── Shared pieces ────────────────────────────────────────────────────────────
+//
+// The page is built from three primitives so the rhythm stays consistent all the
+// way down: an eyebrow, a heading block, and two button styles. Every section
+// uses them rather than inventing its own spacing and type sizes.
+//
+// Type is deliberately restrained — semibold rather than bold, negative tracking
+// on headings, one accent colour used sparingly. Colour is carried by the
+// product screenshot and the accent, not by the headings.
+
+function Eyebrow({ children }: { children: React.ReactNode }) {
+  return (
+    <span className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
+      {children}
+    </span>
+  )
+}
+
+function SectionHeading({
+  eyebrow,
+  title,
+  lede,
+  align = 'center',
+}: {
+  eyebrow?: string
+  title: React.ReactNode
+  lede?: React.ReactNode
+  align?: 'center' | 'left'
+}) {
+  return (
+    <div className={align === 'center' ? 'mx-auto max-w-2xl text-center' : 'max-w-2xl'}>
+      {eyebrow && <Eyebrow>{eyebrow}</Eyebrow>}
+      <h2 className="mt-3 text-3xl sm:text-4xl font-semibold tracking-[-0.02em] text-foreground leading-[1.15]">
+        {title}
+      </h2>
+      {lede && (
+        <p className="mt-4 text-[15px] leading-relaxed text-muted-foreground">{lede}</p>
+      )}
+    </div>
+  )
+}
+
+/** High-contrast primary. Inverts with the theme, the way Linear's does. */
+function PrimaryLink({ href, children }: { href: string; children: React.ReactNode }) {
+  return (
+    <Link
+      href={href}
+      className="inline-flex h-10 items-center gap-1.5 rounded-lg bg-foreground px-5 text-sm font-medium text-background transition-opacity hover:opacity-90"
+    >
+      {children}
+    </Link>
+  )
+}
+
+function GhostLink({ href, children }: { href: string; children: React.ReactNode }) {
+  return (
+    <Link
+      href={href}
+      className="inline-flex h-10 items-center gap-1.5 rounded-lg border border-border px-5 text-sm font-medium text-foreground transition-colors hover:bg-muted"
+    >
+      {children}
+    </Link>
+  )
+}
+
 // ─── Hero ─────────────────────────────────────────────────────────────────────
 
 function Hero() {
   return (
     <section className="relative overflow-hidden">
-      {/* Background gradient */}
-      <div className="absolute inset-0 bg-gradient-to-b from-accent/5 via-transparent to-transparent pointer-events-none" />
+      {/* Hairline grid, fading out before it reaches the content. Pure texture —
+          it should register as depth, not as a visible pattern. */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 opacity-[0.35] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,black,transparent)]"
+        style={{
+          backgroundImage:
+            'linear-gradient(to right, var(--border) 1px, transparent 1px), linear-gradient(to bottom, var(--border) 1px, transparent 1px)',
+          backgroundSize: '56px 56px',
+        }}
+      />
+      <div
+        aria-hidden
+        className="pointer-events-none absolute left-1/2 top-0 h-[420px] w-[820px] -translate-x-1/2 rounded-full bg-accent/10 blur-[120px]"
+      />
 
-      <div className="relative mx-auto max-w-7xl px-6 pt-20 pb-0 text-center">
-        <div className="inline-flex items-center gap-2 rounded-full border border-accent/30 bg-accent/8 px-4 py-1.5 mb-8">
-          <Zap className="h-3.5 w-3.5 text-accent" />
-          <span className="text-xs font-medium text-accent">The command centre for developer advocates</span>
-        </div>
+      <div className="relative mx-auto max-w-6xl px-6 pt-24 text-center">
+        <Link
+          href="/pricing"
+          className="inline-flex items-center gap-2 rounded-full border border-border bg-card/60 py-1 pl-1 pr-3 text-xs text-muted-foreground backdrop-blur transition-colors hover:text-foreground"
+        >
+          <span className="rounded-full bg-foreground px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-background">
+            New
+          </span>
+          Pay once, use forever — from $49
+          <ArrowRight className="h-3 w-3" />
+        </Link>
 
-        <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold text-foreground leading-[1.08] tracking-tight mb-6 max-w-4xl mx-auto">
-          Show clients what their{' '}
-          <span className="text-accent">DevRel investment</span>{' '}
-          is actually doing
+        <h1 className="mx-auto mt-8 max-w-3xl text-[2.6rem] font-semibold leading-[1.05] tracking-[-0.035em] text-foreground sm:text-6xl lg:text-[4rem]">
+          Show clients what their DevRel investment is actually doing
         </h1>
 
-        <p className="text-xl text-muted-foreground max-w-2xl mx-auto mb-10 leading-relaxed">
-          DevRel Studio gives you one place to log content, track live metrics, and share a
-          beautiful performance dashboard with every client — so your impact is always visible,
-          never buried in a monthly PDF.
+        <p className="mx-auto mt-6 max-w-xl text-[17px] leading-relaxed text-muted-foreground">
+          One place to log content, track live metrics, and share a performance
+          dashboard with every client — so your impact is always visible, never buried
+          in a monthly PDF.
         </p>
 
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-6">
-          <Link href="/pricing">
-            <Button size="lg" className="gap-2 bg-accent text-accent-foreground hover:bg-accent/90 h-12 px-8 text-base">
-              Get started — from $49
-              <ArrowRight className="h-4 w-4" />
-            </Button>
-          </Link>
-          <Link href="/dashboard">
-            <Button size="lg" variant="outline" className="h-12 px-8 text-base bg-transparent">
-              Explore the demo
-            </Button>
-          </Link>
+        <div className="mt-9 flex flex-col items-center justify-center gap-2.5 sm:flex-row">
+          <PrimaryLink href="/pricing">
+            Get started
+            <ArrowRight className="h-3.5 w-3.5" />
+          </PrimaryLink>
+          <GhostLink href="/dashboard">Explore the demo</GhostLink>
         </div>
 
-        <p className="text-sm text-muted-foreground mb-16">
+        <p className="mt-5 text-[13px] text-muted-foreground">
           One-time fee · No subscription · Lifetime access
         </p>
 
-        {/* ── Real dashboard screenshot ── */}
-        <div className="relative mx-auto max-w-5xl pb-0">
-          {/* Ambient glow */}
-          <div className="absolute -inset-6 bg-accent/8 rounded-3xl blur-3xl pointer-events-none" />
+        {/* Product shot. The one place on the page allowed to carry colour. */}
+        <div className="relative mx-auto mt-20 max-w-5xl">
+          <div
+            aria-hidden
+            className="pointer-events-none absolute -inset-x-20 -top-10 bottom-20 rounded-full bg-accent/10 blur-[100px]"
+          />
 
-          {/* Browser chrome */}
-          <div className="relative rounded-t-2xl border border-border border-b-0 bg-muted/70 px-4 py-2.5 flex items-center gap-3 shadow-sm">
-            <div className="flex gap-1.5 shrink-0">
-              <div className="h-3 w-3 rounded-full bg-red-400/80" />
-              <div className="h-3 w-3 rounded-full bg-yellow-400/80" />
-              <div className="h-3 w-3 rounded-full bg-green-400/80" />
-            </div>
-            <div className="flex-1 flex justify-center">
-              <div className="rounded-md bg-background border border-border/60 px-4 py-1 text-xs text-muted-foreground max-w-xs w-full text-center select-none">
-                devrel.studio/kinde
+          <div className="relative overflow-hidden rounded-xl border border-border bg-card shadow-2xl shadow-foreground/[0.06]">
+            <div className="flex items-center gap-2 border-b border-border bg-muted/40 px-3 py-2.5">
+              <div className="flex gap-1.5">
+                <span className="h-2.5 w-2.5 rounded-full bg-foreground/15" />
+                <span className="h-2.5 w-2.5 rounded-full bg-foreground/15" />
+                <span className="h-2.5 w-2.5 rounded-full bg-foreground/15" />
               </div>
+              <div className="mx-auto rounded-md border border-border bg-background px-3 py-0.5 text-[11px] text-muted-foreground">
+                kinde.devrel.studio
+              </div>
+              <div className="w-12" />
             </div>
-            <div className="w-16 shrink-0" />
-          </div>
 
-          {/* Screenshot */}
-          <div className="relative border border-border border-t-0 rounded-b-2xl overflow-hidden shadow-[0_32px_80px_-12px_rgba(0,0,0,0.18)]">
             <Image
               src="/images/dashboard-screenshot.png"
-              alt="DevRel Studio client performance dashboard showing published content, views, downloads and attendees metrics"
+              alt="A client performance dashboard showing published content with views, downloads and attendee counts"
               width={1728}
               height={1084}
-              className="w-full h-auto block"
+              className="block h-auto w-full"
               priority
             />
           </div>
         </div>
-
       </div>
     </section>
   )
@@ -116,12 +187,13 @@ const SOCIAL_PROOF_LOGOS = [
 
 function SocialProof() {
   return (
-    <section className="border-y border-border bg-card py-12 mt-20 overflow-hidden">
-      <p className="text-center text-xs font-medium text-muted-foreground mb-10 tracking-wide uppercase px-6">
-        Trusted by developer advocates at fast-growing companies
+    <section className="mt-28 overflow-hidden border-y border-border py-14">
+      <p className="mb-9 px-6 text-center text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
+        Content tracked for teams at
       </p>
-      <div className="relative">
-        <div className="animate-marquee flex items-center gap-16 opacity-50 grayscale">
+      {/* Edges fade so logos enter and leave rather than being clipped. */}
+      <div className="relative [mask-image:linear-gradient(to_right,transparent,black_12%,black_88%,transparent)]">
+        <div className="animate-marquee flex items-center gap-16 opacity-60 grayscale">
           {[...SOCIAL_PROOF_LOGOS, ...SOCIAL_PROOF_LOGOS].map((logo, i) => (
             <Image
               key={`${logo.alt}-${i}`}
@@ -129,7 +201,7 @@ function SocialProof() {
               alt={logo.alt}
               width={logo.width}
               height={logo.height}
-              className="object-contain shrink-0"
+              className="shrink-0 object-contain"
             />
           ))}
         </div>
@@ -138,62 +210,60 @@ function SocialProof() {
   )
 }
 
-// ─── Before/After ─────────────────────────────────────────────────────────────
+// ─── Before / after ───────────────────────────────────────────────────────────
+
+const BEFORE = [
+  'Manually updating a sprawling Google Sheet every month',
+  'Copying metrics from five platforms — YouTube, Dev.to, npm, Luma',
+  'Building a PDF report by hand with screenshots and formatting',
+  'Clients emailing "when does the monthly report come?"',
+  'Zero visibility between reporting periods',
+  'Proving ROI feels impossible without historic data',
+]
+
+const AFTER = [
+  'One dashboard — all six content types in one system',
+  'Add an entry in 30 seconds, metrics update live',
+  'Share a URL — clients check it whenever they want',
+  'No more "where’s the report?" emails',
+  'Historic trends at a glance, with filters and export',
+  'Prove impact month over month without lifting a finger',
+]
 
 function BeforeAfter() {
   return (
-    <section className="mx-auto max-w-7xl px-6 py-24">
-      <div className="text-center mb-14">
-        <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
-          The way DevRel reporting <span className="text-accent">used to work</span>
-        </h2>
-        <p className="text-muted-foreground max-w-xl mx-auto">
-          Developer advocates spend hours every month on reporting that should take minutes.
-          DevRel Studio fixes that.
-        </p>
-      </div>
+    <section className="mx-auto max-w-6xl px-6 py-28">
+      <SectionHeading
+        eyebrow="The problem"
+        title="Reporting that should take minutes takes hours"
+        lede="Developer advocates spend a day a month assembling evidence of work they have already done."
+      />
 
-      <div className="grid gap-6 md:grid-cols-2">
-        {/* Before */}
-        <div className="rounded-2xl border border-red-100 bg-red-50/40 dark:border-red-500/25 dark:bg-red-500/10 p-8">
-          <p className="text-sm font-semibold text-red-600 dark:text-red-300 mb-5 flex items-center gap-2">
-            <span className="h-2 w-2 rounded-full bg-red-500 inline-block" />
-            Before DevRel Studio
+      <div className="mt-14 grid gap-px overflow-hidden rounded-xl border border-border bg-border md:grid-cols-2">
+        <div className="bg-background p-8">
+          <p className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+            <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/40" />
+            Today
           </p>
-          <ul className="space-y-4">
-            {[
-              'Manually updating a sprawling Google Sheet every month',
-              'Copying metrics from 5 different platforms (YouTube, Dev.to, npm, Luma…)',
-              'Building a PDF report by hand with screenshots and formatting',
-              'Clients emailing "when does the monthly report come?"',
-              'Zero visibility between reporting periods',
-              'Proving ROI feels impossible without historic data',
-            ].map((item) => (
-              <li key={item} className="flex items-start gap-3 text-sm text-red-700/80 dark:text-red-200/80">
-                <span className="mt-1 h-4 w-4 shrink-0 rounded-full bg-red-100 text-red-500 dark:bg-red-500/20 dark:text-red-300 flex items-center justify-center text-xs font-bold">✕</span>
+          <ul className="mt-6 space-y-3.5">
+            {BEFORE.map((item) => (
+              <li key={item} className="flex items-start gap-3 text-sm text-muted-foreground">
+                <Minus className="mt-0.5 h-4 w-4 shrink-0 opacity-40" />
                 {item}
               </li>
             ))}
           </ul>
         </div>
 
-        {/* After */}
-        <div className="rounded-2xl border border-accent/20 bg-accent/5 p-8">
-          <p className="text-sm font-semibold text-accent mb-5 flex items-center gap-2">
-            <span className="h-2 w-2 rounded-full bg-accent inline-block" />
+        <div className="bg-background p-8">
+          <p className="flex items-center gap-2 text-sm font-medium text-foreground">
+            <span className="h-1.5 w-1.5 rounded-full bg-accent" />
             With DevRel Studio
           </p>
-          <ul className="space-y-4">
-            {[
-              'One dashboard — all 5 content types in one system',
-              'Add a new entry in 30 seconds, metrics update live',
-              'Share a URL — clients check their dashboard whenever they want',
-              'No more "where\'s the report?" emails from clients',
-              'Historic trends visible at a glance with filters and export',
-              'Prove impact month over month without lifting a finger',
-            ].map((item) => (
+          <ul className="mt-6 space-y-3.5">
+            {AFTER.map((item) => (
               <li key={item} className="flex items-start gap-3 text-sm text-foreground">
-                <CheckCircle className="mt-0.5 h-4 w-4 shrink-0 text-accent" />
+                <Check className="mt-0.5 h-4 w-4 shrink-0 text-accent" />
                 {item}
               </li>
             ))}
@@ -211,69 +281,56 @@ const FEATURES = [
     icon: BarChart3,
     title: 'Live client dashboard',
     description:
-      'Every client gets a personalised, real-time performance URL. They see everything you\'ve delivered — articles, videos, events, packages — with live metrics that update as you do.',
+      'Every client gets a real-time performance URL showing everything you have delivered, with metrics that update as you do.',
   },
   {
     icon: FileText,
     title: 'Six content categories',
     description:
-      'Written, Video, Event, Podcast, Package, Demo — each with the right fields. Views for articles, attendees for events, weekly download trends for npm packages, stars for demo apps. No generic one-size-fits-all forms.',
+      'Written, Video, Event, Podcast, Package, Demo — each with the right fields. Views for articles, attendees for events, weekly downloads for packages.',
   },
   {
     icon: Link2,
     title: 'UTM tracking links',
     description:
-      'Log a tracking link for every piece of content. Clients see the UTM URL, can copy it, and click through — giving you full attribution data without extra tooling.',
+      'Log a tracking link for every piece. Clients see the URL, copy it, and click through — full attribution without extra tooling.',
   },
   {
     icon: Share2,
     title: 'Reshare tracking',
     description:
-      'Record every platform where your content was promoted — LinkedIn, Reddit, Hacker News, newsletters. Clients can expand each reshare to see where their content reached.',
+      'Record every platform a piece was promoted on — LinkedIn, Reddit, Hacker News, newsletters — and let clients expand each one.',
   },
   {
     icon: Eye,
-    title: 'Smart filters & search',
+    title: 'Filters and search',
     description:
-      'Filter by month, category, platform, and status on both sides. The client dashboard lets them drill into exactly the content they care about without waiting for a custom report.',
+      'Filter by month, category, platform and status on both sides, so clients drill into what they care about without a custom report.',
   },
   {
     icon: Download,
     title: 'CSV export',
     description:
-      'Download any filtered view as a CSV with one click. Useful for monthly reports, billing conversations, archive records, or feeding data into your own analytics stack.',
+      'Download any filtered view in one click — for monthly reports, billing conversations, or your own analytics stack.',
   },
 ]
 
 function Features() {
   return (
-    <section id="features" className="border-t border-border bg-card py-24">
-      <div className="mx-auto max-w-7xl px-6">
-        <div className="text-center mb-16">
-          <div className="inline-flex items-center gap-2 rounded-full border border-accent/30 bg-accent/8 px-4 py-1.5 mb-5">
-            <span className="text-xs font-medium text-accent">Everything in one place</span>
-          </div>
-          <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
-            Built for how DevRel{' '}
-            <span className="text-accent">actually works</span>
-          </h2>
-          <p className="text-muted-foreground max-w-lg mx-auto">
-            Not a generic project tracker. Not a CMS. DevRel Studio is purpose-built
-            for developer advocates who deliver content for clients and need to prove it.
-          </p>
-        </div>
+    <section id="features" className="border-t border-border bg-card/40 py-28">
+      <div className="mx-auto max-w-6xl px-6">
+        <SectionHeading
+          eyebrow="Product"
+          title="Built for how DevRel actually works"
+          lede="Not a project tracker. Not a CMS. Purpose-built for advocates who deliver content for clients and need to prove it."
+        />
 
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="mt-14 grid gap-px overflow-hidden rounded-xl border border-border bg-border sm:grid-cols-2 lg:grid-cols-3">
           {FEATURES.map(({ icon: Icon, title, description }) => (
-            <div
-              key={title}
-              className="group rounded-2xl border border-border bg-background p-6 hover:border-accent/40 hover:shadow-sm transition-all duration-200"
-            >
-              <div className="mb-4 h-11 w-11 rounded-xl bg-accent/10 flex items-center justify-center group-hover:bg-accent/20 transition-colors">
-                <Icon className="h-5 w-5 text-accent" />
-              </div>
-              <h3 className="text-base font-semibold text-foreground mb-2">{title}</h3>
-              <p className="text-sm text-muted-foreground leading-relaxed">{description}</p>
+            <div key={title} className="group bg-background p-7 transition-colors hover:bg-muted/40">
+              <Icon className="h-5 w-5 text-muted-foreground transition-colors group-hover:text-accent" />
+              <h3 className="mt-4 text-[15px] font-medium text-foreground">{title}</h3>
+              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{description}</p>
             </div>
           ))}
         </div>
@@ -285,44 +342,39 @@ function Features() {
 // ─── Content categories ───────────────────────────────────────────────────────
 
 const CONTENT_CATS = [
-  { icon: FileText, name: 'Written',  metric: 'Views',     bg: 'bg-blue-50 dark:bg-blue-500/10',   text: 'text-blue-600 dark:text-blue-300',   border: 'border-blue-100 dark:border-blue-500/25',   examples: ['Blog posts', 'Tutorials', 'Docs', 'Case studies', 'Newsletters'] },
-  { icon: Video,    name: 'Video',    metric: 'Views',     bg: 'bg-purple-50 dark:bg-purple-500/10', text: 'text-purple-600 dark:text-purple-300', border: 'border-purple-100 dark:border-purple-500/25', examples: ['YouTube videos', 'Loom walkthroughs', 'Course modules', 'Conference recordings'] },
-  { icon: MapPin,   name: 'Event',    metric: 'Attendees', bg: 'bg-orange-50 dark:bg-orange-500/10', text: 'text-orange-600 dark:text-orange-300', border: 'border-orange-100 dark:border-orange-500/25', examples: ['Conference talks', 'Meetups', 'Webinars', 'Workshops', 'Keynotes'] },
-  { icon: Mic,      name: 'Podcast',  metric: 'Downloads', bg: 'bg-pink-50 dark:bg-pink-500/10',   text: 'text-pink-600 dark:text-pink-300',   border: 'border-pink-100 dark:border-pink-500/25',   examples: ['Guest appearances', 'Interview shows', 'Solo episodes'] },
-  { icon: Package,  name: 'Package',  metric: 'Downloads + weekly trend', bg: 'bg-teal-50 dark:bg-teal-500/10', text: 'text-teal-600 dark:text-teal-300', border: 'border-teal-100 dark:border-teal-500/25', examples: ['npm packages', 'SDKs', 'CLI tools', 'Convex components', 'Libraries'] },
-  { icon: Rocket,   name: 'Demo',     metric: 'GitHub stars', bg: 'bg-emerald-50 dark:bg-emerald-500/10', text: 'text-emerald-600 dark:text-emerald-300', border: 'border-emerald-100 dark:border-emerald-500/25', examples: ['Demo apps', 'Starter kits', 'Sample projects', 'Reference implementations'] },
+  { icon: FileText, name: 'Written', metric: 'Views',           examples: 'Blog posts, tutorials, docs, case studies, newsletters' },
+  { icon: Video,    name: 'Video',   metric: 'Views',           examples: 'YouTube, Loom walkthroughs, course modules, recordings' },
+  { icon: MapPin,   name: 'Event',   metric: 'Attendees',       examples: 'Conference talks, meetups, webinars, workshops' },
+  { icon: Mic,      name: 'Podcast', metric: 'Downloads',       examples: 'Guest appearances, interview shows, solo episodes' },
+  { icon: Package,  name: 'Package', metric: 'Weekly downloads', examples: 'npm packages, SDKs, CLI tools, Convex components' },
+  { icon: Rocket,   name: 'Demo',    metric: 'GitHub stars',    examples: 'Demo apps, starter kits, reference implementations' },
 ]
 
 function ContentCategories() {
   return (
-    <section className="mx-auto max-w-7xl px-6 py-24">
-      <div className="text-center mb-14">
-        <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
-          One dashboard.{' '}
-          <span className="text-accent">Six content types.</span>
-        </h2>
-        <p className="text-muted-foreground max-w-lg mx-auto">
-          DevRel work doesn&apos;t fit neatly into a spreadsheet column. Each category in DevRel Studio
-          has the right fields, the right metrics, and the right display — automatically.
-        </p>
-      </div>
+    <section className="mx-auto max-w-6xl px-6 py-28">
+      <SectionHeading
+        eyebrow="Coverage"
+        title="One dashboard, six content types"
+        lede="DevRel work does not fit neatly into a spreadsheet column. Each category has the right fields, metrics and display — automatically."
+      />
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {CONTENT_CATS.map(({ icon: Icon, name, metric, bg, text, border, examples }) => (
-          <div key={name} className={`rounded-2xl border ${border} ${bg} p-5`}>
-            <div className={`mb-3 h-10 w-10 rounded-xl border ${border} bg-white flex items-center justify-center ${text}`}>
-              <Icon className="h-5 w-5" />
+      {/* A table rather than six coloured cards: the point is that each category
+          maps to one specific metric, and a table shows that mapping directly. */}
+      <div className="mt-14 overflow-hidden rounded-xl border border-border">
+        {CONTENT_CATS.map(({ icon: Icon, name, metric, examples }, i) => (
+          <div
+            key={name}
+            className={`grid grid-cols-1 gap-1 px-6 py-5 transition-colors hover:bg-muted/40 sm:grid-cols-[160px_180px_1fr] sm:items-center sm:gap-6 ${
+              i > 0 ? 'border-t border-border' : ''
+            }`}
+          >
+            <div className="flex items-center gap-2.5">
+              <Icon className="h-4 w-4 text-muted-foreground" />
+              <span className="text-sm font-medium text-foreground">{name}</span>
             </div>
-            <p className={`font-semibold text-sm mb-0.5 ${text}`}>{name}</p>
-            <p className="text-xs text-muted-foreground mb-3">Tracks: {metric}</p>
-            <ul className="space-y-1">
-              {examples.map((ex) => (
-                <li key={ex} className="text-xs text-muted-foreground/80 flex items-center gap-1.5">
-                  <span className={`h-1 w-1 rounded-full ${text.replace('text-', 'bg-')} shrink-0`} />
-                  {ex}
-                </li>
-              ))}
-            </ul>
+            <div className="font-mono text-xs text-accent">{metric}</div>
+            <div className="text-sm text-muted-foreground">{examples}</div>
           </div>
         ))}
       </div>
@@ -332,128 +384,51 @@ function ContentCategories() {
 
 // ─── How it works ─────────────────────────────────────────────────────────────
 
-function HowItWorks() {
-  return (
-    <section id="how-it-works" className="border-t border-border bg-card py-24">
-      <div className="mx-auto max-w-7xl px-6">
-        <div className="text-center mb-16">
-          <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
-            Up and running in{' '}
-            <span className="text-accent">under 5 minutes</span>
-          </h2>
-          <p className="text-muted-foreground max-w-md mx-auto">
-            No integrations to configure. No APIs to connect. Sign in, add your first entry,
-            and share a live dashboard link with your client.
-          </p>
-        </div>
-
-        <div className="grid gap-0 sm:grid-cols-3 relative">
-          {/* Connector line */}
-          <div className="hidden sm:block absolute top-8 left-[calc(100%/6)] right-[calc(100%/6)] h-px bg-gradient-to-r from-transparent via-border to-transparent" />
-
-          {[
-            {
-              step: '1',
-              title: 'Log your content',
-              description: 'Add any piece of DevRel content — blog post, YouTube video, conference talk, npm release. The form adapts to each category. Filling it in takes about 30 seconds.',
-              detail: 'Written · Video · Events · Podcasts · Packages',
-            },
-            {
-              step: '2',
-              title: 'Share a live dashboard',
-              description: 'Every account gets a personalised client URL. Share it once and your client can check performance anytime — no login, no app to install, works on any device.',
-              detail: 'yourname.devrel.studio',
-            },
-            {
-              step: '3',
-              title: 'Prove your impact',
-              description: 'Update metrics as they grow. Views, downloads, attendees — your client sees everything tick up in real time. No more waiting for the monthly PDF.',
-              detail: 'Real-time · Historic trends · CSV export',
-            },
-          ].map(({ step, title, description, detail }) => (
-            <div key={step} className="relative flex flex-col items-center text-center p-8">
-              <div className="mb-6 h-16 w-16 rounded-2xl bg-accent/10 border border-accent/20 flex items-center justify-center">
-                <span className="text-2xl font-bold text-accent">{step}</span>
-              </div>
-              <h3 className="text-lg font-semibold text-foreground mb-3">{title}</h3>
-              <p className="text-sm text-muted-foreground leading-relaxed mb-4">{description}</p>
-              <code className="text-xs text-accent/70 bg-accent/8 border border-accent/15 rounded-full px-3 py-1">
-                {detail}
-              </code>
-            </div>
-          ))}
-        </div>
-      </div>
-    </section>
-  )
-}
-
-// ─── Testimonials ─────────────────────────────────────────────────────────────
-
-const TESTIMONIALS = [
+const STEPS = [
   {
-    quote: "DevRel Studio completely changed how I report to clients. What used to be 2 hours of spreadsheet work every month is now a live URL I send once. My clients actually check it every week without prompting.",
-    name: 'Sarah Chen',
-    role: 'Senior Developer Advocate',
-    company: 'Convex',
-    stars: 5,
+    title: 'Log your content',
+    description:
+      'Add any piece of DevRel work — blog post, video, conference talk, npm release. The form adapts to the category and takes about 30 seconds.',
+    detail: 'Written · Video · Event · Podcast · Package · Demo',
   },
   {
-    quote: "The client dashboard URL alone is worth the price. I sent it to a client in a Slack message and they replied ten minutes later saying 'I had no idea how much you were doing — this is amazing.' That conversation got me a contract renewal.",
-    name: 'Marcus Webb',
-    role: 'Freelance DevRel Consultant',
-    company: 'Independent',
-    stars: 5,
+    title: 'Share a live dashboard',
+    description:
+      'Every client gets their own URL. Share it once and they can check performance anytime — no login, no app, any device.',
+    detail: 'client.devrel.studio',
   },
   {
-    quote: "I was skeptical about yet another SaaS tool. But DevRel Studio actually fits my workflow. Adding a new piece of content takes 30 seconds. And the category breakdowns — Written, Video, Package — finally match how DevRel work actually looks.",
-    name: 'Aisha Okonkwo',
-    role: 'Head of Developer Relations',
-    company: 'TechStartup',
-    stars: 5,
+    title: 'Prove your impact',
+    description:
+      'Views, downloads, attendees and stars refresh on their own. Your client watches the numbers move instead of waiting for a PDF.',
+    detail: 'Live metrics · Historic trends · CSV export',
   },
 ]
 
-function Testimonials() {
+function HowItWorks() {
   return (
-    <section id="testimonials" className="mx-auto max-w-7xl px-6 py-24">
-      <div className="text-center mb-14">
-        <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
-          Developer advocates{' '}
-          <span className="text-accent">love DevRel Studio</span>
-        </h2>
-        <p className="text-muted-foreground max-w-md mx-auto">
-          From freelance consultants to in-house DevRel teams — here&apos;s what they say.
-        </p>
-      </div>
+    <section id="how-it-works" className="border-t border-border bg-card/40 py-28">
+      <div className="mx-auto max-w-6xl px-6">
+        <SectionHeading
+          eyebrow="Getting started"
+          title="Up and running in under five minutes"
+          lede="No integrations to configure, no APIs to connect. Sign in, add an entry, share the link."
+        />
 
-      <div className="grid gap-6 md:grid-cols-3">
-        {TESTIMONIALS.map(({ quote, name, role, company, stars }) => (
-          <div
-            key={name}
-            className="rounded-2xl border border-border bg-card p-7 flex flex-col gap-5 hover:border-accent/30 hover:shadow-sm transition-all duration-200"
-          >
-            <div className="flex gap-0.5">
-              {Array.from({ length: stars }).map((_, i) => (
-                <Star key={i} className="h-4 w-4 fill-accent text-accent" />
-              ))}
+        <div className="mt-14 grid gap-px overflow-hidden rounded-xl border border-border bg-border sm:grid-cols-3">
+          {STEPS.map(({ title, description, detail }, i) => (
+            <div key={title} className="bg-background p-7">
+              <span className="font-mono text-xs text-muted-foreground">
+                {String(i + 1).padStart(2, '0')}
+              </span>
+              <h3 className="mt-4 text-[15px] font-medium text-foreground">{title}</h3>
+              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{description}</p>
+              <p className="mt-4 border-t border-border pt-4 font-mono text-[11px] text-muted-foreground/80">
+                {detail}
+              </p>
             </div>
-            <blockquote className="text-sm text-foreground leading-relaxed flex-1">
-              &ldquo;{quote}&rdquo;
-            </blockquote>
-            <div className="flex items-center gap-3 pt-2 border-t border-border">
-              <div className="h-9 w-9 rounded-full bg-primary flex items-center justify-center shrink-0">
-                <span className="text-sm font-semibold text-primary-foreground">
-                  {name[0]}
-                </span>
-              </div>
-              <div>
-                <p className="text-sm font-semibold text-foreground">{name}</p>
-                <p className="text-xs text-muted-foreground">{role} · {company}</p>
-              </div>
-            </div>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
     </section>
   )
@@ -463,46 +438,43 @@ function Testimonials() {
 
 const FAQ_ITEMS = [
   { q: 'What exactly is a "one-time fee"?',            a: 'You pay once and own DevRel Studio forever. No monthly charges, no annual renewals, no seat fees. Updates are included for 12 months from your purchase date.' },
-  { q: 'Can I upgrade to a higher plan later?',        a: 'Yes. You pay the price difference only. Starter ($49) → Pro costs $100. Pro → Agency costs $200. You\'re never charged the full plan price again.' },
+  { q: 'Can I upgrade to a higher plan later?',        a: 'Yes — upgrading is a separate one-time purchase at the new plan’s price. Your current plan stays active until the upgrade completes.' },
   { q: 'What counts as a "client workspace"?',         a: 'Each client you manage has their own content log and unique dashboard URL. The Starter plan covers one client; Pro covers up to five.' },
   { q: 'Is there a free trial?',                       a: 'Yes — a limited free trial lets you create one workspace with up to 10 entries so you can see the product in action before committing.' },
-  { q: 'What is your refund policy?',                  a: 'Full refund within 14 days of purchase, no questions asked. If DevRel Studio isn\'t working for you, just email us.' },
-  { q: 'Do clients need to create an account?',        a: 'No. The client dashboard is a read-only URL that requires no login. Just share the link — it works in any browser.' },
-  { q: 'Can multiple people use one account?',         a: 'Starter and Pro are single-user. The Agency plan includes up to 5 team member seats. Contact us for larger teams.' },
-  { q: 'What content types does DevRel Studio track?', a: 'Six categories: Written (blogs, tutorials, docs), Video (YouTube, Loom), Event (conferences, meetups, webinars), Podcast (guest spots, episodes), Package (npm, SDKs, CLI tools), and Demo (demo apps, starter kits).' },
+  { q: 'What is your refund policy?',                  a: 'Full refund within 14 days of purchase, no questions asked. If DevRel Studio isn’t working for you, just email us.' },
+  { q: 'Do clients need to create an account?',        a: 'No. The client dashboard is a read-only URL. Share the link and it works in any browser — optionally behind an access code you control.' },
+  { q: 'Can multiple people use one account?',         a: 'Starter and Pro are single-user. The Agency plan includes up to 5 team member seats, each with an admin, editor or viewer role.' },
+  { q: 'What content types does DevRel Studio track?', a: 'Six categories: Written, Video, Event, Podcast, Package and Demo — each with fields and metrics suited to that kind of work.' },
 ]
 
 function FAQ() {
   return (
-    <section id="faq" className="mx-auto max-w-3xl px-6 py-24">
-      <div className="text-center mb-14">
-        <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
-          Frequently asked questions
-        </h2>
-        <p className="text-muted-foreground">
-          Still have questions?{' '}
-          <Link href="mailto:hello@devrel.studio" className="text-accent hover:underline">
-            Email us
-          </Link>
-        </p>
-      </div>
+    <section id="faq" className="mx-auto max-w-3xl px-6 py-28">
+      <SectionHeading eyebrow="FAQ" title="Questions, answered" />
 
-      <Accordion type="single" collapsible className="space-y-3">
+      <Accordion type="single" collapsible className="mt-12 overflow-hidden rounded-xl border border-border">
         {FAQ_ITEMS.map(({ q, a }, i) => (
           <AccordionItem
             key={q}
             value={`item-${i}`}
-            className="rounded-xl border border-border bg-card px-6 data-[state=open]:border-accent/40"
+            className={`px-6 ${i > 0 ? 'border-t border-border' : ''} border-b-0`}
           >
-            <AccordionTrigger className="text-sm font-medium text-foreground text-left hover:no-underline py-5">
+            <AccordionTrigger className="py-5 text-left text-sm font-medium text-foreground hover:no-underline">
               {q}
             </AccordionTrigger>
-            <AccordionContent className="text-sm text-muted-foreground leading-relaxed pb-5">
+            <AccordionContent className="pb-5 text-sm leading-relaxed text-muted-foreground">
               {a}
             </AccordionContent>
           </AccordionItem>
         ))}
       </Accordion>
+
+      <p className="mt-8 text-center text-sm text-muted-foreground">
+        Still have questions?{' '}
+        <Link href="mailto:hello@devrel.studio" className="text-foreground underline underline-offset-4 hover:text-accent">
+          Email us
+        </Link>
+      </p>
     </section>
   )
 }
@@ -511,40 +483,40 @@ function FAQ() {
 
 function CTA() {
   return (
-    <section className="border-t border-border bg-[#232931] py-24">
-      <div className="mx-auto max-w-3xl px-6 text-center">
-        <h2 className="text-4xl md:text-5xl font-bold text-white mb-6 leading-tight">
-          Your clients deserve to see<br />
-          the work you&apos;re doing
-        </h2>
-        <p className="text-white/60 max-w-lg mx-auto mb-10 text-lg">
-          Stop burying your impact in monthly PDFs. Give every client a live dashboard
-          they can check anytime — and give yourself the recognition you&apos;ve earned.
-        </p>
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-          <Link href="/pricing">
-            <Button size="lg" className="gap-2 bg-accent text-accent-foreground hover:bg-accent/90 h-12 px-8">
-              Get started today
-              <ArrowRight className="h-4 w-4" />
-            </Button>
-          </Link>
-          <Link href="/dashboard">
-            <Button size="lg" variant="outline" className="h-12 px-8 border-white/20 text-white hover:bg-white/10 bg-transparent">
-              Explore the demo
-            </Button>
-          </Link>
-        </div>
-        <div className="mt-10 flex flex-wrap items-center justify-center gap-6">
-          {[
-            'One-time fee',
-            '14-day money-back guarantee',
-            'No credit card for free trial',
-          ].map((item) => (
-            <span key={item} className="flex items-center gap-2 text-sm text-white/50">
-              <CheckCircle2 className="h-4 w-4 text-accent" />
-              {item}
-            </span>
-          ))}
+    <section className="border-t border-border">
+      <div className="relative mx-auto max-w-6xl overflow-hidden px-6 py-28 text-center">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute left-1/2 top-1/2 h-[300px] w-[700px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-accent/10 blur-[110px]"
+        />
+
+        <div className="relative">
+          <h2 className="mx-auto max-w-2xl text-3xl sm:text-[2.75rem] font-semibold leading-[1.1] tracking-[-0.03em] text-foreground">
+            Your clients deserve to see the work you are doing
+          </h2>
+          <p className="mx-auto mt-5 max-w-lg text-[15px] leading-relaxed text-muted-foreground">
+            Stop burying your impact in monthly PDFs. Give every client a live dashboard
+            they can check anytime.
+          </p>
+
+          <div className="mt-9 flex flex-col items-center justify-center gap-2.5 sm:flex-row">
+            <PrimaryLink href="/pricing">
+              Get started
+              <ArrowRight className="h-3.5 w-3.5" />
+            </PrimaryLink>
+            <GhostLink href="/dashboard">Explore the demo</GhostLink>
+          </div>
+
+          <div className="mt-10 flex flex-wrap items-center justify-center gap-x-6 gap-y-2">
+            {['One-time fee', '14-day money-back guarantee', 'No card for the free trial'].map(
+              (item) => (
+                <span key={item} className="flex items-center gap-1.5 text-[13px] text-muted-foreground">
+                  <Check className="h-3.5 w-3.5 text-accent" />
+                  {item}
+                </span>
+              ),
+            )}
+          </div>
         </div>
       </div>
     </section>
@@ -563,7 +535,6 @@ export default function LandingPage() {
       <Features />
       <ContentCategories />
       <HowItWorks />
-      <Testimonials />
       <FAQ />
       <CTA />
       <MarketingFooter />
