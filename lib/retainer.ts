@@ -132,25 +132,6 @@ export function tenureLabel(
   return rest === 0 ? yearPart : `${yearPart} ${rest} mo`
 }
 
-/**
- * What each piece of content effectively cost the client.
- *
- * The number a DevRel gets asked for at renewal time. Null when either side is
- * missing — dividing by zero pieces would report Infinity, and a client with a
- * retainer but nothing logged yet should read as "—", not as infinitely
- * expensive.
- */
-export function costPerPiece(
-  client: RetainerSource,
-  pieceCount: number,
-  asOf: Ymd = todayYmd(),
-): number | null {
-  const billed = totalBilled(client, asOf)
-  if (billed === null || pieceCount <= 0) return null
-
-  return Math.round(billed / pieceCount)
-}
-
 const CURRENCY_SYMBOLS: Record<string, string> = {
   USD: '$',
   EUR: '€',

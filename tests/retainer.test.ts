@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest'
 import {
-  costPerPiece,
   formatMoney,
   monthsBilled,
   tenureLabel,
@@ -121,24 +120,6 @@ describe('tenureLabel', () => {
   it('is null when there is no start date', () => {
     expect(tenureLabel(undefined, undefined, NOW)).toBeNull()
     expect(tenureLabel('2027-01-01', undefined, NOW)).toBeNull()
-  })
-})
-
-describe('costPerPiece', () => {
-  it('divides total billed by the number of pieces', () => {
-    // 8 months x 2000 = 16000 across 8 pieces
-    expect(costPerPiece({ monthlyRetainer: 2000, startDate: '2026-01-17' }, 8, NOW)).toBe(
-      2000,
-    )
-  })
-
-  it('is null rather than Infinity when nothing has been logged', () => {
-    expect(costPerPiece({ monthlyRetainer: 2000, startDate: '2026-01-17' }, 0, NOW)).toBeNull()
-    expect(costPerPiece({ monthlyRetainer: 2000, startDate: '2026-01-17' }, -3, NOW)).toBeNull()
-  })
-
-  it('is null when there is no retainer', () => {
-    expect(costPerPiece({ startDate: '2026-01-17' }, 5, NOW)).toBeNull()
   })
 })
 
