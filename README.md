@@ -4,8 +4,6 @@
 
 DevRel Studio is a full-stack SaaS platform that lets developer advocates log every piece of content they produce, track live performance metrics across all channels, and share a beautiful, read-only performance dashboard with each client — no exports, no slide decks, no chasing data.
 
----
-
 ## Table of Contents
 
 - [Overview](#overview)
@@ -22,8 +20,6 @@ DevRel Studio is a full-stack SaaS platform that lets developer advocates log ev
 - [Pricing Model](#pricing-model)
 - [Deployment](#deployment)
 
----
-
 ## Overview
 
 Developer advocates who work as freelancers or consultants face a recurring problem: their clients rarely have visibility into the work being done on their behalf. Monthly PDFs and shared spreadsheets are slow, hard to maintain, and easy to ignore.
@@ -34,8 +30,6 @@ DevRel Studio solves this with a two-sided dashboard:
 - **Client dashboard** — a live, read-only performance page at a unique URL (e.g. `devrel.studio/kinde`) that the client can check any time without logging in.
 
 Everything updates in real time via Convex's reactive backend. No polling, no manual refreshes.
-
----
 
 ## Features
 
@@ -69,8 +63,6 @@ Everything updates in real time via Convex's reactive backend. No polling, no ma
 - Keyboard navigation (← → arrow keys, Esc to close)
 - Spotlight highlight on targeted elements
 
----
-
 ## Tech Stack
 
 | Layer | Technology |
@@ -86,8 +78,6 @@ Everything updates in real time via Convex's reactive backend. No polling, no ma
 | Icons | [Lucide React](https://lucide.dev) |
 | Analytics | [Vercel Analytics](https://vercel.com/analytics) |
 | Runtime | Node.js / Vercel Edge |
-
----
 
 ## Project Structure
 
@@ -151,8 +141,6 @@ devrelstudio/
     └── assets/logos/            # Social proof brand logos (SVG + PNG)
 ```
 
----
-
 ## Routes
 
 ### Public
@@ -181,8 +169,6 @@ devrelstudio/
 | Route | Description |
 |---|---|
 | `/api/auth/[kindeAuth]` | Kinde auth handler — login, logout, register, callback |
-
----
 
 ## Data Model
 
@@ -258,8 +244,6 @@ Indexes: `by_user`, `by_status`
 | `role` | `string?` |
 | `useCase` | `string?` |
 
----
-
 ## Getting Started
 
 ### Prerequisites
@@ -322,8 +306,6 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000).
 
----
-
 ## Environment Variables
 
 | Variable | Required | Description |
@@ -339,8 +321,6 @@ Open [http://localhost:3000](http://localhost:3000).
 | `KINDE_POST_LOGOUT_REDIRECT_URL` | ✅ | e.g. `http://localhost:3000` |
 
 For production, replace all `localhost:3000` values with your live domain.
-
----
 
 ## Convex Backend
 
@@ -362,8 +342,6 @@ convex/
 - Public `query` functions are used for real-time reactive data in the client
 - All queries are optimistic — the UI updates immediately before the server confirms
 
----
-
 ## Authentication
 
 Authentication is handled entirely by [Kinde](https://kinde.com). The integration works as follows:
@@ -375,8 +353,6 @@ Authentication is handled entirely by [Kinde](https://kinde.com). The integratio
 5. If a user is authenticated in Kinde but not yet in Convex (race condition on first login), the context redirects to `/` until the webhook completes.
 
 **Logout** uses `LogoutLink` from `@kinde-oss/kinde-auth-nextjs` which clears the Kinde session and redirects to `KINDE_POST_LOGOUT_REDIRECT_URL`.
-
----
 
 ## Content Categories
 
@@ -396,8 +372,6 @@ Every entry also supports:
 - **Tags** — free-form, with suggested tags per category
 - **Status** — Published, Draft, Waiting Approval, Scheduled
 
----
-
 ## Pricing Model
 
 DevRel Studio uses a **one-time fee** model — no subscriptions, no recurring charges.
@@ -413,8 +387,6 @@ DevRel Studio uses a **one-time fee** model — no subscriptions, no recurring c
 **Free Trial:** 1 workspace, up to 10 content entries, unlimited time. No credit card required.
 
 **Refund policy:** Full refund within 14 days of purchase.
-
----
 
 ## Deployment
 
@@ -441,8 +413,6 @@ npm run build
 npm run start
 ```
 
----
-
 ## Scripts
 
 | Command | Description |
@@ -453,8 +423,6 @@ npm run start
 | `npm run lint` | ESLint |
 | `npx convex dev` | Start Convex dev server (watches `convex/` for changes) |
 | `npx convex deploy` | Deploy Convex schema and functions to production |
-
----
 
 ## License
 
