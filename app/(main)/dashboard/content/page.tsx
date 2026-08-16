@@ -111,6 +111,22 @@ export default function ContentListPage() {
     return filtered
   }, [content, searchQuery, categoryFilter, statusFilter, monthFilter, platformFilter])
 
+  // ── Stat sync ─────────────────────────────────────────────────────────────
+  // npm downloads and GitHub stars refresh on a daily cron; the button below is
+  // the manual "don't wait until tomorrow" path. Only entries that carry a
+  // package name or repo URL can be synced, so it hides when there are none.
+  //
+  // This has to sit above the `!profile` return with the other hooks. It was
+  // below it, so the first render (no profile yet) ran one fewer hook than the
+  // second, and React threw "rendered more hooks than during the previous
+  // render" the moment the profile arrived.
+  const syncableCount = useMemo(() => {
+    if (!content) return 0
+    return (content as ContentEntry[]).filter(
+      (c) => c.packageName?.trim() || c.repoUrl?.trim()
+    ).length
+  }, [content])
+
   if (!profile) return <PageLoader />
 
   const handleDelete = async (id: Id<"contentEntries">) => {
@@ -129,18 +145,6 @@ export default function ContentListPage() {
     setMonthFilter('all')
     setPlatformFilter('all')
   }
-
-  // ── Stat sync ─────────────────────────────────────────────────────────────
-  // npm downloads and GitHub stars refresh on a daily cron; this is the manual
-  // "don't wait until tomorrow" path. Only entries that carry a package name or
-  // repo URL can be synced, so the button hides when there are none.
-
-  const syncableCount = useMemo(() => {
-    if (!content) return 0
-    return (content as ContentEntry[]).filter(
-      (c) => c.packageName?.trim() || c.repoUrl?.trim()
-    ).length
-  }, [content])
 
   const refreshStats = async () => {
     setIsSyncing(true)
