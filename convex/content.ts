@@ -252,6 +252,75 @@ export const setContentStatus = mutation({
   },
 })
 
+/**
+ * Copy an entry, ready to edit.
+ *
+ * Most DevRel work arrives in series — a five-part tutorial run, a conference
+ * circuit — and re-typing the client, platform, category and tags every time is
+ * the friction people actually complain about.
+ *
+ * The copy comes back as a Draft with today's date and no metrics: it has not
+ * been published, and inheriting the original's view count would be a lie that
+ * propagates into a client's report.
+ */
+export const duplicateContent = mutation({
+  args: { id: v.id('contentEntries') },
+  handler: async (ctx, args) => {
+    const { user, doc } = await requireInWorkspace(ctx, args.id, 'editor')
+
+    const now = new Date().toISOString()
+    const {
+      _id,
+      _creationTime,
+      views,
+      downloads,
+      weeklyDownloads,
+      attendees,
+      stars,
+      statsSyncedAt,
+      statsSyncError,
+      ...rest
+    } = doc
+
+    return await ctx.db.insert('contentEntries', {
+      ...rest,
+      userId: user._id,
+      title: `${doc.title} (copy)`,
+      status: 'Draft' as const,
+      publicationDate: now.slice(0, 10),
+      link: '',
+      trackingLink: '',
+      reshares: [],
+      updatedAt: now,
+    })
+  },
+})
+
+/**
+ * Put a deleted entry back.
+ *
+ * Deletion was immediate and permanent with only a confirm dialog in the way.
+ * Rather than a trash table with its own lifecycle, the client keeps the row it
+ * just deleted and offers to re-insert it — which covers the real case (an
+ * accidental click, undone within seconds) without adding state that has to be
+ * swept up later.
+ */
+export const restoreContent = mutation({
+  // The whole entry is validated on insert against the schema, so the fields
+  // are checked even though the argument itself is not typed here.
+  args: { entry: v.object(entryFields) },
+  handler: async (ctx, args) => {
+    const { workspaceId, user } = await requireWorkspace(ctx, 'editor')
+
+    return await ctx.db.insert('contentEntries', {
+      ...args.entry,
+      userId: user._id,
+      workspaceId,
+      updatedAt: new Date().toISOString(),
+    })
+  },
+})
+
 export const deleteContent = mutation({
   args: { id: v.id('contentEntries') },
   handler: async (ctx, args) => {

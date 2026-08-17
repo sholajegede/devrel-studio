@@ -51,6 +51,9 @@ export function CommandPalette() {
   const { can } = useWorkspaceRole()
 
   const clients = useQuery(api.clients.getClients, {})
+  // The palette navigated but could not find. "Where is that post about
+  // webhooks" is the question people actually bring to ⌘K.
+  const content = useQuery(api.content.getAllContent, {})
   const workspaces = useQuery(api.members.listMyWorkspaces, {})
   const switchWorkspace = useMutation(api.members.switchWorkspace)
 
@@ -133,6 +136,27 @@ export function CommandPalette() {
                 New content entry
                 <CommandShortcut>C</CommandShortcut>
               </CommandItem>
+            </CommandGroup>
+          </>
+        )}
+
+        {content && content.length > 0 && (
+          <>
+            <CommandSeparator />
+            <CommandGroup heading="Content">
+              {/* cmdk filters and ranks; capping the rendered set keeps a large
+                  library from putting thousands of nodes in the dialog. */}
+              {content.slice(0, 200).map((entry) => (
+                <CommandItem
+                  key={entry._id}
+                  value={`content ${entry.title} ${entry.platform} ${entry.client} ${(entry.tags ?? []).join(' ')}`}
+                  onSelect={() => go(`/dashboard/edit/${entry._id}`)}
+                >
+                  <FileText className="h-4 w-4" />
+                  <span className="min-w-0 flex-1 truncate">{entry.title}</span>
+                  <CommandShortcut>{entry.platform}</CommandShortcut>
+                </CommandItem>
+              ))}
             </CommandGroup>
           </>
         )}

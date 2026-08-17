@@ -33,7 +33,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import {
-  Search, ExternalLink, Edit, Trash2, PlusCircle, Download,
+  Search, ExternalLink, Edit, Trash2, PlusCircle, Download, Copy,
   Link2, CheckCircle2, Pencil, AlertCircle, Clock,
   FileText, RefreshCw,
 } from 'lucide-react'
@@ -67,6 +67,8 @@ export default function ContentListPage() {
   )
 
   const deleteEntry = useMutation(api.content.deleteContent)
+  const duplicateEntry = useMutation(api.content.duplicateContent)
+  const restoreEntry = useMutation(api.content.restoreContent)
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -133,8 +135,45 @@ export default function ContentListPage() {
   if (!profile) return <PageLoader />
 
   const handleDelete = async (id: Id<"contentEntries">) => {
+    // Hold the row before it goes, so the toast can offer it back. This covers
+    // the case that actually happens — an accidental click, undone within
+    // seconds — without a trash table that then needs its own lifecycle.
+    const removed = (content as ContentEntry[] | undefined)?.find((c) => c._id === id)
+
     await deleteEntry({ id })
     setDeleteId(null)
+
+    toast.success('Entry deleted', {
+      action: removed
+        ? {
+            label: 'Undo',
+            onClick: async () => {
+              const {
+                _id, _creationTime, userId, workspaceId, updatedAt,
+                statsSyncedAt, statsSyncError,
+                ...entry
+              } = removed as Record<string, unknown> & ContentEntry
+
+              try {
+                await restoreEntry({ entry: entry as never })
+                toast.success('Entry restored')
+              } catch {
+                toast.error('Could not restore that entry')
+              }
+            },
+          }
+        : undefined,
+    })
+  }
+
+  const handleDuplicate = async (id: Id<"contentEntries">) => {
+    try {
+      const newId = await duplicateEntry({ id })
+      toast.success('Copied — opening the new draft')
+      router.push(`/dashboard/edit/${newId}`)
+    } catch {
+      toast.error('Could not duplicate that entry')
+    }
   }
 
   const hasActiveFilters =
@@ -459,6 +498,13 @@ export default function ContentListPage() {
                               <Edit className="h-3 w-3" />Edit
                             </Button>
                           </Link>
+                        )}
+                        {can.create && (
+                          <Button variant="outline" size="sm"
+                            className="h-7 gap-1 text-xs bg-transparent"
+                            onClick={() => handleDuplicate(entry._id)}>
+                            <Copy className="h-3 w-3" />Duplicate
+                          </Button>
                         )}
                         {can.delete && (
                           <Button variant="outline" size="sm"
