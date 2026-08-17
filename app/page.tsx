@@ -2,8 +2,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import {
   FileText, Video, MapPin, Mic, Package, Rocket,
-  Eye, Download, BarChart3, Link2,
-  Share2, Check, ArrowRight, Minus,
+  Check, ArrowRight, Minus,
 } from 'lucide-react'
 import {
   Accordion,
@@ -13,6 +12,7 @@ import {
 } from '@/components/ui/accordion'
 import { MarketingNav } from '@/components/marketing/nav'
 import { MarketingFooter } from '@/components/marketing/footer'
+import { FeatureBento } from '@/components/marketing/bento'
 
 // ─── Shared pieces ────────────────────────────────────────────────────────────
 //
@@ -274,71 +274,6 @@ function BeforeAfter() {
   )
 }
 
-// ─── Features ─────────────────────────────────────────────────────────────────
-
-const FEATURES = [
-  {
-    icon: BarChart3,
-    title: 'Live client dashboard',
-    description:
-      'Every client gets a real-time performance URL showing everything you have delivered, with metrics that update as you do.',
-  },
-  {
-    icon: FileText,
-    title: 'Six content categories',
-    description:
-      'Written, Video, Event, Podcast, Package, Demo — each with the right fields. Views for articles, attendees for events, weekly downloads for packages.',
-  },
-  {
-    icon: Link2,
-    title: 'UTM tracking links',
-    description:
-      'Log a tracking link for every piece. Clients see the URL, copy it, and click through — full attribution without extra tooling.',
-  },
-  {
-    icon: Share2,
-    title: 'Reshare tracking',
-    description:
-      'Record every platform a piece was promoted on — LinkedIn, Reddit, Hacker News, newsletters — and let clients expand each one.',
-  },
-  {
-    icon: Eye,
-    title: 'Filters and search',
-    description:
-      'Filter by month, category, platform and status on both sides, so clients drill into what they care about without a custom report.',
-  },
-  {
-    icon: Download,
-    title: 'CSV export',
-    description:
-      'Download any filtered view in one click — for monthly reports, billing conversations, or your own analytics stack.',
-  },
-]
-
-function Features() {
-  return (
-    <section id="features" className="border-t border-border bg-card/40 py-28">
-      <div className="mx-auto max-w-6xl px-6">
-        <SectionHeading
-          eyebrow="Product"
-          title="Built for how DevRel actually works"
-          lede="Not a project tracker. Not a CMS. Purpose-built for advocates who deliver content for clients and need to prove it."
-        />
-
-        <div className="mt-14 grid gap-px overflow-hidden rounded-xl border border-border bg-border sm:grid-cols-2 lg:grid-cols-3">
-          {FEATURES.map(({ icon: Icon, title, description }) => (
-            <div key={title} className="group bg-background p-7 transition-colors hover:bg-muted/40">
-              <Icon className="h-5 w-5 text-muted-foreground transition-colors group-hover:text-accent" />
-              <h3 className="mt-4 text-[15px] font-medium text-foreground">{title}</h3>
-              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{description}</p>
-            </div>
-          ))}
-        </div>
-      </div>
-    </section>
-  )
-}
-
 // ─── Content categories ───────────────────────────────────────────────────────
 
 const CONTENT_CATS = [
@@ -532,7 +467,7 @@ export default function LandingPage() {
       <Hero />
       <SocialProof />
       <BeforeAfter />
-      <Features />
+      <FeatureBento />
       <ContentCategories />
       <HowItWorks />
       <FAQ />
