@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/accordion'
 import { MarketingNav } from '@/components/marketing/nav'
 import { MarketingFooter } from '@/components/marketing/footer'
+import { isSignedIn } from '@/lib/session'
 import { FeatureBento } from '@/components/marketing/bento'
 
 // ─── Shared pieces ────────────────────────────────────────────────────────────
@@ -81,7 +82,7 @@ function GhostLink({ href, children }: { href: string; children: React.ReactNode
 
 // ─── Hero ─────────────────────────────────────────────────────────────────────
 
-function Hero() {
+function Hero({ signedIn }: { signedIn: boolean }) {
   return (
     <section className="relative overflow-hidden">
       {/* Hairline grid, fading out before it reaches the content. Pure texture —
@@ -123,16 +124,20 @@ function Hero() {
         </p>
 
         <div className="mt-9 flex flex-col items-center justify-center gap-2.5 sm:flex-row">
-          <PrimaryLink href="/sign-up">
-            Start free
+          <PrimaryLink href={signedIn ? '/dashboard' : '/sign-up'}>
+            {signedIn ? 'Open dashboard' : 'Start free'}
             <ArrowRight className="h-3.5 w-3.5" />
           </PrimaryLink>
           <GhostLink href="/demo">Explore the demo</GhostLink>
         </div>
 
-        <p className="mt-5 text-[13px] text-muted-foreground">
-          14-day free trial · No card required
-        </p>
+        {/* The trial line is a reason to sign up. Someone already signed up does
+            not need reassuring about a card they never entered. */}
+        {!signedIn && (
+          <p className="mt-5 text-[13px] text-muted-foreground">
+            14-day free trial · No card required
+          </p>
+        )}
 
         {/* Product shot. The one place on the page allowed to carry colour. */}
         <div className="relative mx-auto mt-20 max-w-5xl">
@@ -443,7 +448,7 @@ function FAQ() {
 
 // ─── Final CTA ────────────────────────────────────────────────────────────────
 
-function CTA() {
+function CTA({ signedIn }: { signedIn: boolean }) {
   return (
     <section className="border-t border-border">
       <div className="relative mx-auto max-w-6xl overflow-hidden px-6 py-28 text-center">
@@ -462,8 +467,8 @@ function CTA() {
           </p>
 
           <div className="mt-9 flex flex-col items-center justify-center gap-2.5 sm:flex-row">
-            <PrimaryLink href="/pricing">
-              Get started
+            <PrimaryLink href={signedIn ? '/dashboard' : '/sign-up'}>
+              {signedIn ? 'Open dashboard' : 'Start free'}
               <ArrowRight className="h-3.5 w-3.5" />
             </PrimaryLink>
             <GhostLink href="/demo">Explore the demo</GhostLink>
@@ -487,11 +492,13 @@ function CTA() {
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
-export default function LandingPage() {
+export default async function LandingPage() {
+  const signedIn = await isSignedIn()
+
   return (
     <div className="min-h-screen bg-background">
       <MarketingNav />
-      <Hero />
+      <Hero signedIn={signedIn} />
       <SocialProof />
       <BeforeAfter />
       <FeatureBento />
@@ -499,7 +506,7 @@ export default function LandingPage() {
       <HowItWorks />
       <Testimonial />
       <FAQ />
-      <CTA />
+      <CTA signedIn={signedIn} />
       <MarketingFooter />
     </div>
   )

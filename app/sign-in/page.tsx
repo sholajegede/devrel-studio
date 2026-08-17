@@ -1,4 +1,6 @@
 import Link from 'next/link'
+import { redirect } from 'next/navigation'
+import { isSignedIn } from '@/lib/session'
 import Image from 'next/image'
 import { LoginLink } from '@kinde-oss/kinde-auth-nextjs/components'
 import { ArrowRight, BarChart3, FileText, Share2 } from 'lucide-react'
@@ -9,7 +11,17 @@ const FEATURES = [
   { icon: Share2,    text: 'Share a live dashboard with every client' },
 ]
 
-export default function SignInPage() {
+/**
+ * Signed-in visitors are sent straight to the dashboard.
+ *
+ * Kinde's own flow already bounces an authenticated user through, but they land
+ * back on this page first — so someone who clicks a bookmarked /sign-in sees a
+ * sign-in form they do not need. Checking on the server means they never see it
+ * at all.
+ */
+export default async function SignInPage() {
+  if (await isSignedIn()) redirect('/dashboard')
+
   return (
     <div className="min-h-screen bg-background flex">
 
