@@ -31,6 +31,8 @@ async function send(args: {
   html: string
   text: string
   replyTo?: string
+  /** Base64 content, for the report PDF. */
+  attachments?: { filename: string; content: string }[]
 }): Promise<SendResult> {
   const apiKey = process.env.RESEND_API_KEY
   const from = process.env.EMAIL_FROM ?? 'DevRel Studio <onboarding@resend.dev>'
@@ -56,6 +58,7 @@ async function send(args: {
         html: args.html,
         text: args.text,
         ...(args.replyTo ? { reply_to: args.replyTo } : {}),
+        ...(args.attachments?.length ? { attachments: args.attachments } : {}),
       }),
     })
 
@@ -289,6 +292,14 @@ export const sendMonthlyReportReady = internalAction({
     period: v.string(),
     publishedCount: v.number(),
     dashboardUrl: v.string(),
+    /**
+     * The report as a PDF, base64. Optional: a missing attachment is a worse
+     * email, but a failed attachment must not stop the email going out at all.
+     * Some readers forward the file to their manager and never open the link,
+     * which is the whole reason for including it.
+     */
+    pdfBase64: v.optional(v.string()),
+    pdfFilename: v.optional(v.string()),
   },
   handler: async (_ctx, args): Promise<SendResult> => {
     const piece = args.publishedCount === 1 ? 'piece' : 'pieces'
@@ -296,6 +307,10 @@ export const sendMonthlyReportReady = internalAction({
     return await send({
       to: args.email,
       subject: `${args.clientName} — your ${args.period} report`,
+      attachments:
+        args.pdfBase64 && args.pdfFilename
+          ? [{ filename: args.pdfFilename, content: args.pdfBase64 }]
+          : undefined,
       html: layout(`
         <p style="margin:0 0 14px;font-size:15px;line-height:1.6;">
           The <strong>${args.period}</strong> report for <strong>${args.clientName}</strong> is ready.

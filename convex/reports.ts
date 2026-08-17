@@ -122,6 +122,50 @@ function redirectTarget(): string | null {
   return target && target.includes('@') ? target : null
 }
 
+/**
+ * Render the report to a PDF by asking the Next.js route that already does it.
+ *
+ * @react-pdf/renderer cannot run inside Convex, and maintaining a second
+ * renderer here would mean the attached PDF could drift from the one the
+ * download button produces. One renderer, two callers.
+ *
+ * Returns null on any failure. A report email without an attachment is worse
+ * than one with; an email that never arrives because a PDF would not render is
+ * far worse than both.
+ */
+async function buildReportPdf(slug: string, month: string): Promise<string | null> {
+  const origin = process.env.SITE_URL
+  if (!origin) return null
+
+  try {
+    const response = await fetch(`${origin}/api/export-report`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ slug, month, source: 'cron' }),
+    })
+
+    if (!response.ok) {
+      console.error(`[reports] pdf render failed for ${slug} ${month}:`, response.status)
+      return null
+    }
+
+    const bytes = new Uint8Array(await response.arrayBuffer())
+
+    // btoa needs a binary string, and spreading a multi-megabyte array into
+    // String.fromCharCode blows the call stack — hence the chunking.
+    let binary = ''
+    const CHUNK = 8192
+    for (let i = 0; i < bytes.length; i += CHUNK) {
+      binary += String.fromCharCode(...bytes.subarray(i, i + CHUNK))
+    }
+
+    return btoa(binary)
+  } catch (error) {
+    console.error(`[reports] pdf render errored for ${slug} ${month}:`, error)
+    return null
+  }
+}
+
 export const sendMonthlyReports = internalAction({
   args: { month: v.optional(v.string()) },
   handler: async (ctx, args): Promise<{
@@ -141,8 +185,11 @@ export const sendMonthlyReports = internalAction({
     let failed = 0
 
     for (const client of due) {
+      const pdf = await buildReportPdf(client.slug, month)
+
       const result = await ctx.runAction(internal.email.sendMonthlyReportReady, {
         email: redirect ?? client.email,
+        ...(pdf ? { pdfBase64: pdf, pdfFilename: `${client.slug}-report-${month}.pdf` } : {}),
         clientName: client.clientName,
         period: monthLabel(month),
         publishedCount: client.publishedCount,
@@ -400,5 +447,60 @@ export const feedbackCount = query({
     )
 
     return counts.reduce((sum, n) => sum + n, 0)
+  },
+})
+
+/**
+ * Every period this client has published work in, newest first.
+ *
+ * ⚠ PUBLIC — same gate as the report itself. Powers the archive: a client who
+ * loses the email should still be able to find last quarter's report.
+ */
+export const listReportPeriods = query({
+  args: { slug: v.string() },
+  handler: async (ctx, args) => {
+    const slug = args.slug.trim().toLowerCase()
+
+    const client = await ctx.db
+      .query('clients')
+      .withIndex('by_slug', (q) => q.eq('slug', slug))
+      .first()
+
+    if (!client) return null
+
+    const entries = client.workspaceId
+      ? await ctx.db
+          .query('contentEntries')
+          .withIndex('by_workspace_and_client', (q) =>
+            q.eq('workspaceId', client.workspaceId).eq('client', slug),
+          )
+          .collect()
+      : await ctx.db
+          .query('contentEntries')
+          .withIndex('by_user_and_client', (q) =>
+            q.eq('userId', client.userId).eq('client', slug),
+          )
+          .collect()
+
+    const byPeriod = new Map<string, { published: number; reach: number }>()
+
+    for (const entry of entries) {
+      if (entry.status !== 'Published') continue
+      const period = entry.publicationDate?.slice(0, 7)
+      if (!period || period.length !== 7) continue
+
+      const current = byPeriod.get(period) ?? { published: 0, reach: 0 }
+      current.published++
+      current.reach +=
+        (entry.views ?? 0) + (entry.attendees ?? 0) + (entry.downloads ?? 0)
+      byPeriod.set(period, current)
+    }
+
+    return {
+      clientName: client.company || client.name,
+      periods: [...byPeriod.entries()]
+        .map(([period, stats]) => ({ period, ...stats }))
+        .sort((a, b) => b.period.localeCompare(a.period)),
+    }
   },
 })

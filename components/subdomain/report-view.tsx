@@ -312,6 +312,13 @@ export function ReportView({ data }: { data: ReportData }) {
             </p>
           </div>
 
+          <div className="flex shrink-0 items-center gap-2">
+          <a
+            href="/reports"
+            className="inline-flex h-10 items-center gap-2 rounded-lg border border-border px-4 text-sm font-medium text-foreground transition-colors hover:bg-muted"
+          >
+            All reports
+          </a>
           <button
             type="button"
             onClick={downloadPdf}
@@ -325,6 +332,7 @@ export function ReportView({ data }: { data: ReportData }) {
             )}
             Download PDF
           </button>
+          </div>
         </div>
       </header>
 
