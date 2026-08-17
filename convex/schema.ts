@@ -35,6 +35,15 @@ export default defineSchema({
     /** Why access was granted — what they paid, in what currency, when. */
     accessNote: v.optional(v.string()),
 
+    /**
+     * Trial emails already sent to this account: 'ending', 'ended'.
+     *
+     * Recorded so a daily cron that runs twice, or retries after a failure,
+     * cannot mail the same person the same notice again. Absent on accounts
+     * created before these emails existed, which reads as "none sent".
+     */
+    trialNoticesSent: v.optional(v.array(v.string())),
+
     // Kept so an existing row still validates; unused while payments are manual.
     stripeCustomerId: v.optional(v.string()),
     lastCheckoutSessionId: v.optional(v.string()),

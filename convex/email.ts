@@ -305,3 +305,105 @@ export const sendMonthlyReportReady = internalAction({
     })
   },
 })
+
+/**
+ * Tells someone their free trial is nearly over.
+ *
+ * The dashboard already carries a banner from ten days out, but a banner only
+ * works on someone who logs in, and the people most likely to lose the trial by
+ * forgetting it are exactly the ones who have not logged in lately.
+ *
+ * No countdown urgency and no discount: they either got value from the trial or
+ * they did not, and a timer does not change which. It names what they logged,
+ * because that is the honest argument for paying.
+ */
+export const sendTrialEndingSoon = internalAction({
+  args: {
+    email: v.string(),
+    firstName: v.optional(v.string()),
+    daysLeft: v.number(),
+    entryCount: v.number(),
+    clientCount: v.number(),
+    billingUrl: v.string(),
+  },
+  handler: async (_ctx, args): Promise<SendResult> => {
+    const greeting = args.firstName ? `Hi ${args.firstName},` : 'Hi,'
+    const when =
+      args.daysLeft === 1 ? 'tomorrow' : `in ${args.daysLeft} days`
+
+    // An empty trial has nothing to point at, so it gets a different sentence
+    // rather than a boast about zero.
+    const logged =
+      args.entryCount > 0
+        ? `You have logged ${args.entryCount} ${args.entryCount === 1 ? 'piece' : 'pieces'} of work across ${args.clientCount} ${args.clientCount === 1 ? 'client' : 'clients'}.`
+        : 'You have not logged anything yet, so there is still a version of this worth trying.'
+
+    return await send({
+      to: args.email,
+      subject: `Your DevRel Studio trial ends ${when}`,
+      html: layout(`
+        <p style="margin:0 0 14px;font-size:15px;line-height:1.6;">${greeting}</p>
+        <p style="margin:0 0 14px;font-size:15px;line-height:1.6;">
+          Your free trial ends <strong>${when}</strong>. ${logged}
+        </p>
+        <p style="margin:0 0 22px;font-size:15px;line-height:1.6;">
+          Nothing gets deleted when it ends. Your work stays, and the dashboards
+          you gave your clients keep working. You just cannot add new entries
+          until you pick a plan.
+        </p>
+        <p style="margin:0 0 22px;">${button(args.billingUrl, 'Pick a plan')}</p>
+        <p style="margin:0;font-size:13px;line-height:1.6;color:#718096;">
+          Payment is by bank transfer, so picking a plan opens an email to us
+          rather than a checkout. Reply here if you would rather just ask a
+          question first.
+        </p>
+      `),
+      text: `${greeting}\n\nYour free DevRel Studio trial ends ${when}. ${logged}\n\nNothing gets deleted when it ends. Your work stays, and the dashboards you gave your clients keep working. You just cannot add new entries until you pick a plan.\n\nPick a plan: ${args.billingUrl}\n\nPayment is by bank transfer, so picking a plan opens an email to us rather than a checkout. Reply here if you would rather ask a question first.`,
+    })
+  },
+})
+
+/**
+ * Tells someone their trial has closed.
+ *
+ * Sent once, and only within a few days of the date, so it always describes
+ * something that just happened. The job of this one is to be clear that their
+ * work is safe: an account that reads "trial ended" and assumes deletion is an
+ * account that never comes back.
+ */
+export const sendTrialEnded = internalAction({
+  args: {
+    email: v.string(),
+    firstName: v.optional(v.string()),
+    entryCount: v.number(),
+    billingUrl: v.string(),
+  },
+  handler: async (_ctx, args): Promise<SendResult> => {
+    const greeting = args.firstName ? `Hi ${args.firstName},` : 'Hi,'
+    const kept =
+      args.entryCount > 0
+        ? `Your ${args.entryCount} ${args.entryCount === 1 ? 'entry is' : 'entries are'} still there, and your client dashboards are still live.`
+        : 'Your account is still there whenever you want it.'
+
+    return await send({
+      to: args.email,
+      subject: 'Your DevRel Studio trial has ended',
+      html: layout(`
+        <p style="margin:0 0 14px;font-size:15px;line-height:1.6;">${greeting}</p>
+        <p style="margin:0 0 14px;font-size:15px;line-height:1.6;">
+          Your free trial has ended. ${kept}
+        </p>
+        <p style="margin:0 0 22px;font-size:15px;line-height:1.6;">
+          Adding and editing is paused until you pick a plan. Everything comes
+          back the moment you do, exactly as you left it.
+        </p>
+        <p style="margin:0 0 22px;">${button(args.billingUrl, 'Pick a plan')}</p>
+        <p style="margin:0;font-size:13px;line-height:1.6;color:#718096;">
+          If it was not for you, no action is needed and we will stop emailing
+          about it. A reply telling us what was missing would help.
+        </p>
+      `),
+      text: `${greeting}\n\nYour free DevRel Studio trial has ended. ${kept}\n\nAdding and editing is paused until you pick a plan. Everything comes back the moment you do, exactly as you left it.\n\nPick a plan: ${args.billingUrl}\n\nIf it was not for you, no action is needed and we will stop emailing about it. A reply telling us what was missing would help.`,
+    })
+  },
+})

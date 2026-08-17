@@ -21,10 +21,12 @@ import type * as migrations from "../migrations.js";
 import type * as model_auth from "../model/auth.js";
 import type * as model_plans from "../model/plans.js";
 import type * as model_rateLimit from "../model/rateLimit.js";
+import type * as model_trialNotices from "../model/trialNotices.js";
 import type * as model_workspaces from "../model/workspaces.js";
 import type * as portfolio from "../portfolio.js";
 import type * as reports from "../reports.js";
 import type * as sync from "../sync.js";
+import type * as trials from "../trials.js";
 import type * as users from "../users.js";
 
 import type {
@@ -47,10 +49,12 @@ declare const fullApi: ApiFromModules<{
   "model/auth": typeof model_auth;
   "model/plans": typeof model_plans;
   "model/rateLimit": typeof model_rateLimit;
+  "model/trialNotices": typeof model_trialNotices;
   "model/workspaces": typeof model_workspaces;
   portfolio: typeof portfolio;
   reports: typeof reports;
   sync: typeof sync;
+  trials: typeof trials;
   users: typeof users;
 }>;
 
