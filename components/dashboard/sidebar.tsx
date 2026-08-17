@@ -92,7 +92,7 @@ function SidebarInner({ onClose }: { onClose?: () => void }) {
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-0.5">
+      <nav id="dashboard-nav" aria-label="Dashboard" className="flex-1 overflow-y-auto px-3 py-4 space-y-0.5">
         {NAV_ITEMS.map((item) => {
           const isActive = item.exact
             ? pathname === item.href
@@ -200,6 +200,8 @@ export function DashboardSidebar() {
           onClick={() => setMobileOpen(true)}
           className="rounded-md p-2 hover:bg-muted transition-colors"
           aria-label="Open navigation"
+          aria-expanded={mobileOpen}
+          aria-controls="dashboard-nav"
         >
           <Menu className="h-5 w-5 text-foreground" />
         </button>

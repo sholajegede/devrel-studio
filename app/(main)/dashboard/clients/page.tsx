@@ -523,7 +523,11 @@ export default function ClientsPage() {
                     </Badge>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <button className="p-1 rounded-md hover:bg-muted transition-colors opacity-0 group-hover:opacity-100" aria-label="Client options">
+                        {/* Visible by default, and only fades on pointer devices
+                            that can actually hover. Hiding it behind hover made
+                            Edit, Delete and Dashboard access unreachable on a
+                            phone, and invisible to keyboard users until focused. */}
+                        <button className="p-1 rounded-md hover:bg-muted transition-colors [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100 [@media(hover:hover)]:group-focus-within:opacity-100 focus-visible:opacity-100" aria-label={`Options for ${client.company || client.name}`}>
                           <MoreVertical className="h-4 w-4 text-muted-foreground" />
                         </button>
                       </DropdownMenuTrigger>
