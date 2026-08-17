@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { AdminTour, AdminTourTriggerButton, TourVariant } from '@/components/admin-onboarding-tour'
 import { useWorkspaceRole } from '@/hooks/use-workspace-role'
 import { RoleNotice } from '@/components/dashboard/role-notice'
+import { ImportDialog } from '@/components/dashboard/import-dialog'
 import {
   ContentEntry,
   CATEGORIES,
@@ -33,7 +34,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import {
-  Search, ExternalLink, Edit, Trash2, PlusCircle, Download, Copy,
+  Search, ExternalLink, Edit, Trash2, PlusCircle, Download, Copy, FileUp,
   Link2, CheckCircle2, Pencil, AlertCircle, Clock,
   FileText, RefreshCw,
 } from 'lucide-react'
@@ -55,6 +56,7 @@ export default function ContentListPage() {
   const [deleteId,       setDeleteId]       = useState<Id<"contentEntries"> | null>(null)
   const [contentTourControls, setContentTourControls] = useState<{ startTour: () => void } | null>(null)
   const [isTimeout,      setIsTimeout]      = useState(false)
+  const [importOpen,     setImportOpen]     = useState(false)
   const [isSyncing,      setIsSyncing]      = useState(false)
   const router = useRouter()
 
@@ -295,6 +297,11 @@ export default function ContentListPage() {
               {isSyncing ? 'Syncing…' : 'Refresh stats'}
             </Button>
           )}
+          {can.create && (
+            <Button variant="outline" onClick={() => setImportOpen(true)} size="sm" className="gap-1.5 bg-transparent">
+              <FileUp className="h-3.5 w-3.5" />Import CSV
+            </Button>
+          )}
           <Button variant="outline" onClick={exportToCSV} size="sm" className="gap-1.5 bg-transparent">
             <Download className="h-3.5 w-3.5" />Export CSV
           </Button>
@@ -522,6 +529,8 @@ export default function ContentListPage() {
           })
         )}
       </div>
+
+      <ImportDialog open={importOpen} onOpenChange={setImportOpen} />
 
       <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
         <AlertDialogContent>

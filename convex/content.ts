@@ -321,6 +321,54 @@ export const restoreContent = mutation({
   },
 })
 
+/**
+ * Insert many entries at once, for the CSV import.
+ *
+ * One mutation rather than one per row: a partially-applied import is the worst
+ * outcome — the user cannot tell which half landed, and re-running duplicates
+ * whatever did. Convex mutations are transactional, so this either takes the
+ * whole file or none of it.
+ *
+ * The plan limit is checked against the resulting total, not the current one,
+ * so an import cannot walk past a cap one row at a time.
+ */
+export const importContent = mutation({
+  args: { entries: v.array(v.object(entryFields)) },
+  handler: async (ctx, args) => {
+    const { user, workspace, workspaceId } = await requireWorkspace(ctx, 'editor')
+
+    if (args.entries.length === 0) return { inserted: 0 }
+
+    const plan = planOf(await planHolder(ctx, workspace))
+    if (plan.maxEntries !== null) {
+      const existing = await ctx.db
+        .query('contentEntries')
+        .withIndex('by_workspace', (q) => q.eq('workspaceId', workspaceId))
+        .collect()
+
+      if (existing.length + args.entries.length > plan.maxEntries) {
+        throw new ConvexError(
+          `That file would take you to ${existing.length + args.entries.length} entries. ` +
+            `The ${plan.name} includes ${plan.maxEntries}. Upgrade for unlimited entries.`,
+        )
+      }
+    }
+
+    const now = new Date().toISOString()
+
+    for (const entry of args.entries) {
+      await ctx.db.insert('contentEntries', {
+        ...entry,
+        userId: user._id,
+        workspaceId,
+        updatedAt: now,
+      })
+    }
+
+    return { inserted: args.entries.length }
+  },
+})
+
 export const deleteContent = mutation({
   args: { id: v.id('contentEntries') },
   handler: async (ctx, args) => {
