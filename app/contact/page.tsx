@@ -6,29 +6,28 @@ import { ArrowRight, LifeBuoy, Mail, MessageSquare } from 'lucide-react'
 
 export const metadata: Metadata = {
   title: 'Contact · DevRel Studio',
-  description: 'Get help with DevRel Studio, ask a pre-sales question, or report a problem.',
+  description: 'Get help with DevRel Studio, ask a question before you buy, or report a problem.',
 }
 
-// Deliberately not a contact form. A form here would need a backend, a spam
-// defence and a queue nobody is watching yet — and it would be slower for the
-// sender than the mail client they already have open. One address, three
-// reasons to use it, and an honest response time.
+// Deliberately not a contact form. A form needs a backend, a spam defence and a
+// queue nobody watches yet. It is also slower than the mail client already open.
+// One address, three reasons to use it, and an honest response time.
 
 const REASONS = [
   {
     icon: LifeBuoy,
     title: 'Something is broken',
-    body: 'Include what you were doing and, if an error screen appeared, the reference code shown on it. That code points straight at the failure in our logs.',
+    body: 'Tell us what you were doing. If an error screen appeared, send the reference code on it. That code points straight at the failure in our logs.',
   },
   {
     icon: MessageSquare,
-    title: 'A question before buying',
-    body: 'Whether it fits your workflow, how client dashboards work, what happens at the plan limits. Happy to answer before you spend anything.',
+    title: 'A question before you buy',
+    body: 'Ask how client dashboards work, or what happens at the plan limits. We answer before you spend anything.',
   },
   {
     icon: Mail,
     title: 'Refunds and billing',
-    body: 'Full refund within 14 days of purchase, no explanation needed. Just say which email you bought with.',
+    body: 'We refund any payment within 14 days. Tell us which email you bought with.',
   },
 ]
 
@@ -42,11 +41,11 @@ export default function ContactPage() {
           Contact
         </span>
         <h1 className="mt-3 text-4xl sm:text-5xl font-semibold tracking-[-0.03em] text-foreground leading-[1.1]">
-          Talk to a human
+          Contact us
         </h1>
         <p className="mx-auto mt-5 max-w-lg text-[15px] leading-relaxed text-muted-foreground">
-          One address, read by the person who builds this. Most messages get an answer within a
-          working day.
+          One address. The person who builds this reads it. Most messages get an answer
+          within a working day.
         </p>
 
         <a
@@ -70,10 +69,10 @@ export default function ContactPage() {
         </div>
 
         <div className="mt-10 rounded-xl border border-border p-7 text-center">
-          <p className="text-[15px] text-foreground">Not ready to email?</p>
+          <p className="text-[15px] text-foreground">Other ways to find out</p>
           <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-muted-foreground">
-            The pricing page answers most commercial questions, and the demo dashboard shows
-            exactly what a client sees without you signing up for anything.
+            The pricing page answers most questions about cost. The demo shows what a client
+            sees, and needs no sign-up.
           </p>
           <div className="mt-6 flex flex-col items-center justify-center gap-2.5 sm:flex-row">
             <Link

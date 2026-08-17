@@ -6,11 +6,11 @@ import { RegisterLink } from '@kinde-oss/kinde-auth-nextjs/components'
 import { ArrowRight, Check } from 'lucide-react'
 
 const PLAN_PERKS = [
-  'Free trial — no credit card required',
-  '1 client workspace, up to 10 entries',
-  'Full access to all 5 content categories',
-  'Live client performance dashboard',
-  'Upgrade any time, pay only the difference',
+  '14 days free. No card needed',
+  'One client workspace, up to 10 entries',
+  'All six content categories',
+  'A live dashboard your client can open',
+  'Nothing to cancel when it ends',
 ]
 
 /**
@@ -41,7 +41,7 @@ export default async function SignUpPage() {
 
         <div className="flex-1 flex flex-col justify-center relative z-10 py-12">
           <div className="inline-flex items-center gap-2 rounded-full border border-accent/30 bg-accent/10 px-3 py-1.5 mb-6 w-fit">
-            <span className="text-xs font-medium text-accent">Free trial · No credit card</span>
+            <span className="text-xs font-medium text-accent">14 days free · No card</span>
           </div>
           <h1 className="text-3xl xl:text-4xl font-bold text-white leading-tight mb-6">
             Start proving your<br />DevRel impact today.
@@ -110,7 +110,7 @@ export default async function SignUpPage() {
 
           {/* Mini plan preview */}
           <div className="mt-6 rounded-xl border border-accent/20 bg-accent/5 p-4">
-            <p className="text-xs font-semibold text-foreground mb-3">What&apos;s included in the free trial</p>
+            <p className="text-xs font-semibold text-foreground mb-3">What the free trial includes</p>
             <ul className="space-y-2">
               {PLAN_PERKS.slice(0, 3).map((perk) => (
                 <li key={perk} className="flex items-center gap-2 text-xs text-muted-foreground">

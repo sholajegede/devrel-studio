@@ -6,9 +6,9 @@ import { LoginLink } from '@kinde-oss/kinde-auth-nextjs/components'
 import { ArrowRight, BarChart3, FileText, Share2 } from 'lucide-react'
 
 const FEATURES = [
-  { icon: FileText,  text: 'Log every piece of content in seconds' },
-  { icon: BarChart3, text: 'Track live metrics across all categories' },
-  { icon: Share2,    text: 'Share a live dashboard with every client' },
+  { icon: FileText,  text: 'Log a piece of content in seconds' },
+  { icon: BarChart3, text: 'Watch the numbers update on their own' },
+  { icon: Share2,    text: 'Give every client a live dashboard' },
 ]
 
 /**

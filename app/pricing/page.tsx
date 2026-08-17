@@ -21,7 +21,7 @@ import {
 export const metadata: Metadata = {
   title: 'Pricing · DevRel Studio',
   description:
-    'DevRel Studio pricing. Starter $29, Pro $59, Agency $119 a month, sold in terms. 14-day free trial.',
+    'DevRel Studio pricing. Starter $29, Pro $59 and Agency $119 a month. Buy 1, 3, 6 or 12 months. 14 days free.',
 }
 
 // ─── Plan presentation ────────────────────────────────────────────────────────
@@ -36,10 +36,10 @@ export const metadata: Metadata = {
 const HIGHLIGHT: PlanId = 'pro'
 
 const BLURB: Record<PlanId, string> = {
-  free: 'Enough to see whether this fits how you work.',
+  free: 'See whether it fits how you work.',
   starter: 'One client, tracked properly.',
-  pro: 'Several clients at once, plus a public portfolio.',
-  agency: 'Unlimited clients and a team to run them.',
+  pro: 'Several clients, plus a public portfolio.',
+  agency: 'Any number of clients, and a team to run them.',
 }
 
 /**
@@ -76,35 +76,35 @@ function limitLabel(limit: number | null): string {
 const FAQ = [
   {
     q: 'How does payment work?',
-    a: 'Personally, not through a card form. Tell us the plan and how many months, we send transfer details, and access opens as soon as payment lands. Card payments are not available yet — Stripe requires a US entity, and DevRel Studio is run from Nigeria.',
+    a: 'You email us the plan and the number of months. We send transfer details. Access opens when the payment lands. Card payments are not available yet, because Stripe needs a US company and we run this from Nigeria.',
   },
   {
     q: 'What happens when my access runs out?',
-    a: 'Nothing disappears. Your content stays where it is and your clients’ dashboards stay online — a billing gap of yours should never reach them. You simply cannot add or edit until access is extended.',
+    a: 'Nothing disappears. Your content stays where it is. Your clients keep their dashboards. You just cannot add or edit until you extend.',
   },
   {
     q: 'Can I change plan later?',
-    a: 'Yes. Ask for the plan you want and it applies from that point. Extending early adds to your existing window rather than replacing it, so you never lose time already paid for.',
+    a: 'Yes. Ask for the plan you want and it applies from that point. If you extend early, we add the time to your current window. You never lose days you paid for.',
   },
   {
     q: 'What counts as a client workspace?',
-    a: 'Each client you manage gets their own content log and a dashboard at their own URL. Starter covers one, Pro covers five, Agency is unlimited.',
+    a: 'Each client gets their own content log and their own dashboard URL. Starter covers one client. Pro covers five. Agency has no limit.',
   },
   {
     q: 'Is there a free trial?',
-    a: 'Fourteen days, no card, starting the moment you sign up. One client workspace and up to 10 entries — enough to run it against real content before deciding.',
+    a: 'Fourteen days, no card, from the moment you sign up. You get one client workspace and up to 10 entries. That is enough to run it against real content.',
   },
   {
     q: 'What is your refund policy?',
-    a: 'Full refund within 14 days of a payment, no questions asked. Email support@devrel.studio.',
+    a: 'Email support@devrel.studio within 14 days of a payment and we refund it. We do not ask why.',
   },
   {
     q: 'Do clients need an account to see their dashboard?',
-    a: 'No. The client dashboard is a read-only URL that works in any browser. You can leave it open, protect it with an access code, or share it publicly — your choice, per client.',
+    a: 'No. The client dashboard is a read-only URL and works in any browser. You choose per client whether it stays open, needs a code, or goes fully public.',
   },
   {
     q: 'Can my team use one account?',
-    a: 'The Agency plan includes five seats with admin, editor and viewer roles. Invited members work under your access, so they do not need their own. Starter and Pro are single-user.',
+    a: 'The Agency plan includes five seats with admin, editor and viewer roles. People you invite work under your access, so they do not need their own. Starter and Pro are single-user.',
   },
 ]
 
@@ -183,11 +183,11 @@ export default function PricingPage() {
           Pricing
         </span>
         <h1 className="mt-3 text-4xl sm:text-5xl font-semibold tracking-[-0.03em] text-foreground leading-[1.1]">
-          Priced for one consultant, not an agency
+          Pricing
         </h1>
         <p className="mx-auto mt-5 max-w-lg text-[15px] leading-relaxed text-muted-foreground">
-          Start free for 14 days, no card. After that, buy the months you want — pay for
-          three or twelve at a time and the rate drops.
+          Start free for 14 days. No card. After that you buy the months you want.
+          Longer terms cost less.
         </p>
       </section>
 
@@ -205,8 +205,8 @@ export default function PricingPage() {
           <div className="border-b border-border px-6 py-5">
             <h2 className="text-[15px] font-medium text-foreground">Buy months at a time</h2>
             <p className="mt-1 text-sm text-muted-foreground">
-              Every payment is handled personally rather than through a card form, so longer
-              terms cost less — for both of us.
+              We handle each payment by hand, not through a card form. Longer terms cost less,
+              for you and for us.
             </p>
           </div>
 
@@ -334,7 +334,7 @@ export default function PricingPage() {
         </Accordion>
 
         <p className="mt-8 text-center text-sm text-muted-foreground">
-          Something not covered?{' '}
+          Something missing?{' '}
           <Link
             href="/contact"
             className="text-foreground underline underline-offset-4 hover:text-accent"

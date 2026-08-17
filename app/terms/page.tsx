@@ -3,7 +3,7 @@ import { LegalPage, Section } from '@/components/marketing/legal-page'
 
 export const metadata: Metadata = {
   title: 'Terms of Service · DevRel Studio',
-  description: 'The terms under which DevRel Studio is sold and used.',
+  description: 'The terms you agree to when you buy and use DevRel Studio.',
 }
 
 // These mirror the commercial promises made on the pricing page — monthly
@@ -16,98 +16,94 @@ export default function TermsPage() {
     <LegalPage
       title="Terms of Service"
       updated="17 August 2026"
-      intro="These terms cover buying and using DevRel Studio. Plain language is intended; where it is ambiguous, the reading that favours you applies."
+      intro="These terms cover buying and using DevRel Studio. Where the wording is unclear, the reading that favours you applies."
     >
       <Section heading="What you are buying">
         <p>
-          Access to DevRel Studio for a fixed period, priced per month and bought in blocks of
-          one, three, six or twelve months. The plan you choose sets how many client
-          workspaces, content entries and team seats your account may use.
+          Access to DevRel Studio for a fixed period. We price it per month. You buy one,
+          three, six or twelve months at a time. Your plan sets how many clients, entries and
+          seats you get.
         </p>
         <p>
-          Payment is handled directly rather than through a card processor. You tell us the
-          plan and term, we send transfer details, and access opens once payment is received.
+          We handle payment directly, not through a card processor. You tell us the plan and
+          the term. We send transfer details. Access opens when the payment arrives.
         </p>
       </Section>
 
       <Section heading="Changing plan and extending">
         <p>
-          You can move to a different plan at any time; it applies from that point. Extending
-          before your current period ends adds to it rather than replacing it, so no paid time
-          is lost.
+          Move to a different plan at any time. It applies from that point. If you extend
+          before your period ends, we add the time to it. You never lose days you paid for.
         </p>
         <p>
-          When a period ends, your content and your clients&apos; dashboards remain available.
-          Creating and editing stops until access is extended.
+          When a period ends, your content stays and your clients keep their dashboards. You
+          cannot add or edit until you extend.
         </p>
       </Section>
 
       <Section heading="Refunds">
         <p>
-          Full refund within 14 days of a payment, for any reason, by emailing
-          support@devrel.studio. We do not require an explanation. After 14 days, refunds are at
-          our discretion.
+          Email support@devrel.studio within 14 days of a payment and we refund it, for any
+          reason. We do not ask why. After 14 days, we decide case by case.
         </p>
       </Section>
 
       <Section heading="Your content">
         <p>
-          You own everything you put into DevRel Studio. We claim no rights over it, and we do
-          not use it to train anything or share it with anyone beyond the sub-processors listed
-          in the{' '}
+          You own everything you put into DevRel Studio. We claim no rights over it. We do not
+          train anything on it. We share it with nobody beyond the sub-processors listed in
+          the{' '}
           <a href="/privacy" className="text-foreground underline underline-offset-4">
             Privacy Policy
           </a>
           .
         </p>
         <p>
-          You are responsible for what you publish through the product — including anything made
-          visible on a client dashboard or a public portfolio.
+          You are responsible for what you publish, including anything visible on a client
+          dashboard or a public portfolio.
         </p>
       </Section>
 
       <Section heading="Acceptable use">
         <p>
-          Do not use DevRel Studio to store or publish unlawful content, to impersonate someone,
-          or to attempt to access workspaces that are not yours. We may suspend an account that
-          does, and will explain why.
+          Do not use DevRel Studio to store or publish unlawful content. Do not impersonate
+          anyone. Do not try to reach workspaces that are not yours. We suspend accounts that
+          do, and we say why.
         </p>
       </Section>
 
       <Section heading="Availability">
         <p>
-          We aim to keep the service running continuously but do not guarantee uninterrupted
-          availability. Planned maintenance that requires downtime will be announced in advance
-          where practical.
+          We aim to keep the service running, but we do not promise it never stops. We
+          announce planned downtime in advance where we can.
         </p>
         <p>
-          Client dashboards and public portfolios depend on the same infrastructure; an outage
+          Client dashboards and public portfolios run on the same infrastructure. An outage
           affects them too.
         </p>
       </Section>
 
       <Section heading="Liability">
         <p>
-          DevRel Studio is provided as-is. To the extent the law allows, our total liability is
-          limited to what you paid for your current access period. We are not liable for
-          indirect losses, or
-          for lost data you have not exported — export is available at any time, in CSV and PDF.
+          We provide DevRel Studio as-is. As far as the law allows, we limit our total
+          liability to what you paid for your current period. We are not liable for indirect
+          losses. We are not liable for data you did not export, and you can export at any
+          time in CSV or PDF.
         </p>
       </Section>
 
       <Section heading="Ending your use">
         <p>
-          You can delete your account at any time from Settings, which removes your data
-          immediately. Deleting your account does not by itself entitle you to a refund outside
-          the 14-day window, and unused time on a period is not refunded automatically — email
-          us and we will look at it.
+          Delete your account at any time from Settings. That removes your data at once.
+          Deleting an account does not by itself earn a refund outside the 14-day window. We do
+          not refund unused time on a period automatically. Email us and we look at it.
         </p>
       </Section>
 
       <Section heading="Changes to these terms">
         <p>
-          We will email you before any change that materially affects what you bought. Continued
-          use after that point means the updated terms apply.
+          We email you before any change that affects what you bought. If you keep using the
+          product after that, the new terms apply.
         </p>
       </Section>
     </LegalPage>

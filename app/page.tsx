@@ -109,18 +109,17 @@ function Hero({ signedIn }: { signedIn: boolean }) {
           <span className="rounded-full bg-foreground px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-background">
             New
           </span>
-          Free for 14 days — no card needed
+          Free for 14 days. No card needed
           <ArrowRight className="h-3 w-3" />
         </Link>
 
         <h1 className="mx-auto mt-8 max-w-3xl text-[2.6rem] font-semibold leading-[1.05] tracking-[-0.035em] text-foreground sm:text-6xl lg:text-[4rem]">
-          Show clients what their DevRel investment is actually doing
+          Show clients what your DevRel work delivers
         </h1>
 
         <p className="mx-auto mt-6 max-w-xl text-[17px] leading-relaxed text-muted-foreground">
-          One place to log content, track live metrics, and share a performance
-          dashboard with every client — so your impact is always visible, never buried
-          in a monthly PDF.
+          Log every piece of content in one place. Track what it earns. Give each
+          client a live dashboard they can open any time.
         </p>
 
         <div className="mt-9 flex flex-col items-center justify-center gap-2.5 sm:flex-row">
@@ -161,7 +160,7 @@ function Hero({ signedIn }: { signedIn: boolean }) {
 
             <Image
               src="/images/dashboard-screenshot.png"
-              alt="A client performance dashboard showing published content with views, downloads and attendee counts"
+              alt="A client dashboard listing published content with views, downloads and attendees"
               width={1728}
               height={1084}
               className="block h-auto w-full"
@@ -198,7 +197,7 @@ function SocialProof() {
   return (
     <section className="mt-28 overflow-hidden border-y border-border py-14">
       <p className="mb-9 px-6 text-center text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
-        Advocates writing for these teams track their work here
+        Advocates who write for these teams track their work here
       </p>
       {/* Edges fade so logos enter and leave rather than being clipped. */}
       <div className="relative [mask-image:linear-gradient(to_right,transparent,black_12%,black_88%,transparent)]">
@@ -222,21 +221,21 @@ function SocialProof() {
 // ─── Before / after ───────────────────────────────────────────────────────────
 
 const BEFORE = [
-  'Manually updating a sprawling Google Sheet every month',
-  'Copying metrics from five platforms — YouTube, Dev.to, npm, Luma',
-  'Building a PDF report by hand with screenshots and formatting',
-  'Clients emailing "when does the monthly report come?"',
-  'Zero visibility between reporting periods',
-  'Proving ROI feels impossible without historic data',
+  'You update a sprawling Google Sheet every month',
+  'You copy numbers from YouTube, Dev.to, npm and Luma',
+  'You build a PDF by hand, with screenshots',
+  'Clients email to ask when the report arrives',
+  'Nobody sees anything between reports',
+  'Old numbers are gone, so trends are guesswork',
 ]
 
 const AFTER = [
-  'One dashboard — all six content types in one system',
-  'Add an entry in 30 seconds, metrics update live',
-  'Share a URL — clients check it whenever they want',
-  'No more "where’s the report?" emails',
-  'Historic trends at a glance, with filters and export',
-  'Prove impact month over month without lifting a finger',
+  'One system holds all six content types',
+  'An entry takes 30 seconds. Numbers update on their own',
+  'Clients open one link whenever they want',
+  'Nobody asks where the report is',
+  'Trends sit on the page, with filters and export',
+  'Each month compares itself to the last',
 ]
 
 function BeforeAfter() {
@@ -244,8 +243,8 @@ function BeforeAfter() {
     <section className="mx-auto max-w-6xl px-6 py-28">
       <SectionHeading
         eyebrow="The problem"
-        title="Reporting that should take minutes takes hours"
-        lede="Developer advocates spend a day a month assembling evidence of work they have already done."
+        title="Reporting takes hours it should not take"
+        lede="Developer advocates lose a day each month proving work they already finished."
       />
 
       <div className="mt-14 grid gap-px overflow-hidden rounded-xl border border-border bg-border md:grid-cols-2">
@@ -300,7 +299,7 @@ function ContentCategories() {
       <SectionHeading
         eyebrow="Coverage"
         title="One dashboard, six content types"
-        lede="DevRel work does not fit neatly into a spreadsheet column. Each category has the right fields, metrics and display — automatically."
+        lede="DevRel work does not fit one spreadsheet column. Each category brings its own fields and its own number."
       />
 
       {/* A table rather than six coloured cards: the point is that each category
@@ -332,19 +331,19 @@ const STEPS = [
   {
     title: 'Log your content',
     description:
-      'Add any piece of DevRel work — blog post, video, conference talk, npm release. The form adapts to the category and takes about 30 seconds.',
+      'Add a blog post, a video, a talk or an npm release. The form changes to match the category. It takes about 30 seconds.',
     detail: 'Written · Video · Event · Podcast · Package · Demo',
   },
   {
     title: 'Share a live dashboard',
     description:
-      'Every client gets their own URL. Share it once and they can check performance anytime — no login, no app, any device.',
+      'Every client gets their own URL. Share it once. They open it any time, on any device, with no login.',
     detail: 'client.devrel.studio',
   },
   {
     title: 'Prove your impact',
     description:
-      'Views, downloads, attendees and stars refresh on their own. Your client watches the numbers move instead of waiting for a PDF.',
+      'Views, downloads, attendees and stars refresh on their own. Your client watches the numbers move.',
     detail: 'Live metrics · Historic trends · CSV export',
   },
 ]
@@ -355,8 +354,8 @@ function HowItWorks() {
       <div className="mx-auto max-w-6xl px-6">
         <SectionHeading
           eyebrow="Getting started"
-          title="Up and running in under five minutes"
-          lede="No integrations to configure, no APIs to connect. Sign in, add an entry, share the link."
+          title="Working in under five minutes"
+          lede="Nothing to configure and no API to connect. Sign in, add an entry, share the link."
         />
 
         <div className="mt-14 grid gap-px overflow-hidden rounded-xl border border-border bg-border sm:grid-cols-3">
@@ -403,21 +402,21 @@ function Testimonial() {
 // ─── FAQ ──────────────────────────────────────────────────────────────────────
 
 const FAQ_ITEMS = [
-  { q: 'How much is it?',                              a: 'Starter $29, Pro $59 and Agency $119 a month, bought in blocks of 1, 3, 6 or 12 months — longer terms cost less. Fourteen days free first, no card.' },
-  { q: 'How does payment work?',                       a: 'Personally, not through a card form. You say which plan and how many months, we send transfer details, and access opens once payment lands. Card payments are not available yet — Stripe requires a US entity.' },
-  { q: 'What happens when access runs out?',           a: 'Nothing disappears. Your content stays and your clients’ dashboards stay online. You simply cannot add or edit until access is extended.' },
-  { q: 'What counts as a "client workspace"?',         a: 'Each client you manage has their own content log and unique dashboard URL. The Starter plan covers one client; Pro covers up to five.' },
-  { q: 'Is there a free trial?',                       a: 'Fourteen days, no card, starting the moment you sign up. One client workspace and up to 10 entries.' },
-  { q: 'What is your refund policy?',                  a: 'Full refund within 14 days of a payment, no questions asked. Just email us.' },
-  { q: 'Do clients need to create an account?',        a: 'No. The client dashboard is a read-only URL. Share the link and it works in any browser — optionally behind an access code you control.' },
-  { q: 'Can multiple people use one account?',         a: 'Starter and Pro are single-user. The Agency plan includes up to 5 team member seats, each with an admin, editor or viewer role.' },
-  { q: 'What content types does DevRel Studio track?', a: 'Six categories: Written, Video, Event, Podcast, Package and Demo — each with fields and metrics suited to that kind of work.' },
+  { q: 'How much is it?',                              a: 'Starter is $29 a month, Pro is $59 and Agency is $119. You buy 1, 3, 6 or 12 months at a time. Longer terms cost less. The first 14 days are free and need no card.' },
+  { q: 'How does payment work?',                       a: 'You email us the plan and the number of months. We send transfer details. Access opens when the payment lands. Card payments are not available yet, because Stripe needs a US company.' },
+  { q: 'What happens when access runs out?',           a: 'Nothing disappears. Your content stays. Your clients keep their dashboards. You just cannot add or edit until you extend.' },
+  { q: 'What counts as a client workspace?',           a: 'Each client gets their own content log and their own dashboard URL. Starter covers one client. Pro covers five. Agency has no limit.' },
+  { q: 'Is there a free trial?',                       a: 'Yes. Fourteen days, no card, from the moment you sign up. You get one client workspace and up to 10 entries.' },
+  { q: 'What is your refund policy?',                  a: 'Email us within 14 days of a payment and we refund it. We do not ask why.' },
+  { q: 'Do clients need an account?',                  a: 'No. The client dashboard is a read-only URL. It works in any browser. You choose whether it needs an access code.' },
+  { q: 'Can multiple people use one account?',         a: 'The Agency plan includes 5 seats with admin, editor and viewer roles. Starter and Pro are single-user.' },
+  { q: 'What content does DevRel Studio track?',       a: 'Six categories: Written, Video, Event, Podcast, Package and Demo. Each one records the number that suits it.' },
 ]
 
 function FAQ() {
   return (
     <section id="faq" className="mx-auto max-w-3xl px-6 py-28">
-      <SectionHeading eyebrow="FAQ" title="Questions, answered" />
+      <SectionHeading eyebrow="FAQ" title="Common questions" />
 
       <Accordion type="single" collapsible className="mt-12 overflow-hidden rounded-xl border border-border">
         {FAQ_ITEMS.map(({ q, a }, i) => (
@@ -437,7 +436,7 @@ function FAQ() {
       </Accordion>
 
       <p className="mt-8 text-center text-sm text-muted-foreground">
-        Still have questions?{' '}
+        Something missing?{' '}
         <Link href="mailto:support@devrel.studio" className="text-foreground underline underline-offset-4 hover:text-accent">
           Email us
         </Link>
@@ -459,11 +458,10 @@ function CTA({ signedIn }: { signedIn: boolean }) {
 
         <div className="relative">
           <h2 className="mx-auto max-w-2xl text-3xl sm:text-[2.75rem] font-semibold leading-[1.1] tracking-[-0.03em] text-foreground">
-            Your clients deserve to see the work you are doing
+            Your clients should see the work you do
           </h2>
           <p className="mx-auto mt-5 max-w-lg text-[15px] leading-relaxed text-muted-foreground">
-            Stop burying your impact in monthly PDFs. Give every client a live dashboard
-            they can check anytime.
+            Give every client a live dashboard instead of a monthly PDF.
           </p>
 
           <div className="mt-9 flex flex-col items-center justify-center gap-2.5 sm:flex-row">
@@ -475,7 +473,7 @@ function CTA({ signedIn }: { signedIn: boolean }) {
           </div>
 
           <div className="mt-10 flex flex-wrap items-center justify-center gap-x-6 gap-y-2">
-            {['14-day free trial', 'No card required', 'Cancel by doing nothing'].map(
+            {['14 days free', 'No card required', 'Stop by doing nothing'].map(
               (item) => (
                 <span key={item} className="flex items-center gap-1.5 text-[13px] text-muted-foreground">
                   <Check className="h-3.5 w-3.5 text-accent" />

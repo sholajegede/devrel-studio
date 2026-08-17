@@ -155,7 +155,7 @@ function AccessState() {
         7K4M–PQX2
       </div>
       <p className="mt-2.5 text-[11px] leading-relaxed text-muted-foreground">
-        Or leave it open. Or make it public. Per client, changeable any time.
+        Set it per client. Change it any time.
       </p>
     </div>
   )
@@ -180,7 +180,7 @@ function SyncState() {
           <span className="shrink-0 font-mono text-[11px] text-accent">{value}</span>
         </div>
       ))}
-      <p className="pt-1 text-[11px] text-muted-foreground">Refreshed daily. Nothing to wire up.</p>
+      <p className="pt-1 text-[11px] text-muted-foreground">Refreshed daily. Nothing to set up.</p>
     </div>
   )
 }
@@ -194,11 +194,11 @@ export function FeatureBento() {
             Product
           </span>
           <h2 className="mt-3 text-3xl sm:text-4xl font-semibold tracking-[-0.02em] leading-[1.15] text-foreground">
-            Built for how DevRel actually works
+            Built for how DevRel work happens
           </h2>
           <p className="mt-4 text-[15px] leading-relaxed text-muted-foreground">
-            Not a project tracker. Not a CMS. Purpose-built for advocates who deliver content
-            for clients and need to prove it.
+            Not a project tracker. Not a CMS. Built for advocates who ship content for clients
+            and have to prove it.
           </p>
         </div>
 
@@ -207,7 +207,7 @@ export function FeatureBento() {
             className="lg:col-span-4"
             eyebrow="Client dashboard"
             title="A live URL, not a monthly PDF"
-            body="Every client gets their own address showing what you delivered and how it performed, with the change against last month beside each number — the figure that renews a retainer."
+            body="Every client gets an address showing what you shipped and how it performed. Each number carries the change against last month."
           >
             <StatStrip />
           </Cell>
@@ -216,7 +216,7 @@ export function FeatureBento() {
             className="lg:col-span-2"
             eyebrow="Access"
             title="Locked by default"
-            body="Share openly, or require a code."
+            body="Share it openly, or ask for a code."
           >
             <AccessState />
           </Cell>
@@ -224,8 +224,8 @@ export function FeatureBento() {
           <Cell
             className="lg:col-span-2"
             eyebrow="Coverage"
-            title="Six categories, six metrics"
-            body="Each kind of work is measured by the number that suits it."
+            title="Six categories, six numbers"
+            body="Each kind of work carries the number that suits it."
           >
             <CategoryList />
           </Cell>
@@ -234,7 +234,7 @@ export function FeatureBento() {
             className="lg:col-span-4"
             eyebrow="Pipeline"
             title="See what is still in flight"
-            body="Four lanes by status, with anything past its planned date flagged. Move a card and it saves immediately — no round trip, no form."
+            body="Four lanes by status. Late work turns amber. Move a card and it saves at once, with no form to fill in."
           >
             <PipelineLanes />
           </Cell>
@@ -242,8 +242,8 @@ export function FeatureBento() {
           <Cell
             className="lg:col-span-3"
             eyebrow="Automatic"
-            title="npm and GitHub keep themselves current"
-            body="Download counts and star counts refresh on a daily job, so the numbers on a client's dashboard are never the ones you last typed in by hand."
+            title="npm and GitHub update themselves"
+            body="A daily job refreshes downloads and stars. Your client never sees a number you typed in weeks ago."
           >
             <SyncState />
           </Cell>
@@ -252,7 +252,7 @@ export function FeatureBento() {
             className="lg:col-span-3"
             eyebrow="Portfolio & export"
             title="Your own work, not just theirs"
-            body="Publish everything you have shipped at your own handle, and pull any filtered view out as CSV or PDF when a conversation needs paperwork."
+            body="Publish everything you shipped at your own handle. Pull any view out as CSV or PDF when a conversation needs paper."
           >
             <div className="space-y-2">
               <div className="flex items-center gap-2.5 rounded-lg border border-border bg-card px-3 py-2.5">
