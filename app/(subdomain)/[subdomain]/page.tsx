@@ -15,8 +15,11 @@ import {
   CATEGORY_METRIC,
   aggregate,
   categoryOf,
+  compareToPreviousMonth,
   getMetricValue,
+  latestMonth,
 } from "@/lib/metrics";
+import { DeltaBadge } from "@/components/dashboard/delta-badge";
 import {
   CATEGORY_META,
   categoryMetricIcon,
@@ -435,6 +438,14 @@ export default function ClientDashboard({
 
   const totals = aggregate(contentForStats);
 
+  // Change against the month before the most recent one with any activity —
+  // not against "last calendar month", which would show every stat collapsing
+  // to zero on the first of a month before anything has been published yet.
+  const activeMonth = latestMonth(contentForStats);
+  const deltas = activeMonth
+    ? compareToPreviousMonth(contentForStats, activeMonth)
+    : null;
+
   const byMonth: Record<string, ContentEntry[]> = {};
   // Sorted on this rather than by re-parsing the localized label, which is only
   // a Date by coincidence of "August 2026" happening to parse.
@@ -503,7 +514,10 @@ export default function ClientDashboard({
         <div className="mb-8 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4" data-tour="stats-cards">
           <div className="rounded-xl border border-border bg-card p-5">
             <p className="text-sm text-muted-foreground">Published</p>
-            <p className="mt-1 text-3xl font-semibold text-foreground">{totals.published}</p>
+            <div className="mt-1 flex items-baseline gap-2">
+              <p className="text-3xl font-semibold text-foreground">{totals.published}</p>
+              {deltas && <DeltaBadge delta={deltas.published} />}
+            </div>
           </div>
           <div className="rounded-xl border border-border bg-card p-5">
             <p className="text-sm text-muted-foreground">In Progress</p>
@@ -514,36 +528,48 @@ export default function ClientDashboard({
               <Eye className="h-3.5 w-3.5 text-muted-foreground" />
               <p className="text-sm text-muted-foreground">Views</p>
             </div>
-            <p className="text-3xl font-semibold text-foreground">
-              {totals.views > 0 ? totals.views.toLocaleString() : "—"}
-            </p>
+            <div className="flex items-baseline gap-2">
+              <p className="text-3xl font-semibold text-foreground">
+                {totals.views > 0 ? totals.views.toLocaleString() : "—"}
+              </p>
+              {deltas && <DeltaBadge delta={deltas.views} />}
+            </div>
           </div>
           <div className="rounded-xl border border-border bg-card p-5">
             <div className="flex items-center gap-1.5 mb-1">
               <Download className="h-3.5 w-3.5 text-muted-foreground" />
               <p className="text-sm text-muted-foreground">Downloads</p>
             </div>
-            <p className="text-3xl font-semibold text-foreground">
-              {totals.downloads > 0 ? totals.downloads.toLocaleString() : "—"}
-            </p>
+            <div className="flex items-baseline gap-2">
+              <p className="text-3xl font-semibold text-foreground">
+                {totals.downloads > 0 ? totals.downloads.toLocaleString() : "—"}
+              </p>
+              {deltas && <DeltaBadge delta={deltas.downloads} />}
+            </div>
           </div>
           <div className="rounded-xl border border-border bg-card p-5">
             <div className="flex items-center gap-1.5 mb-1">
               <Users className="h-3.5 w-3.5 text-muted-foreground" />
               <p className="text-sm text-muted-foreground">Attendees</p>
             </div>
-            <p className="text-3xl font-semibold text-foreground">
-              {totals.attendees > 0 ? totals.attendees.toLocaleString() : "—"}
-            </p>
+            <div className="flex items-baseline gap-2">
+              <p className="text-3xl font-semibold text-foreground">
+                {totals.attendees > 0 ? totals.attendees.toLocaleString() : "—"}
+              </p>
+              {deltas && <DeltaBadge delta={deltas.attendees} />}
+            </div>
           </div>
           <div className="rounded-xl border border-border bg-card p-5">
             <div className="flex items-center gap-1.5 mb-1">
               <Star className="h-3.5 w-3.5 text-muted-foreground" />
               <p className="text-sm text-muted-foreground">Stars</p>
             </div>
-            <p className="text-3xl font-semibold text-foreground">
-              {totals.stars > 0 ? totals.stars.toLocaleString() : "—"}
-            </p>
+            <div className="flex items-baseline gap-2">
+              <p className="text-3xl font-semibold text-foreground">
+                {totals.stars > 0 ? totals.stars.toLocaleString() : "—"}
+              </p>
+              {deltas && <DeltaBadge delta={deltas.stars} />}
+            </div>
           </div>
         </div>
 

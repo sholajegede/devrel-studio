@@ -136,3 +136,99 @@ export function formatCompact(n: number): string {
   if (n >= 1_000)     return `${(n / 1_000).toFixed(1)}K`
   return n.toLocaleString()
 }
+
+// ── Period comparison ─────────────────────────────────────────────────────────
+//
+// "412 views" is a number. "412 views, up 38% on last month" is an argument.
+// The second is what gets a retainer renewed, so the dashboards show both.
+
+export interface PeriodSource extends MetricSource {
+  publicationDate?: string
+}
+
+export interface Delta {
+  current: number
+  previous: number
+  /** Percentage change, or null when the previous period was zero. */
+  percent: number | null
+  direction: 'up' | 'down' | 'flat'
+}
+
+/** `YYYY-MM` for a date string, or null if it is unparseable. */
+export function monthKey(iso?: string): string | null {
+  if (!iso) return null
+  const match = /^(\d{4})-(\d{2})/.exec(iso.trim())
+  return match ? `${match[1]}-${match[2]}` : null
+}
+
+/** The `YYYY-MM` immediately before the one given. */
+export function previousMonth(key: string): string {
+  const [y, m] = key.split('-').map(Number)
+  return m === 1
+    ? `${y - 1}-12`
+    : `${y}-${String(m - 1).padStart(2, '0')}`
+}
+
+function change(current: number, previous: number): Delta {
+  // Growth from zero has no meaningful percentage — 5 from 0 is not "500%
+  // up", it is "5, from nothing". Callers render the raw numbers in that case.
+  const percent = previous === 0 ? null : Math.round(((current - previous) / previous) * 100)
+
+  return {
+    current,
+    previous,
+    percent,
+    direction: current > previous ? 'up' : current < previous ? 'down' : 'flat',
+  }
+}
+
+/**
+ * Compare one month against the month before it.
+ *
+ * Entries are bucketed by publication date, so this answers "how much did we
+ * publish, and how did it perform, in each period" — not "how did a single
+ * piece's numbers move", which would need historic metric snapshots the schema
+ * does not keep.
+ *
+ * Only Published entries contribute. This differs from `aggregate`, which sums
+ * every entry it is given: a draft carrying a view count would otherwise inflate
+ * the period it was written in, and this number goes in front of a client.
+ */
+export function compareToPreviousMonth(
+  entries: readonly PeriodSource[],
+  month: string,
+): { published: Delta; views: Delta; downloads: Delta; attendees: Delta; stars: Delta } {
+  const prev = previousMonth(month)
+
+  const inMonth = (key: string) =>
+    entries.filter(
+      (entry) => monthKey(entry.publicationDate) === key && entry.status === 'Published',
+    )
+
+  const currentTotals = aggregate(inMonth(month))
+  const previousTotals = aggregate(inMonth(prev))
+
+  return {
+    published: change(currentTotals.published, previousTotals.published),
+    views: change(currentTotals.views, previousTotals.views),
+    downloads: change(currentTotals.downloads, previousTotals.downloads),
+    attendees: change(currentTotals.attendees, previousTotals.attendees),
+    stars: change(currentTotals.stars, previousTotals.stars),
+  }
+}
+
+/** The most recent month that has any entries, or null for an empty set. */
+export function latestMonth(entries: readonly PeriodSource[]): string | null {
+  const keys = entries
+    .map((entry) => monthKey(entry.publicationDate))
+    .filter((key): key is string => key !== null)
+
+  return keys.length ? keys.sort().at(-1)! : null
+}
+
+/** `+38%`, `-12%`, `—`. */
+export function formatDelta(delta: Delta): string {
+  if (delta.percent === null) return delta.current > 0 ? 'new' : '—'
+  if (delta.percent === 0) return 'no change'
+  return `${delta.percent > 0 ? '+' : ''}${delta.percent}%`
+}
