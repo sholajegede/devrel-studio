@@ -75,6 +75,30 @@ export const listMembers = query({
   },
 })
 
+/**
+ * The caller's role in their current workspace.
+ *
+ * Split out from `getSeatUsage` because the UI needs this on every page to
+ * decide which controls to render, and seat usage walks the membership and
+ * invite tables to produce numbers no one is looking at on the content page.
+ *
+ * Null while loading or before a workspace exists — callers treat that as
+ * "assume no permissions yet" rather than flashing controls that then vanish.
+ */
+export const getMyRole = query({
+  args: {},
+  handler: async (ctx) => {
+    const context = await getCurrentWorkspace(ctx)
+    if (!context) return null
+
+    return {
+      role: context.role,
+      workspaceId: context.workspaceId,
+      workspaceName: context.workspace.name,
+    }
+  },
+})
+
 /** Pending invites for the caller's workspace, expired ones filtered out. */
 export const listInvites = query({
   args: {},

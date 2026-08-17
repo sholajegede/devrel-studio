@@ -23,6 +23,8 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { useUserContext } from '@/contexts/user-context'
 import PageLoader from '@/components/page-loader'
+import { RoleNotice } from '@/components/dashboard/role-notice'
+import { useWorkspaceRole } from '@/hooks/use-workspace-role'
 import {
   AdminTour,
   AdminTourTriggerButton,
@@ -123,7 +125,9 @@ function EntryCard({
   tourAnchor = false,
 }: {
   entry: ContentEntry
-  onMove: (id: Id<'contentEntries'>, status: Status) => void
+  // Absent for a viewer: the lane menu is the only way to change status here,
+  // so withholding the handler removes the action rather than letting it fail.
+  onMove?: (id: Id<'contentEntries'>, status: Status) => void
   tourAnchor?: boolean
 }) {
   const category = categoryOf(entry)
@@ -143,6 +147,7 @@ function EntryCard({
           {entry.title || 'Untitled'}
         </Link>
 
+        {onMove && (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button
@@ -174,6 +179,7 @@ function EntryCard({
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
+        )}
       </div>
 
       <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
@@ -213,6 +219,7 @@ export default function PipelinePage() {
   const { profile } = useUserContext()
   const [clientFilter, setClientFilter] = useState('all')
   const [tourControls, setTourControls] = useState<{ startTour: () => void } | null>(null)
+  const { can } = useWorkspaceRole()
 
   const content = useQuery(api.content.getAllContent, profile?._id ? {} : 'skip')
   const setStatus = useMutation(api.content.setContentStatus)
@@ -290,6 +297,7 @@ export default function PipelinePage() {
 
   return (
     <main className="px-6 lg:px-10 py-8">
+      <RoleNotice />
 
       {/* Header */}
       <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -333,12 +341,14 @@ export default function PipelinePage() {
               </DropdownMenuContent>
             </DropdownMenu>
           )}
-          <Link href="/dashboard/add">
-            <Button size="sm" className="gap-1.5">
-              <PlusCircle className="h-3.5 w-3.5" />
-              Add Entry
-            </Button>
-          </Link>
+          {can.create && (
+            <Link href="/dashboard/add">
+              <Button size="sm" className="gap-1.5">
+                <PlusCircle className="h-3.5 w-3.5" />
+                Add Entry
+              </Button>
+            </Link>
+          )}
         </div>
       </div>
 
@@ -403,7 +413,7 @@ export default function PipelinePage() {
                     <EntryCard
                       key={entry._id}
                       entry={entry}
-                      onMove={handleMove}
+                      onMove={can.edit ? handleMove : undefined}
                       tourAnchor={lane.status === anchorLane && entryIndex === 0}
                     />
                   ))

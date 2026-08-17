@@ -3,6 +3,8 @@
 import { useEffect, useState, useMemo } from 'react'
 import Link from 'next/link'
 import { AdminTour, AdminTourTriggerButton, TourVariant } from '@/components/admin-onboarding-tour'
+import { useWorkspaceRole } from '@/hooks/use-workspace-role'
+import { RoleNotice } from '@/components/dashboard/role-notice'
 import {
   ContentEntry,
   CATEGORIES,
@@ -57,6 +59,7 @@ export default function ContentListPage() {
   const router = useRouter()
 
   const syncMyStats = useAction(api.sync.syncMyStats)
+  const { can } = useWorkspaceRole()
 
   const content = useQuery(
     api.content.getAllContent,
@@ -224,6 +227,7 @@ export default function ContentListPage() {
 
   return (
     <main className="px-6 lg:px-10 py-8 max-w-400">
+      <RoleNotice />
 
       {/* Header */}
       <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -255,11 +259,13 @@ export default function ContentListPage() {
           <Button variant="outline" onClick={exportToCSV} size="sm" className="gap-1.5 bg-transparent">
             <Download className="h-3.5 w-3.5" />Export CSV
           </Button>
-          <Link href="/dashboard/add" data-tour="content-add">
-            <Button size="sm" className="gap-1.5">
-              <PlusCircle className="h-3.5 w-3.5" />Add Entry
-            </Button>
-          </Link>
+          {can.create && (
+            <Link href="/dashboard/add" data-tour="content-add">
+              <Button size="sm" className="gap-1.5">
+                <PlusCircle className="h-3.5 w-3.5" />Add Entry
+              </Button>
+            </Link>
+          )}
         </div>
       </div>
 
@@ -445,18 +451,24 @@ export default function ContentListPage() {
                       </div>
                     )}
 
-                    <div className="flex items-center gap-2 pt-1">
-                      <Link href={`/dashboard/edit/${entry._id}`}>
-                        <Button variant="outline" size="sm" className="h-7 gap-1 text-xs bg-transparent">
-                          <Edit className="h-3 w-3" />Edit
-                        </Button>
-                      </Link>
-                      <Button variant="outline" size="sm"
-                        className="h-7 gap-1 text-xs bg-transparent text-destructive hover:text-destructive"
-                        onClick={() => setDeleteId(entry._id)}>
-                        <Trash2 className="h-3 w-3" />Delete
-                      </Button>
-                    </div>
+                    {(can.edit || can.delete) && (
+                      <div className="flex items-center gap-2 pt-1">
+                        {can.edit && (
+                          <Link href={`/dashboard/edit/${entry._id}`}>
+                            <Button variant="outline" size="sm" className="h-7 gap-1 text-xs bg-transparent">
+                              <Edit className="h-3 w-3" />Edit
+                            </Button>
+                          </Link>
+                        )}
+                        {can.delete && (
+                          <Button variant="outline" size="sm"
+                            className="h-7 gap-1 text-xs bg-transparent text-destructive hover:text-destructive"
+                            onClick={() => setDeleteId(entry._id)}>
+                            <Trash2 className="h-3 w-3" />Delete
+                          </Button>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </CardContent>
               </Card>

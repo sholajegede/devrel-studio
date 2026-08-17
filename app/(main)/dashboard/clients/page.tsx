@@ -53,6 +53,8 @@ import {
   Wallet, CalendarOff,
 } from 'lucide-react'
 import { AdminTour, AdminTourTriggerButton, TourVariant } from '@/components/admin-onboarding-tour'
+import { useWorkspaceRole } from '@/hooks/use-workspace-role'
+import { RoleNotice } from '@/components/dashboard/role-notice'
 import {
   formatMoney,
   monthsBilled,
@@ -320,6 +322,7 @@ export default function ClientsPage() {
   const userId = profile?._id
 
   const clients = useQuery(api.clients.getClients, userId ? {} : 'skip')
+  const { can } = useWorkspaceRole()
   const createClient = useMutation(api.clients.createClient)
   const updateClient = useMutation(api.clients.updateClient)
   const deleteClient = useMutation(api.clients.deleteClient)
@@ -422,6 +425,7 @@ export default function ClientsPage() {
 
   return (
     <main className="px-6 lg:px-10 py-8 max-w-400">
+      <RoleNotice />
 
       {/* Header */}
       <div className="flex items-center justify-between mb-8 gap-4">
@@ -435,6 +439,7 @@ export default function ClientsPage() {
           <AdminTourTriggerButton onStartTour={() => tourControls?.startTour()} />
           <Button
             onClick={openAdd}
+            disabled={!can.create}
             className="gap-2 bg-accent text-accent-foreground hover:bg-accent/90"
             data-tour="clients-add"
           >
@@ -488,7 +493,7 @@ export default function ClientsPage() {
             <p className="text-xs text-muted-foreground max-w-xs mx-auto mb-5">
               Add your first client to start tracking retainers, start dates, and engagement details.
             </p>
-            <Button onClick={openAdd} className="gap-2 bg-accent text-accent-foreground hover:bg-accent/90">
+            <Button onClick={openAdd} disabled={!can.create} className="gap-2 bg-accent text-accent-foreground hover:bg-accent/90">
               <Plus className="h-4 w-4" /> Add your first client
             </Button>
           </CardContent>
@@ -523,19 +528,32 @@ export default function ClientsPage() {
                         </button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => openEdit(client)}>
-                          <Edit3 className="h-3.5 w-3.5 mr-2" /> Edit
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => setAccessTarget(client)}>
-                          <KeyRound className="h-3.5 w-3.5 mr-2" /> Dashboard access
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem
-                          onClick={() => setDeleteId(client._id)}
-                          className="text-destructive focus:text-destructive"
-                        >
-                          <Trash2 className="h-3.5 w-3.5 mr-2" /> Delete
-                        </DropdownMenuItem>
+                        {can.edit && (
+                          <DropdownMenuItem onClick={() => openEdit(client)}>
+                            <Edit3 className="h-3.5 w-3.5 mr-2" /> Edit
+                          </DropdownMenuItem>
+                        )}
+                        {can.manageAccess && (
+                          <DropdownMenuItem onClick={() => setAccessTarget(client)}>
+                            <KeyRound className="h-3.5 w-3.5 mr-2" /> Dashboard access
+                          </DropdownMenuItem>
+                        )}
+                        {can.delete && (
+                          <>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              onClick={() => setDeleteId(client._id)}
+                              className="text-destructive focus:text-destructive"
+                            >
+                              <Trash2 className="h-3.5 w-3.5 mr-2" /> Delete
+                            </DropdownMenuItem>
+                          </>
+                        )}
+                        {!can.edit && !can.manageAccess && !can.delete && (
+                          <DropdownMenuItem disabled className="text-xs">
+                            View-only access
+                          </DropdownMenuItem>
+                        )}
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </div>
