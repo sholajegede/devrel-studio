@@ -217,9 +217,19 @@ export function compareToPreviousMonth(
   }
 }
 
-/** The most recent month that has any entries, or null for an empty set. */
+/**
+ * The most recent month with published work, or null if there is none.
+ *
+ * Published only, and deliberately so: this picks the month that
+ * `compareToPreviousMonth` will be asked about, and that function counts
+ * published entries alone. Anchoring on any entry meant a single piece
+ * *scheduled* for next month became the anchor — a month with nothing
+ * published yet — and every stat rendered as "-100%" against the month before
+ * it. Both functions have to agree on what counts.
+ */
 export function latestMonth(entries: readonly PeriodSource[]): string | null {
   const keys = entries
+    .filter((entry) => entry.status === 'Published')
     .map((entry) => monthKey(entry.publicationDate))
     .filter((key): key is string => key !== null)
 

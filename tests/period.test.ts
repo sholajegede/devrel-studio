@@ -113,25 +113,45 @@ describe('compareToPreviousMonth', () => {
 })
 
 describe('latestMonth', () => {
-  it('finds the most recent month present', () => {
+  it('finds the most recent month with published work', () => {
     expect(
       latestMonth([
-        { publicationDate: '2026-03-01' },
-        { publicationDate: '2026-11-30' },
-        { publicationDate: '2026-07-15' },
+        { status: 'Published', publicationDate: '2026-03-01' },
+        { status: 'Published', publicationDate: '2026-11-30' },
+        { status: 'Published', publicationDate: '2026-07-15' },
       ]),
     ).toBe('2026-11')
   })
 
+  it('ignores work scheduled for a future month', () => {
+    // A piece scheduled for next month used to become the anchor, and since the
+    // comparison counts published entries only, that month had nothing in it —
+    // so every stat on the dashboard rendered as "-100%".
+    expect(
+      latestMonth([
+        { status: 'Published', publicationDate: '2026-08-09' },
+        { status: 'Scheduled', publicationDate: '2026-09-14' },
+        { status: 'Draft', publicationDate: '2026-09-22' },
+      ]),
+    ).toBe('2026-08')
+  })
+
+  it('is null when nothing is published yet', () => {
+    expect(latestMonth([{ status: 'Draft', publicationDate: '2026-08-01' }])).toBeNull()
+  })
+
   it('sorts by value, not by insertion order', () => {
     expect(
-      latestMonth([{ publicationDate: '2025-12-31' }, { publicationDate: '2026-01-01' }]),
+      latestMonth([
+        { status: 'Published', publicationDate: '2025-12-31' },
+        { status: 'Published', publicationDate: '2026-01-01' },
+      ]),
     ).toBe('2026-01')
   })
 
   it('is null when there is nothing dated', () => {
     expect(latestMonth([])).toBeNull()
-    expect(latestMonth([{ publicationDate: undefined }])).toBeNull()
+    expect(latestMonth([{ status: 'Published', publicationDate: undefined }])).toBeNull()
   })
 })
 
