@@ -203,13 +203,19 @@ function BillingPageContent() {
                           (billing?.usage.clients ?? 0) === 1 ? 'workspace' : 'workspaces'
                         }
                       />
-                      <Separator orientation="vertical" className="h-8" />
-                      <div className="text-center">
-                        <p className="text-lg font-bold text-foreground">
-                          {formatPrice(monthlyPrice(currentPlan.id, currency), currency)}
-                        </p>
-                        <p className="text-xs text-muted-foreground">a month</p>
-                      </div>
+                      {/* A complimentary account is charged nothing, so quoting
+                          the plan's rate beside it reads as a bill they owe. */}
+                      {billing?.status !== 'comped' && (
+                        <>
+                          <Separator orientation="vertical" className="h-8" />
+                          <div className="text-center">
+                            <p className="text-lg font-bold text-foreground">
+                              {formatPrice(monthlyPrice(currentPlan.id, currency), currency)}
+                            </p>
+                            <p className="text-xs text-muted-foreground">a month</p>
+                          </div>
+                        </>
+                      )}
                     </div>
                   )}
 
