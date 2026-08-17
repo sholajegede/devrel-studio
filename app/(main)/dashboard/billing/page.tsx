@@ -1,6 +1,6 @@
 'use client'
 
-import { Suspense, useEffect, useState } from 'react'
+import { Suspense, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { useQuery } from 'convex/react'
@@ -11,6 +11,14 @@ import {
   PURCHASABLE_PLANS,
   type PlanId,
 } from '@/convex/model/plans'
+import {
+  currencyForTimeZone,
+  formatPrice,
+  monthlyPrice,
+  priceWithCode,
+  DEFAULT_CURRENCY,
+  type CurrencyCode,
+} from '@/lib/currency'
 import {
   Check, Zap, ArrowRight, Crown, Building2, ExternalLink, Receipt,
   ShieldCheck, Loader2,
@@ -95,6 +103,22 @@ function BillingPageContent() {
   const billing = useQuery(api.billing.getMyPlan, {})
 
   /**
+   * The dashboard has no geo header to read, so the currency comes from the
+   * browser's own time zone.
+   *
+   * Resolved after mount rather than during render: the server has no time zone
+   * to work from, so reading it inline would produce different markup on each
+   * side and React would throw out the whole tree. Dollars are the first paint
+   * and the correct symbol arrives a tick later, which is the same trade the
+   * client selector makes in contexts/client-scope.tsx.
+   */
+  const [currency, setCurrency] = useState<CurrencyCode>(DEFAULT_CURRENCY)
+
+  useEffect(() => {
+    setCurrency(currencyForTimeZone(Intl.DateTimeFormat().resolvedOptions().timeZone))
+  }, [])
+
+  /**
    * Card payments are not available: Stripe requires a US entity and this is
    * run from Nigeria. Rather than a checkout that cannot complete, this opens a
    * prefilled email — the buyer says which plan and for how long, pays by
@@ -105,11 +129,20 @@ function BillingPageContent() {
    */
   const requestAccess = (plan: PlanId) => {
     const definition = PLAN_DEFS[plan]
-    const subject = `DevRel Studio — ${definition.name} access`
+    const subject = `DevRel Studio ${definition.name} access`
+
+    /**
+     * The rate goes in the message, currency code and all. Both sides then hold
+     * the same figure in writing, so a transfer that arrives short has an
+     * answer already on the page rather than an argument after the fact.
+     */
+    const rate = priceWithCode(monthlyPrice(plan, currency), currency)
+
     const body = [
       `I'd like ${definition.name} access for DevRel Studio.`,
       '',
       `Plan: ${definition.name}`,
+      `Rate: ${rate} a month`,
       'Length: (1 month / 3 months / 6 months / 12 months)',
       '',
       'Please send payment details.',
@@ -191,9 +224,9 @@ function BillingPageContent() {
                       <Separator orientation="vertical" className="h-8" />
                       <div className="text-center">
                         <p className="text-lg font-bold text-foreground">
-                          ${currentPlan.price}
+                          {formatPrice(monthlyPrice(currentPlan.id, currency), currency)}
                         </p>
-                        <p className="text-xs text-muted-foreground">paid so far</p>
+                        <p className="text-xs text-muted-foreground">a month</p>
                       </div>
                     </div>
                   )}
@@ -289,7 +322,9 @@ function BillingPageContent() {
                     </div>
 
                     <div className="flex items-baseline gap-1 mb-1">
-                      <span className="text-3xl font-bold text-foreground">${plan.price}</span>
+                      <span className="text-3xl font-bold text-foreground">
+                        {formatPrice(monthlyPrice(plan.id, currency), currency)}
+                      </span>
                       <span className="text-xs text-muted-foreground">/month</span>
                     </div>
                     <p className="text-xs text-muted-foreground mb-4 leading-relaxed">{plan.description}</p>
@@ -350,7 +385,7 @@ function BillingPageContent() {
                         {currentPlan.name} plan
                       </p>
                       <p className="text-xs text-muted-foreground mt-0.5">
-                        ${currentPlan.price} paid
+                        {formatPrice(monthlyPrice(currentPlan.id, currency), currency)} a month
                         {billing.purchasedAt &&
                           ` on ${new Date(billing.purchasedAt).toLocaleDateString('en-US', {
                             month: 'long',

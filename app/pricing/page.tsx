@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { headers } from 'next/headers'
 import type { Metadata } from 'next'
 import { Check, Minus, ArrowRight } from 'lucide-react'
 import {
@@ -13,15 +14,24 @@ import {
   PLANS,
   PURCHASABLE_PLANS,
   TERMS,
-  termMonthly,
-  termPrice,
   type PlanId,
 } from '@/convex/model/plans'
+import {
+  CURRENCIES,
+  currencyForCountry,
+  formatPrice,
+  monthlyPrice,
+  parseCurrency,
+  termMonthlyIn,
+  termPriceIn,
+  type CurrencyCode,
+} from '@/lib/currency'
+import { CurrencyPicker } from '@/components/marketing/currency-picker'
 
 export const metadata: Metadata = {
   title: 'Pricing · DevRel Studio',
   description:
-    'DevRel Studio pricing. Starter $29, Pro $59 and Agency $119 a month. Buy 1, 3, 6 or 12 months. 14 days free.',
+    'DevRel Studio pricing. Three plans, billed monthly and sold in terms of 1, 3, 6 or 12 months. Prices show in your local currency. 14 days free.',
 }
 
 // ─── Plan presentation ────────────────────────────────────────────────────────
@@ -116,7 +126,7 @@ function Cell({ value }: { value: string | boolean }) {
   return <span className="text-sm text-foreground">{value}</span>
 }
 
-function PlanCard({ id }: { id: PlanId }) {
+function PlanCard({ id, currency }: { id: PlanId; currency: CurrencyCode }) {
   const plan = PLANS[id]
   const isHighlight = id === HIGHLIGHT
   const isFree = id === 'free'
@@ -138,7 +148,7 @@ function PlanCard({ id }: { id: PlanId }) {
 
       <div className="mt-5 flex items-baseline gap-1.5">
         <span className="text-4xl font-semibold tracking-[-0.03em] text-foreground">
-          ${plan.price}
+          {formatPrice(monthlyPrice(id, currency), currency)}
         </span>
         <span className="text-sm text-muted-foreground">
           {isFree ? 'for 14 days' : '/month'}
@@ -173,7 +183,28 @@ function PlanCard({ id }: { id: PlanId }) {
 
 const ALL_PLANS: PlanId[] = ['free', ...PURCHASABLE_PLANS]
 
-export default function PricingPage() {
+/**
+ * Prices render in the reader's own currency.
+ *
+ * The country comes from Vercel's geo header, which costs nothing and is on
+ * every request in production. Reading it makes this page dynamic, which is the
+ * trade: a cached page cannot show a Lagos reader naira. It is a small page and
+ * the numbers are static, so the render is cheap.
+ *
+ * `?currency=` overrides the guess, for anyone behind a VPN or paying from a
+ * different country than they are sitting in. A query parameter rather than a
+ * client toggle, so the first paint is already right and the choice survives
+ * being shared as a link.
+ */
+export default async function PricingPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ currency?: string }>
+}) {
+  const [{ currency: requested }, headerList] = await Promise.all([searchParams, headers()])
+  const currency =
+    parseCurrency(requested) ?? currencyForCountry(headerList.get('x-vercel-ip-country'))
+
   return (
     <div className="min-h-screen bg-background">
       <MarketingNav />
@@ -189,12 +220,14 @@ export default function PricingPage() {
           Start free for 14 days. No card. After that you buy the months you want.
           Longer terms cost less.
         </p>
+
+        <CurrencyPicker current={currency} />
       </section>
 
       <section className="mx-auto max-w-6xl px-6 pb-20">
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
           {ALL_PLANS.map((id) => (
-            <PlanCard key={id} id={id} />
+            <PlanCard key={id} id={id} currency={currency} />
           ))}
         </div>
       </section>
@@ -236,11 +269,11 @@ export default function PricingPage() {
                     {PURCHASABLE_PLANS.map((id) => (
                       <td key={id} className="px-6 py-3.5 text-center">
                         <span className="text-sm tabular-nums text-foreground">
-                          ${termPrice(PLANS[id], term).toLocaleString()}
+                          {formatPrice(termPriceIn(id, term, currency), currency)}
                         </span>
                         {term.months > 1 && (
                           <span className="block text-[11px] tabular-nums text-muted-foreground">
-                            ${termMonthly(PLANS[id], term)}/mo
+                            {formatPrice(termMonthlyIn(id, term, currency), currency)}/mo
                           </span>
                         )}
                       </td>

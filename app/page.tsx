@@ -10,10 +10,17 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from '@/components/ui/accordion'
+import { headers } from 'next/headers'
 import { MarketingNav } from '@/components/marketing/nav'
 import { MarketingFooter } from '@/components/marketing/footer'
 import { isSignedIn } from '@/lib/session'
 import { FeatureBento } from '@/components/marketing/bento'
+import {
+  currencyForCountry,
+  formatPrice,
+  monthlyPrice,
+  type CurrencyCode,
+} from '@/lib/currency'
 
 // ─── Shared pieces ────────────────────────────────────────────────────────────
 //
@@ -401,8 +408,12 @@ function Testimonial() {
 
 // ─── FAQ ──────────────────────────────────────────────────────────────────────
 
-const FAQ_ITEMS = [
-  { q: 'How much is it?',                              a: 'Starter is $29 a month, Pro is $59 and Agency is $119. You buy 1, 3, 6 or 12 months at a time. Longer terms cost less. The first 14 days are free and need no card.' },
+function faqItems(currency: CurrencyCode) {
+  const price = (id: 'starter' | 'pro' | 'agency') =>
+    formatPrice(monthlyPrice(id, currency), currency)
+
+  return [
+  { q: 'How much is it?',                              a: `Starter is ${price('starter')} a month, Pro is ${price('pro')} and Agency is ${price('agency')}. You buy 1, 3, 6 or 12 months at a time, and longer terms cost less. The first 14 days are free and need no card.` },
   { q: 'How does payment work?',                       a: 'You email us the plan and the number of months. We send transfer details. Access opens when the payment lands. Card payments are not available yet, because Stripe needs a US company.' },
   { q: 'What happens when access runs out?',           a: 'Nothing disappears. Your content stays. Your clients keep their dashboards. You just cannot add or edit until you extend.' },
   { q: 'What counts as a client workspace?',           a: 'Each client gets their own content log and their own dashboard URL. Starter covers one client. Pro covers five. Agency has no limit.' },
@@ -411,15 +422,16 @@ const FAQ_ITEMS = [
   { q: 'Do clients need an account?',                  a: 'No. The client dashboard is a read-only URL. It works in any browser. You choose whether it needs an access code.' },
   { q: 'Can multiple people use one account?',         a: 'The Agency plan includes 5 seats with admin, editor and viewer roles. Starter and Pro are single-user.' },
   { q: 'What content does DevRel Studio track?',       a: 'Six categories: Written, Video, Event, Podcast, Package and Demo. Each one records the number that suits it.' },
-]
+  ]
+}
 
-function FAQ() {
+function FAQ({ currency }: { currency: CurrencyCode }) {
   return (
     <section id="faq" className="mx-auto max-w-3xl px-6 py-28">
       <SectionHeading eyebrow="FAQ" title="Common questions" />
 
       <Accordion type="single" collapsible className="mt-12 overflow-hidden rounded-xl border border-border">
-        {FAQ_ITEMS.map(({ q, a }, i) => (
+        {faqItems(currency).map(({ q, a }, i) => (
           <AccordionItem
             key={q}
             value={`item-${i}`}
@@ -491,7 +503,13 @@ function CTA({ signedIn }: { signedIn: boolean }) {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default async function LandingPage() {
-  const signedIn = await isSignedIn()
+  /**
+   * This page is already rendered per request for the signed-in navbar, so
+   * reading the geo header alongside it costs nothing extra. That is the only
+   * reason the FAQ can quote a local price without giving up a cached page.
+   */
+  const [signedIn, headerList] = await Promise.all([isSignedIn(), headers()])
+  const currency = currencyForCountry(headerList.get('x-vercel-ip-country'))
 
   return (
     <div className="min-h-screen bg-background">
@@ -503,7 +521,7 @@ export default async function LandingPage() {
       <ContentCategories />
       <HowItWorks />
       <Testimonial />
-      <FAQ />
+      <FAQ currency={currency} />
       <CTA signedIn={signedIn} />
       <MarketingFooter />
     </div>
