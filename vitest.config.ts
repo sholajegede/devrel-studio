@@ -7,7 +7,11 @@ export default defineConfig({
     alias: { '@': resolve(__dirname, '.') },
   },
   test: {
+    include: ['tests/**/*.test.ts', 'tests/**/*.test.tsx'],
+    // Pure logic runs in node; component tests opt into jsdom with a
+    // `@vitest-environment jsdom` docblock. Loading jsdom for every file would
+    // slow the suite down for the majority that never touches the DOM.
     environment: 'node',
-    include: ['tests/**/*.test.ts'],
+    setupFiles: ['tests/setup.ts'],
   },
 })
