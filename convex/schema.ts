@@ -236,6 +236,27 @@ export default defineSchema({
     .index("by_token_hash", ["tokenHash"])
     .index("by_client", ["clientId"]),
 
+  // Feedback a client leaves on a monthly report.
+  //
+  // Left by the manager reading the report, who has no account — so there is no
+  // userId here. Attribution is the client row plus whatever name they type.
+  // One row per submission rather than one per period: a client who sends a
+  // second thought a week later should not overwrite the first.
+  reportFeedback: defineTable({
+    clientId: v.id("clients"),
+    slug: v.string(),
+    /** `YYYY-MM` the feedback is about. */
+    period: v.string(),
+    /** 1–5, or undefined when they left only a comment. */
+    rating: v.optional(v.number()),
+    comment: v.string(),
+    /** Free text, since the reader is not an authenticated user. */
+    authorName: v.optional(v.string()),
+    createdAt: v.string(),
+  })
+    .index("by_client", ["clientId"])
+    .index("by_slug_and_period", ["slug", "period"]),
+
   // Failed access-code attempts, used to throttle guessing. `bucket` is either a
   // hashed caller IP or the literal "*" — the "*" row is the whole-slug counter,
   // which is what catches an attacker spread across many addresses. Raw IPs are

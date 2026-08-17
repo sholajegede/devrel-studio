@@ -257,7 +257,7 @@ export const sendMonthlyReportReady = internalAction({
 
     return await send({
       to: args.email,
-      subject: `${args.clientName} — ${args.period} report is ready`,
+      subject: `${args.clientName} — your ${args.period} report`,
       html: layout(`
         <p style="margin:0 0 14px;font-size:15px;line-height:1.6;">
           The <strong>${args.period}</strong> report for <strong>${args.clientName}</strong> is ready.
@@ -265,9 +265,13 @@ export const sendMonthlyReportReady = internalAction({
         <p style="margin:0 0 22px;font-size:15px;line-height:1.6;">
           ${args.publishedCount} ${piece} published this period.
         </p>
-        <p style="margin:0;">${button(args.dashboardUrl, 'View the report')}</p>
+        <p style="margin:0 0 22px;">${button(args.dashboardUrl, 'Read the report')}</p>
+        <p style="margin:0;font-size:13px;line-height:1.6;color:#718096;">
+          The report covers the full period, compares it with the one before, and has a space
+          at the end for your thoughts. You can download it as a PDF from the same page.
+        </p>
       `),
-      text: `The ${args.period} report for ${args.clientName} is ready. ${args.publishedCount} ${piece} published this period.\n\nView it: ${args.dashboardUrl}`,
+      text: `Your ${args.period} report for ${args.clientName} is ready — ${args.publishedCount} ${piece} published this period.\n\nRead it: ${args.dashboardUrl}\n\nThe report covers the full period, compares it with the one before, and has a space at the end for your thoughts. A PDF is available from the same page.`,
     })
   },
 })
