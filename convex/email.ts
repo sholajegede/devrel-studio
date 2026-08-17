@@ -108,29 +108,6 @@ function button(href: string, label: string): string {
 
 // ── Senders ───────────────────────────────────────────────────────────────────
 
-/** Confirms a waitlist signup. Triggered from `waitlist:addToWaitlist`. */
-export const sendWaitlistConfirmation = internalAction({
-  args: { email: v.string(), name: v.optional(v.string()) },
-  handler: async (_ctx, args): Promise<SendResult> => {
-    const greeting = args.name ? `Hi ${args.name},` : 'Hi,'
-
-    return await send({
-      to: args.email,
-      subject: "You're on the DevRel Studio waitlist",
-      html: layout(`
-        <p style="margin:0 0 14px;font-size:15px;line-height:1.6;">${greeting}</p>
-        <p style="margin:0 0 14px;font-size:15px;line-height:1.6;">
-          Thanks for joining the waitlist. We email you when your spot opens. No newsletter, no drip sequence, just the one message.
-        </p>
-        <p style="margin:0;font-size:15px;line-height:1.6;">
-          Replying to this email reaches a person, not a bot.
-        </p>
-      `),
-      text: `${greeting}\n\nThanks for joining the DevRel Studio waitlist. We email you when your spot opens. No newsletter, just the one message.\n\nReplying to this email reaches a person, not a bot.`,
-    })
-  },
-})
-
 /**
  * Invitation to join a workspace. Triggered from `members:inviteMember`.
  *

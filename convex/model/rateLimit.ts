@@ -3,7 +3,7 @@ import { MutationCtx } from '../_generated/server'
 
 // ── Rate limiting for unauthenticated writes ──────────────────────────────────
 //
-// `waitlist:addToWaitlist` and `reports:submitFeedback` can be called by anyone
+// `reports:submitFeedback` can be called by anyone
 // on the internet with no credential at all. Neither is a tempting target, but
 // neither had a ceiling either, and a table filled overnight by a script is a
 // cleanup job nobody wants.

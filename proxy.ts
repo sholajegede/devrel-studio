@@ -10,7 +10,6 @@ const publicRoutes = [
   '/',
   '/contact(.*)',
   '/pricing(.*)',
-  '/waitlist(.*)',
   '/privacy(.*)',
   '/terms(.*)',
   '/demo(.*)',

@@ -137,14 +137,6 @@ export default defineSchema({
     .index("by_status", ["status"])
     .index("by_category", ["category"]),
 
-  waitlist: defineTable({
-    email: v.string(),
-    name: v.optional(v.string()),
-    company: v.optional(v.string()),
-    role: v.optional(v.string()),
-    useCase: v.optional(v.string()),
-  }).index("by_email", ["email"]),
-
   clients: defineTable({
     userId: v.id("users"),
     workspaceId: v.optional(v.id("workspaces")),
@@ -247,12 +239,12 @@ export default defineSchema({
     .index("by_token_hash", ["tokenHash"])
     .index("by_client", ["clientId"]),
 
-  // Counters for the unauthenticated mutations — waitlist signups and report
+  // Counters for the unauthenticated mutations — report
   // feedback. Anyone on the internet can call those, and without a ceiling a
   // single script can fill a table overnight.
   //
   // `bucket` is a hashed caller IP or a shared fallback; `scope` names which
-  // mutation, so one noisy client dashboard cannot lock out the waitlist.
+  // mutation, so one noisy client dashboard cannot lock out another.
   publicWriteAttempts: defineTable({
     scope: v.string(),
     bucket: v.string(),

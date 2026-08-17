@@ -26,7 +26,6 @@ import type * as portfolio from "../portfolio.js";
 import type * as reports from "../reports.js";
 import type * as sync from "../sync.js";
 import type * as users from "../users.js";
-import type * as waitlist from "../waitlist.js";
 
 import type {
   ApiFromModules,
@@ -53,7 +52,6 @@ declare const fullApi: ApiFromModules<{
   reports: typeof reports;
   sync: typeof sync;
   users: typeof users;
-  waitlist: typeof waitlist;
 }>;
 
 /**

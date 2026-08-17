@@ -8,7 +8,7 @@ import { ConvexProviderWithAuth, ConvexReactClient } from "convex/react";
 // ── Convex client ─────────────────────────────────────────────────────────────
 //
 // This module is imported by the root layout, so anything thrown here takes the
-// entire site down — including `/`, `/pricing` and `/waitlist`, none of which
+// entire site down — including `/` and `/pricing`, neither of which
 // read from Convex at all. A missing or malformed NEXT_PUBLIC_CONVEX_URL used
 // to do exactly that.
 //
