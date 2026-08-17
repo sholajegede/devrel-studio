@@ -222,7 +222,25 @@ export default function PipelinePage() {
   const { can } = useWorkspaceRole()
 
   const content = useQuery(api.content.getAllContent, profile?._id ? {} : 'skip')
-  const setStatus = useMutation(api.content.setContentStatus)
+  // Optimistic: the card jumps lanes on click rather than after the round trip.
+  // Moving work along is the whole interaction on this page, and a board that
+  // pauses on every drag stops feeling like a board. Convex rolls the local
+  // store back automatically if the mutation fails, so the card returns to its
+  // original lane and the catch below explains why.
+  const setStatus = useMutation(api.content.setContentStatus).withOptimisticUpdate(
+    (store, args) => {
+      const current = store.getQuery(api.content.getAllContent, {})
+      if (!current) return
+
+      store.setQuery(
+        api.content.getAllContent,
+        {},
+        current.map((entry) =>
+          entry._id === args.id ? { ...entry, status: args.status } : entry,
+        ),
+      )
+    },
+  )
 
   const entries = useMemo(
     () => (content ? (content as ContentEntry[]) : []),
@@ -289,7 +307,14 @@ export default function PipelinePage() {
       toast.success(`Moved to ${LANES.find((l) => l.status === status)?.label}`)
     } catch (error) {
       console.error('[pipeline] status change failed:', error)
-      toast.error('Could not move that entry')
+      // The card has already snapped back by this point — Convex reverts the
+      // optimistic update on failure. Say so, or the card appearing to jump
+      // twice reads as a glitch rather than as a rejected change.
+      const message =
+        error && typeof error === 'object' && 'data' in error && typeof error.data === 'string'
+          ? error.data
+          : 'Could not move that entry — it has been put back'
+      toast.error(message)
     }
   }
 
