@@ -122,15 +122,101 @@ export function isPlanId(value: unknown): value is PlanId {
   return typeof value === 'string' && (PLAN_IDS as string[]).includes(value)
 }
 
+// ── Access windows ────────────────────────────────────────────────────────────
+//
+// Access is time-limited. Card payments are not available — Stripe needs a US
+// entity, and this is run from Nigeria — so a buyer emails, pays out of band,
+// and an operator extends their window by hand.
+//
+// The window is just a timestamp, which is what makes the commercial model a
+// decision rather than a rewrite: selling a month, a year, or a perpetual
+// licence is the same field with a different number in it.
+
+export const TRIAL_DAYS = 14
+
+export type AccessState = 'comped' | 'active' | 'trial' | 'expired'
+
+export interface Access {
+  state: AccessState
+  plan: PlanDefinition
+  /** Epoch ms the current window closes, or null when it does not. */
+  until: number | null
+  daysLeft: number | null
+  /** Whether the account may still create and edit. */
+  canWrite: boolean
+}
+
+function daysUntil(timestamp: number, now: number): number {
+  return Math.max(0, Math.ceil((timestamp - now) / 86_400_000))
+}
+
+/**
+ * What an account is currently entitled to.
+ *
+ * Order matters: a comped account outranks everything, then paid access, then
+ * the trial. An expired account keeps its plan's *shape* for display but loses
+ * the right to write — their existing work stays readable, and their clients'
+ * dashboards stay up, because punishing a client for their DevRel's lapsed
+ * payment would be the wrong party.
+ */
+export function accessOf(
+  user:
+    | {
+        _id?: string
+        kindeId?: string
+        plan?: string
+        planStatus?: string
+        trialEndsAt?: number
+        accessUntil?: number
+      }
+    | null,
+  now: number = Date.now(),
+): Access {
+  if (isComped(user)) {
+    return { state: 'comped', plan: PLANS.agency, until: null, daysLeft: null, canWrite: true }
+  }
+
+  const plan = user?.plan && isPlanId(user.plan) ? PLANS[user.plan] : PLANS.free
+
+  if (user?.accessUntil && user.accessUntil > now) {
+    return {
+      state: 'active',
+      plan,
+      until: user.accessUntil,
+      daysLeft: daysUntil(user.accessUntil, now),
+      canWrite: true,
+    }
+  }
+
+  if (user?.trialEndsAt && user.trialEndsAt > now) {
+    return {
+      state: 'trial',
+      plan: PLANS.free,
+      until: user.trialEndsAt,
+      daysLeft: daysUntil(user.trialEndsAt, now),
+      canWrite: true,
+    }
+  }
+
+  return {
+    state: 'expired',
+    plan: PLANS.free,
+    until: user?.accessUntil ?? user?.trialEndsAt ?? null,
+    daysLeft: 0,
+    canWrite: false,
+  }
+}
+
 export function planOf(
   user: { _id?: string; kindeId?: string; plan?: string; planStatus?: string } | null,
 ): PlanDefinition {
   // Comped accounts get the top plan regardless of what `plan` says, so every
   // limit check downstream (clients, entries, seats) passes untouched.
-  if (isComped(user)) return PLANS.agency
-  if (!user?.plan || !isPlanId(user.plan)) return PLANS.free
-  if (user.planStatus && user.planStatus !== 'active') return PLANS.free
-  return PLANS[user.plan]
+  // Delegates to accessOf so limits and entitlement cannot disagree — an
+  // account whose window has closed falls back to the trial's limits.
+  return accessOf(
+    user as Parameters<typeof accessOf>[0],
+  ).plan
 }
 
 /** Upgrades only ever move up this list, which is what makes pricing deltas work. */

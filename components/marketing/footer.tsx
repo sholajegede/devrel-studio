@@ -40,7 +40,7 @@ export function MarketingFooter() {
               {[
                 { href: '/dashboard', label: 'Sign in' },
                 { href: '/demo',      label: 'Live demo' },
-                { href: '/waitlist',  label: 'Join waitlist' },
+                { href: '/sign-up',   label: 'Start free trial' },
               ].map(({ href, label }) => (
                 <li key={label}>
                   <Link href={href} className="text-sm text-white/40 hover:text-white transition-colors">{label}</Link>

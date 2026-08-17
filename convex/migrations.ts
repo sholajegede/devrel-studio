@@ -1,8 +1,9 @@
 import { ConvexError, v } from 'convex/values'
-import { MutationCtx, internalMutation } from './_generated/server'
+import { MutationCtx, internalMutation, internalQuery } from './_generated/server'
 import { Doc, Id } from './_generated/dataModel'
 import { normalizeSlug } from './clients'
 import { ensureMembership, ensurePersonalWorkspace } from './model/workspaces'
+import { accessOf } from './model/plans'
 
 // ── One-off data repairs ──────────────────────────────────────────────────────
 //
@@ -395,3 +396,152 @@ async function freeSlug(
 
   throw new Error(`Could not find a free slug for "${base}"`)
 }
+
+// ── Manual access grants ──────────────────────────────────────────────────────
+//
+// Card payments are not available here: Stripe requires a US entity. A buyer
+// emails, pays by transfer, and access is extended by hand from the CLI.
+//
+// Internal only. Nothing the browser can reach writes an access window, which
+// is the whole security model for a paywall with no payment processor behind it.
+
+/**
+ * Give an account access for a number of months.
+ *
+ * Extends from whichever is later — now, or an existing expiry — so renewing
+ * early adds to the window rather than truncating it.
+ *
+ *   npx convex run migrations:grantAccess --prod \
+ *     '{"email":"someone@example.com","months":3,"plan":"pro","note":"₦120k transfer, 17 Aug"}'
+ */
+export const grantAccess = internalMutation({
+  args: {
+    email: v.string(),
+    months: v.number(),
+    plan: v.union(
+      v.literal('starter'),
+      v.literal('pro'),
+      v.literal('agency'),
+    ),
+    note: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const email = args.email.trim().toLowerCase()
+
+    const user = await ctx.db
+      .query('users')
+      .filter((q) => q.eq(q.field('email'), email))
+      .first()
+
+    if (!user) throw new ConvexError(`No account with the email ${email}`)
+    if (args.months <= 0 || args.months > 60) {
+      throw new ConvexError('Months must be between 1 and 60')
+    }
+
+    const now = Date.now()
+    const from = user.accessUntil && user.accessUntil > now ? user.accessUntil : now
+
+    // Calendar months, not 30-day blocks — someone who pays for three months
+    // starting on the 31st should not silently lose days.
+    const until = new Date(from)
+    until.setMonth(until.getMonth() + args.months)
+
+    await ctx.db.patch(user._id, {
+      plan: args.plan,
+      planStatus: 'active',
+      planPurchasedAt: new Date().toISOString(),
+      accessUntil: until.getTime(),
+      accessNote: args.note,
+    })
+
+    return {
+      email: user.email,
+      plan: args.plan,
+      until: until.toISOString().slice(0, 10),
+      extendedFrom: from === now ? 'today' : new Date(from).toISOString().slice(0, 10),
+    }
+  },
+})
+
+/** Take access away — a refund, a chargeback, or a grant made in error. */
+export const revokeAccess = internalMutation({
+  args: { email: v.string() },
+  handler: async (ctx, args) => {
+    const user = await ctx.db
+      .query('users')
+      .filter((q) => q.eq(q.field('email'), args.email.trim().toLowerCase()))
+      .first()
+
+    if (!user) throw new ConvexError(`No account with the email ${args.email}`)
+
+    await ctx.db.patch(user._id, {
+      accessUntil: undefined,
+      planStatus: 'revoked',
+      accessNote: 'Access revoked',
+    })
+
+    return { email: user.email, revoked: true }
+  },
+})
+
+/** Who has access, and until when — the operator's view of the book. */
+export const listAccess = internalQuery({
+  args: {},
+  handler: async (ctx) => {
+    const users = await ctx.db.query('users').collect()
+    const now = Date.now()
+
+    return users
+      .map((user) => ({
+        email: user.email,
+        plan: user.plan ?? 'free',
+        state: accessOf(user, now).state,
+        until: user.accessUntil
+          ? new Date(user.accessUntil).toISOString().slice(0, 10)
+          : null,
+        trialEnds: user.trialEndsAt
+          ? new Date(user.trialEndsAt).toISOString().slice(0, 10)
+          : null,
+        note: user.accessNote,
+      }))
+      .sort((a, b) => (b.until ?? '').localeCompare(a.until ?? ''))
+  },
+})
+
+/**
+ * Give existing accounts a trial window.
+ *
+ * `trialEndsAt` is set when an account is created, but every account that
+ * existed before access windows did has no value — and `accessOf` reads a
+ * missing window as expired. Without this, introducing the paywall locks out
+ * every current user at once.
+ *
+ * Idempotent: an account that already has a trial or paid access is untouched.
+ *
+ *   npx convex run migrations:backfillTrials --prod '{"days":14}'
+ */
+export const backfillTrials = internalMutation({
+  args: { days: v.optional(v.number()), dryRun: v.optional(v.boolean()) },
+  handler: async (ctx, args) => {
+    const days = args.days ?? 14
+    const dryRun = args.dryRun === true
+    const until = Date.now() + days * 24 * 60 * 60 * 1000
+
+    const users = await ctx.db.query('users').collect()
+    const granted: string[] = []
+
+    for (const user of users) {
+      if (user.trialEndsAt || user.accessUntil) continue
+      granted.push(user.email)
+      if (!dryRun) await ctx.db.patch(user._id, { trialEndsAt: until })
+    }
+
+    return {
+      dryRun,
+      days,
+      scanned: users.length,
+      granted: granted.length,
+      emails: granted,
+    }
+  },
+})

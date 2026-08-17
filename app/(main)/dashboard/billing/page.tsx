@@ -93,41 +93,30 @@ function BillingPageContent() {
 
   const billing = useQuery(api.billing.getMyPlan, {})
 
-  // Stripe sends the customer back here after checkout. The plan itself is
-  // applied by the webhook, so the page may briefly still show the old plan —
-  // the Convex subscription updates it as soon as the webhook lands.
-  useEffect(() => {
-    const purchase = searchParams.get('purchase')
-    if (purchase === 'success') {
-      toast.success('Payment received — your plan will activate momentarily')
-    } else if (purchase === 'cancelled') {
-      toast.info('Checkout cancelled — no charge was made')
-    }
-  }, [searchParams])
+  /**
+   * Card payments are not available: Stripe requires a US entity and this is
+   * run from Nigeria. Rather than a checkout that cannot complete, this opens a
+   * prefilled email — the buyer says which plan and for how long, pays by
+   * transfer, and access is extended by hand.
+   *
+   * Prefilled because "email us" with a blank compose window loses people; the
+   * plan and the account are already in the message.
+   */
+  const requestAccess = (plan: PlanId) => {
+    const definition = PLAN_DEFS[plan]
+    const subject = `DevRel Studio — ${definition.name} access`
+    const body = [
+      `I'd like ${definition.name} access for DevRel Studio.`,
+      '',
+      `Plan: ${definition.name}`,
+      'Length: (1 month / 3 months / 6 months / 12 months)',
+      '',
+      'Please send payment details.',
+    ].join('\n')
 
-  const startCheckout = async (plan: PlanId) => {
-    setCheckoutPlan(plan)
-    try {
-      const response = await fetch('/api/billing/checkout', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ plan }),
-      })
-
-      const result = await response.json().catch(() => ({}))
-
-      if (!response.ok || !result.url) {
-        toast.error(result.error ?? 'Could not start checkout')
-        setCheckoutPlan(null)
-        return
-      }
-
-      window.location.href = result.url
-    } catch (error) {
-      console.error('[billing] checkout failed:', error)
-      toast.error('Could not reach the payment page. Please try again.')
-      setCheckoutPlan(null)
-    }
+    window.location.href = `mailto:support@devrel.studio?subject=${encodeURIComponent(
+      subject,
+    )}&body=${encodeURIComponent(body)}`
   }
 
   const currentPlanId = (billing?.plan ?? 'free') as PlanId
@@ -300,7 +289,7 @@ function BillingPageContent() {
 
                     <div className="flex items-baseline gap-1 mb-1">
                       <span className="text-3xl font-bold text-foreground">${plan.price}</span>
-                      <span className="text-xs text-muted-foreground">one-time</span>
+                      <span className="text-xs text-muted-foreground">per month</span>
                     </div>
                     <p className="text-xs text-muted-foreground mb-4 leading-relaxed">{plan.description}</p>
 
@@ -315,19 +304,16 @@ function BillingPageContent() {
 
                     <Button
                       size="sm"
-                      onClick={() => startCheckout(planId)}
-                      disabled={isCurrent || isDowngrade || isBusy || checkoutPlan !== null}
+                      onClick={() => requestAccess(planId)}
+                      disabled={isCurrent || isDowngrade}
                       className={`w-full mt-auto gap-1.5 ${highlight && !isCurrent ? 'bg-accent text-accent-foreground hover:bg-accent/90' : ''}`}
                       variant={highlight && !isCurrent ? 'default' : 'outline'}
                     >
-                      {isBusy && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
                       {isCurrent
                         ? 'Current plan'
                         : isDowngrade
                           ? 'Included in your plan'
-                          : isBusy
-                            ? 'Opening checkout…'
-                            : `Get ${plan.name}`}
+                          : `Request ${plan.name}`}
                     </Button>
                   </div>
                 </div>

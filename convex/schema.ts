@@ -19,12 +19,23 @@ export default defineSchema({
     githubUsername: v.optional(v.string()),
     twitterUsername: v.optional(v.string()),
 
-    // ── Billing ───────────────────────────────────────────────────────────────
-    // Plans are a one-time purchase. `plan` is only ever written by the Stripe
-    // webhook, never by the client — see convex/billing.ts.
+    // ── Access ────────────────────────────────────────────────────────────────
+    // Access is time-limited and granted by hand. Card payments are not
+    // available here — Stripe requires a US entity — so a buyer emails, pays out
+    // of band, and an internal mutation extends their window. Nothing the
+    // browser can call writes any of these fields.
     plan: v.optional(v.string()),
     planStatus: v.optional(v.string()),
     planPurchasedAt: v.optional(v.string()),
+
+    /** Free trial expiry, set when the account is created. */
+    trialEndsAt: v.optional(v.number()),
+    /** Paid access expiry. Absent means never granted. */
+    accessUntil: v.optional(v.number()),
+    /** Why access was granted — what they paid, in what currency, when. */
+    accessNote: v.optional(v.string()),
+
+    // Kept so an existing row still validates; unused while payments are manual.
     stripeCustomerId: v.optional(v.string()),
     lastCheckoutSessionId: v.optional(v.string()),
 

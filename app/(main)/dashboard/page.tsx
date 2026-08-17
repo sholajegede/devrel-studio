@@ -12,6 +12,7 @@ import {
 import { aggregate, categoryOf } from '@/lib/metrics'
 import { CATEGORY_META, getCategoryColor } from '@/lib/category-meta'
 import { EntryMetric } from '@/components/dashboard/entry-metric'
+import { AccessBanner } from '@/components/dashboard/access-banner'
 import { FeedbackInbox } from '@/components/dashboard/feedback-inbox'
 import { GettingStarted } from '@/components/dashboard/getting-started'
 import { RoleNotice } from '@/components/dashboard/role-notice'
@@ -195,6 +196,7 @@ export default function DashboardPage() {
 
       <main className="px-6 lg:px-10 py-8 max-w-400">
 
+        <AccessBanner />
         <RoleNotice />
         <GettingStarted />
         <FeedbackInbox />

@@ -108,7 +108,7 @@ function Hero() {
           <span className="rounded-full bg-foreground px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-background">
             New
           </span>
-          Pay once, use forever — from $49
+          Free for 14 days — no card needed
           <ArrowRight className="h-3 w-3" />
         </Link>
 
@@ -123,15 +123,15 @@ function Hero() {
         </p>
 
         <div className="mt-9 flex flex-col items-center justify-center gap-2.5 sm:flex-row">
-          <PrimaryLink href="/pricing">
-            Get started
+          <PrimaryLink href="/sign-up">
+            Start free
             <ArrowRight className="h-3.5 w-3.5" />
           </PrimaryLink>
           <GhostLink href="/demo">Explore the demo</GhostLink>
         </div>
 
         <p className="mt-5 text-[13px] text-muted-foreground">
-          One-time fee · No subscription · Lifetime access
+          14-day free trial · No card required
         </p>
 
         {/* Product shot. The one place on the page allowed to carry colour. */}
@@ -171,17 +171,21 @@ function Hero() {
 
 // ─── Social proof ─────────────────────────────────────────────────────────────
 
+// Only companies where someone who has used DevRel Studio has written or
+// worked. Inngest, Anthropic, Perplexity and Auth0 were removed: their logos
+// were here without that being true, which is the same class of claim as the
+// fabricated testimonials that used to sit further down this page.
+//
+// The heading matters as much as the list. "Trusted by teams at" would claim
+// these companies are customers, which they are not — the accurate claim is
+// that advocates working with them have tracked their output here.
 const SOCIAL_PROOF_LOGOS = [
-  { src: '/assets/logos/inngest.svg',      alt: 'Inngest',       width: 96,  height: 28 },
   { src: '/assets/logos/kinde.svg',        alt: 'Kinde',         width: 80,  height: 28 },
-  { src: '/assets/logos/clerk.png',        alt: 'Clerk',         width: 80,  height: 28 },
-  { src: '/assets/logos/anthropic.png',    alt: 'Anthropic',     width: 110, height: 28 },
-  { src: '/assets/logos/brightdata.png',   alt: 'Bright Data',   width: 110, height: 28 },
   { src: '/assets/logos/convex.png',       alt: 'Convex',        width: 90,  height: 28 },
+  { src: '/assets/logos/clerk.png',        alt: 'Clerk',         width: 80,  height: 28 },
+  { src: '/assets/logos/brightdata.png',   alt: 'Bright Data',   width: 110, height: 28 },
   { src: '/assets/logos/vercel.svg',       alt: 'Vercel',        width: 80,  height: 28 },
   { src: '/assets/logos/devto.png',        alt: 'DEV Community', width: 72,  height: 28 },
-  { src: '/assets/logos/perplexity.png',   alt: 'Perplexity',    width: 110, height: 28 },
-  { src: '/assets/logos/auth0.svg',        alt: 'Auth0',         width: 80,  height: 28 },
   { src: '/assets/logos/freecodecamp.svg', alt: 'freeCodeCamp',  width: 130, height: 28 },
 ]
 
@@ -189,7 +193,7 @@ function SocialProof() {
   return (
     <section className="mt-28 overflow-hidden border-y border-border py-14">
       <p className="mb-9 px-6 text-center text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
-        Content tracked for teams at
+        Advocates writing for these teams track their work here
       </p>
       {/* Edges fade so logos enter and leave rather than being clipped. */}
       <div className="relative [mask-image:linear-gradient(to_right,transparent,black_12%,black_88%,transparent)]">
@@ -465,7 +469,7 @@ function CTA() {
           </div>
 
           <div className="mt-10 flex flex-wrap items-center justify-center gap-x-6 gap-y-2">
-            {['One-time fee', '14-day money-back guarantee', 'No card for the free trial'].map(
+            {['14-day free trial', 'No card required', 'Cancel by doing nothing'].map(
               (item) => (
                 <span key={item} className="flex items-center gap-1.5 text-[13px] text-muted-foreground">
                   <Check className="h-3.5 w-3.5 text-accent" />

@@ -2,6 +2,7 @@ import { ConvexError, v } from "convex/values";
 import { internalMutation, internalQuery, mutation, query } from "./_generated/server";
 import { getCurrentUser, requireCurrentUser } from "./model/auth";
 import { ensurePersonalWorkspace } from "./model/workspaces";
+import { TRIAL_DAYS } from "./model/plans";
 
 export const createUserKinde = internalMutation({
   args: {
@@ -21,6 +22,10 @@ export const createUserKinde = internalMutation({
         lastName: args.lastName || "",
         imageUrl: args.imageUrl,
         imageStorageId: args.imageStorageId,
+        // The trial starts the moment the account exists, not on first action —
+        // otherwise an account created and abandoned keeps a full trial waiting
+        // indefinitely.
+        trialEndsAt: Date.now() + TRIAL_DAYS * 24 * 60 * 60 * 1000,
       });
       const newUser = await ctx.db.get(newUserId);
 

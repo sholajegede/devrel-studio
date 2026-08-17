@@ -1,6 +1,7 @@
 import { v } from 'convex/values'
 import { internalMutation, internalQuery, query } from './_generated/server'
 import { getCurrentUser } from './model/auth'
+import { accessOf } from './model/plans'
 import { PLANS, isComped, planOf } from './model/plans'
 
 // ── Billing ───────────────────────────────────────────────────────────────────
@@ -29,12 +30,19 @@ export const getMyPlan = query({
       .withIndex('by_user', (q) => q.eq('userId', user._id))
       .collect()
 
+    const access = accessOf(user)
+
     return {
       plan: plan.id,
       planName: plan.name,
-      status: isComped(user) ? 'comped' : (user.planStatus ?? 'trial'),
+      // The access window is the truth about what this account may do; `plan`
+      // only says which tier's limits apply while it is open.
+      status: access.state,
+      accessUntil: access.until,
+      daysLeft: access.daysLeft,
+      canWrite: access.canWrite,
       purchasedAt: user.planPurchasedAt ?? null,
-      isPaid: plan.id !== 'free',
+      isPaid: access.state === 'active' || access.state === 'comped',
       limits: {
         maxClients: plan.maxClients,
         maxEntries: plan.maxEntries,

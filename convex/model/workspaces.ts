@@ -2,6 +2,7 @@ import { ConvexError } from 'convex/values'
 import { Doc, Id } from '../_generated/dataModel'
 import { MutationCtx, QueryCtx } from '../_generated/server'
 import { AnyCtx, getCurrentUser, requireCurrentUser } from './auth'
+import { accessOf } from './plans'
 
 // ── Workspace membership and roles ────────────────────────────────────────────
 //
@@ -119,6 +120,22 @@ export async function requireWorkspace(
 
   if (!atLeast(context.role, minimumRole)) {
     throw new ConvexError(deniedMessage(context.role, minimumRole))
+  }
+
+  // Anything above read requires a live access window. Checked against the
+  // workspace owner, not the caller: an invited editor works under the owner's
+  // subscription and should not need one of their own.
+  if (atLeast(minimumRole, 'editor')) {
+    const owner = await ctx.db.get(context.workspace.ownerId)
+    const access = accessOf(owner)
+
+    if (!access.canWrite) {
+      throw new ConvexError(
+        access.state === 'expired' && owner?.accessUntil
+          ? 'This workspace’s access has ended. Email support@devrel.studio to extend it.'
+          : 'Your free trial has ended. Email support@devrel.studio to keep going.',
+      )
+    }
   }
 
   return context

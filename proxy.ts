@@ -52,6 +52,28 @@ const isPublicRoute = createRouteMatcher(publicRoutes);
 // allowed but the proxy reserved produced a dashboard that could be created and
 // then never reached, with nothing on screen to explain it.
 
+/**
+ * Whether a host is a reserved subdomain that should not resolve at all.
+ *
+ * `getSubdomain` returns null for these, which previously meant they fell
+ * through and rendered the marketing site — so demo.devrel.studio quietly
+ * served the landing page. A name that is not a client dashboard and not the
+ * apex should be a 404, not a second copy of the homepage.
+ *
+ * `www` is the exception: it is the canonical host.
+ */
+const isDeadSubdomain = (hostname: string): boolean => {
+  const parts = hostname.split('.');
+  const isLocal = hostname.includes('localhost');
+
+  if (isLocal ? parts.length < 2 || parts[0] === 'localhost' : parts.length < 3) {
+    return false;
+  }
+
+  const candidate = parts[0];
+  return candidate !== 'www' && isReservedSubdomain(candidate);
+};
+
 const getSubdomain = (hostname: string): string | null => {
   const parts = hostname.split('.');
 
@@ -113,6 +135,16 @@ export default function proxy(req: NextRequest) {
   // API routes (other than Kinde's own) bypass everything
   if (pathname.startsWith('/api') && !pathname.startsWith('/api/auth')) {
     return NextResponse.next();
+  }
+
+  // A reserved subdomain is not a client dashboard and is not the apex. Serving
+  // the marketing site from it would put a second copy of the homepage on every
+  // reserved name.
+  if (isDeadSubdomain(hostname)) {
+    return new NextResponse('Not found', {
+      status: 404,
+      headers: { 'content-type': 'text/plain' },
+    });
   }
 
   // Client dashboards ([slug].devrel.studio) are visited by managers who do not
