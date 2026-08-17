@@ -12,6 +12,7 @@ import {
 import { aggregate, categoryOf } from '@/lib/metrics'
 import { CATEGORY_META, getCategoryColor } from '@/lib/category-meta'
 import { EntryMetric } from '@/components/dashboard/entry-metric'
+import { FeedbackInbox } from '@/components/dashboard/feedback-inbox'
 import { GettingStarted } from '@/components/dashboard/getting-started'
 import { RoleNotice } from '@/components/dashboard/role-notice'
 import { Badge } from '@/components/ui/badge'
@@ -196,6 +197,7 @@ export default function DashboardPage() {
 
         <RoleNotice />
         <GettingStarted />
+        <FeedbackInbox />
 
         {/* Page heading */}
         <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">

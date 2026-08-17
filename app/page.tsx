@@ -369,6 +369,28 @@ function HowItWorks() {
   )
 }
 
+// ─── Testimonial ──────────────────────────────────────────────────────────────
+//
+// One quote, from a real client, presented at the size it deserves. A wall of
+// three would imply a volume of feedback that does not exist yet — and the
+// fabricated set that used to sit here was worse than nothing.
+
+function Testimonial() {
+  return (
+    <section className="border-t border-border py-28">
+      <figure className="mx-auto max-w-3xl px-6 text-center">
+        <blockquote className="text-2xl font-medium leading-[1.35] tracking-[-0.02em] text-foreground sm:text-[2rem]">
+          &ldquo;This is the best approach I have ever seen from anyone we have worked with
+          and a completely unique experience.&rdquo;
+        </blockquote>
+        <figcaption className="mt-8 text-sm text-muted-foreground">
+          <span className="font-medium text-foreground">Andre Selton</span> · Kinde
+        </figcaption>
+      </figure>
+    </section>
+  )
+}
+
 // ─── FAQ ──────────────────────────────────────────────────────────────────────
 
 const FAQ_ITEMS = [
@@ -470,6 +492,7 @@ export default function LandingPage() {
       <FeatureBento />
       <ContentCategories />
       <HowItWorks />
+      <Testimonial />
       <FAQ />
       <CTA />
       <MarketingFooter />

@@ -1,6 +1,7 @@
 import { ConvexError, v } from 'convex/values'
 import { internal } from './_generated/api'
 import { internalAction, internalQuery, mutation, query } from './_generated/server'
+import { getCurrentWorkspace } from './model/workspaces'
 
 // ── Monthly report notifications ──────────────────────────────────────────────
 //
@@ -81,6 +82,11 @@ function lastMonth(now: Date): string {
   return month === 0
     ? `${year - 1}-12`
     : `${year}-${String(month).padStart(2, '0')}`
+}
+
+/** Shared with the report email — "2026-07" reads badly in a subject line. */
+function periodName(period: string): string {
+  return monthLabel(period)
 }
 
 const MONTH_NAMES = [
@@ -298,6 +304,101 @@ export const submitFeedback = mutation({
       createdAt: new Date().toISOString(),
     })
 
+    // Tell the person it was written for. Scheduled, not awaited: a client
+    // should never see their feedback fail to save because a mail provider
+    // was briefly unreachable.
+    const owner = await ctx.db.get(client.userId)
+    if (owner?.email) {
+      const root = process.env.SITE_URL?.replace(/^https?:\/\//, '') ?? 'devrel.studio'
+      await ctx.scheduler.runAfter(0, internal.email.sendFeedbackNotification, {
+        email: owner.email,
+        clientName: client.company || client.name,
+        period: periodName(args.period),
+        comment,
+        authorName: args.authorName?.trim().slice(0, 80) || undefined,
+        rating,
+        reportUrl: `https://${slug}.${root}/report?month=${args.period}`,
+      })
+    }
+
     return { ok: true }
+  },
+})
+
+// ── Feedback, from the DevRel's side ──────────────────────────────────────────
+
+/**
+ * Every piece of client feedback across the caller's workspace, newest first.
+ *
+ * The form on the report was shipped without this, so feedback went into a void:
+ * a client could reply and the person it was meant for would never learn of it.
+ */
+export const listFeedback = query({
+  args: { limit: v.optional(v.number()) },
+  handler: async (ctx, args) => {
+    const context = await getCurrentWorkspace(ctx)
+    if (!context) return []
+
+    const clients = await ctx.db
+      .query('clients')
+      .withIndex('by_workspace', (q) => q.eq('workspaceId', context.workspaceId))
+      .collect()
+
+    const byId = new Map(clients.map((client) => [client._id, client]))
+
+    const feedback = (
+      await Promise.all(
+        clients.map((client) =>
+          ctx.db
+            .query('reportFeedback')
+            .withIndex('by_client', (q) => q.eq('clientId', client._id))
+            .collect(),
+        ),
+      )
+    ).flat()
+
+    return feedback
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+      .slice(0, args.limit ?? 50)
+      .map((item) => {
+        const client = byId.get(item.clientId)
+        return {
+          id: item._id,
+          clientName: client ? client.company || client.name : 'Unknown client',
+          slug: item.slug,
+          period: item.period,
+          rating: item.rating,
+          comment: item.comment,
+          authorName: item.authorName,
+          createdAt: item.createdAt,
+        }
+      })
+  },
+})
+
+/** How many pieces of feedback have arrived — drives the sidebar indicator. */
+export const feedbackCount = query({
+  args: {},
+  handler: async (ctx) => {
+    const context = await getCurrentWorkspace(ctx)
+    if (!context) return 0
+
+    const clients = await ctx.db
+      .query('clients')
+      .withIndex('by_workspace', (q) => q.eq('workspaceId', context.workspaceId))
+      .collect()
+
+    const counts = await Promise.all(
+      clients.map(async (client) =>
+        (
+          await ctx.db
+            .query('reportFeedback')
+            .withIndex('by_client', (q) => q.eq('clientId', client._id))
+            .collect()
+        ).length,
+      ),
+    )
+
+    return counts.reduce((sum, n) => sum + n, 0)
   },
 })

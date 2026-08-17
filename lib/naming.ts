@@ -26,7 +26,11 @@ export const RESERVED_SUBDOMAINS: ReadonlySet<string> = new Set([
   'portfolio', 'about', 'contact', 'support', 'help', 'docs', 'blog',
   'status', 'changelog',
   // Deployment environments
-  'staging', 'dev', 'test', 'preview', 'demo', 'local',
+  'staging', 'dev', 'test', 'preview', 'local',
+  // The public demo lives at devrel.studio/demo on the apex, not on its own
+  // subdomain — so demo.devrel.studio is treated as the apex and shows the
+  // marketing site. Reserved either way: no client may claim this slug.
+  'demo',
 ])
 
 /**

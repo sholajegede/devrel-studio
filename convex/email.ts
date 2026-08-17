@@ -243,6 +243,44 @@ export const sendManagerAccessCodePublic = action({
   },
 })
 
+/**
+ * Tells the DevRel a client replied to a report.
+ *
+ * Sent rather than left for them to discover: the whole point of asking a client
+ * for feedback is that somebody reads it, and nobody checks a dashboard on the
+ * off-chance.
+ */
+export const sendFeedbackNotification = internalAction({
+  args: {
+    email: v.string(),
+    clientName: v.string(),
+    period: v.string(),
+    comment: v.string(),
+    authorName: v.optional(v.string()),
+    rating: v.optional(v.number()),
+    reportUrl: v.string(),
+  },
+  handler: async (_ctx, args): Promise<SendResult> => {
+    const who = args.authorName ? `${args.authorName} at ${args.clientName}` : args.clientName
+    const stars = args.rating ? ` They rated the period ${args.rating} out of 5.` : ''
+
+    return await send({
+      to: args.email,
+      subject: `${args.clientName} replied to the ${args.period} report`,
+      html: layout(`
+        <p style="margin:0 0 14px;font-size:15px;line-height:1.6;">
+          <strong>${who}</strong> left feedback on the ${args.period} report.${stars}
+        </p>
+        <blockquote style="margin:0 0 22px;padding:14px 16px;background:#f7fafc;border-left:3px solid #38b2ac;border-radius:0 8px 8px 0;font-size:15px;line-height:1.6;color:#2d3748;">
+          ${args.comment}
+        </blockquote>
+        <p style="margin:0;">${button(args.reportUrl, 'Open the report')}</p>
+      `),
+      text: `${who} left feedback on the ${args.period} report.${stars}\n\n"${args.comment}"\n\nOpen the report: ${args.reportUrl}`,
+    })
+  },
+})
+
 /** "Your monthly report is ready" — for the reporting cron to call. */
 export const sendMonthlyReportReady = internalAction({
   args: {
