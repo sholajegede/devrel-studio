@@ -12,6 +12,8 @@ import {
 import { aggregate, categoryOf } from '@/lib/metrics'
 import { CATEGORY_META, getCategoryColor } from '@/lib/category-meta'
 import { EntryMetric } from '@/components/dashboard/entry-metric'
+import { GettingStarted } from '@/components/dashboard/getting-started'
+import { RoleNotice } from '@/components/dashboard/role-notice'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -191,6 +193,9 @@ export default function DashboardPage() {
       <AdminTour variant="dashboard" autoStart onTourControlReady={setTourControls} />
 
       <main className="px-6 lg:px-10 py-8 max-w-400">
+
+        <RoleNotice />
+        <GettingStarted />
 
         {/* Page heading */}
         <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
