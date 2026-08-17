@@ -127,7 +127,7 @@ function Hero() {
             Get started
             <ArrowRight className="h-3.5 w-3.5" />
           </PrimaryLink>
-          <GhostLink href="/dashboard">Explore the demo</GhostLink>
+          <GhostLink href="/demo">Explore the demo</GhostLink>
         </div>
 
         <p className="mt-5 text-[13px] text-muted-foreground">
@@ -504,7 +504,7 @@ function CTA() {
               Get started
               <ArrowRight className="h-3.5 w-3.5" />
             </PrimaryLink>
-            <GhostLink href="/dashboard">Explore the demo</GhostLink>
+            <GhostLink href="/demo">Explore the demo</GhostLink>
           </div>
 
           <div className="mt-10 flex flex-wrap items-center justify-center gap-x-6 gap-y-2">

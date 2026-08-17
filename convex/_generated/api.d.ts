@@ -12,6 +12,7 @@ import type * as billing from "../billing.js";
 import type * as clients from "../clients.js";
 import type * as content from "../content.js";
 import type * as crons from "../crons.js";
+import type * as demo from "../demo.js";
 import type * as email from "../email.js";
 import type * as http from "../http.js";
 import type * as managerAccess from "../managerAccess.js";
@@ -37,6 +38,7 @@ declare const fullApi: ApiFromModules<{
   clients: typeof clients;
   content: typeof content;
   crons: typeof crons;
+  demo: typeof demo;
   email: typeof email;
   http: typeof http;
   managerAccess: typeof managerAccess;
