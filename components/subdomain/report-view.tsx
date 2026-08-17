@@ -67,6 +67,9 @@ function Figure({
       <p className="mt-2 text-4xl font-semibold tracking-[-0.03em] tabular-nums text-foreground">
         {value > 0 ? formatCompact(value) : '—'}
       </p>
+      {/* The hint describes the empty state. It must not appear beside a real
+          number just because there was nothing to compare against — "In flight
+          6" sat above "Nothing queued", which contradicted itself. */}
       {change !== null && value > 0 ? (
         <p
           className={`mt-1.5 inline-flex items-center gap-1 text-xs tabular-nums ${
@@ -81,9 +84,9 @@ function Figure({
           {change >= 0 ? '+' : ''}
           {change}% on last period
         </p>
-      ) : (
-        hint && <p className="mt-1.5 text-xs text-muted-foreground">{hint}</p>
-      )}
+      ) : value === 0 && hint ? (
+        <p className="mt-1.5 text-xs text-muted-foreground">{hint}</p>
+      ) : null}
     </div>
   )
 }
@@ -349,13 +352,22 @@ export function ReportView({ data }: { data: ReportData }) {
             <p className="mt-10 max-w-xl text-[15px] leading-relaxed text-muted-foreground">
               {report.totals.published}{' '}
               {report.totals.published === 1 ? 'piece was' : 'pieces were'} published in{' '}
-              {report.label}, reaching{' '}
-              <span className="font-medium text-foreground">
-                {report.reach.toLocaleString()}
-              </span>{' '}
-              {report.reach === 1 ? 'person' : 'people'} across{' '}
-              {report.platforms.length}{' '}
-              {report.platforms.length === 1 ? 'platform' : 'platforms'}.
+              {report.label} across {report.platforms.length}{' '}
+              {report.platforms.length === 1 ? 'platform' : 'platforms'}
+              {/* Zero reach almost always means the numbers have not been
+                  collected yet, not that nobody saw the work. Saying "reaching
+                  0 people" turns a gap in the data into an accusation. */}
+              {report.reach > 0 ? (
+                <>
+                  , reaching{' '}
+                  <span className="font-medium text-foreground">
+                    {report.reach.toLocaleString()}
+                  </span>{' '}
+                  {report.reach === 1 ? 'person' : 'people'}.
+                </>
+              ) : (
+                <>. Performance figures for this period have not been recorded yet.</>
+              )}
             </p>
           )}
         </section>
