@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect } from 'react'
+import * as Sentry from '@sentry/nextjs'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { AlertTriangle, RotateCw } from 'lucide-react'
@@ -21,6 +22,10 @@ export default function Error({
 }) {
   useEffect(() => {
     console.error('[app] unhandled render error:', error)
+    // Reporting from the boundary rather than relying on the global handler:
+    // React swallows the original throw once a boundary catches it, so this is
+    // the last place the error object still exists.
+    Sentry.captureException(error)
   }, [error])
 
   return (

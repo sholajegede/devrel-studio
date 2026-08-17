@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect } from 'react'
+import * as Sentry from '@sentry/nextjs'
 
 /**
  * Last resort: catches errors thrown by the root layout itself, where app/error
@@ -20,6 +21,7 @@ export default function GlobalError({
 }) {
   useEffect(() => {
     console.error('[app] root layout error:', error)
+    Sentry.captureException(error)
   }, [error])
 
   return (
