@@ -195,7 +195,7 @@ const handleStripeWebhook = httpAction(async (ctx, request) => {
     }
 
     default:
-      // Everything else is noise for a one-time-purchase product.
+      // Everything else is noise while payments are handled by hand.
       break;
   }
 

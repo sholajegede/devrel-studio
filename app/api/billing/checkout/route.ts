@@ -6,7 +6,7 @@ import { appOrigin, billingIsConfigured, priceIdFor, stripeClient } from '@/lib/
 export const runtime = 'nodejs'
 
 /**
- * POST { plan } — start a Stripe Checkout for a one-time plan purchase.
+ * POST { plan } — unused while payments are manual; kept for when Stripe becomes available.
  *
  * The plan is never trusted from the client beyond "which of the three": the
  * amount comes from the Stripe price, and the account's plan is only written

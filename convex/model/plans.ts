@@ -4,9 +4,26 @@
 // functions that enforce the limits and the UI that displays them — so the
 // pricing page and the actual gate can never drift apart.
 //
-// Plans are a one-time purchase, not a subscription, which is why there is no
-// renewal or cancellation state here: an account either bought a plan or is on
-// the free trial.
+// Prices are monthly, sold in terms. Access itself is a window (see accessOf
+// below), so the term is just how far the window is pushed out.
+//
+// The numbers are set against the client-reporting tools this competes with,
+// not against DevRel community platforms — Common Room and Orbit start around
+// $500/month and sell to companies, while this sells to one consultant:
+//
+//   DashThis          $44/mo   3 dashboards
+//   Swydo             $69/mo   unlimited reports
+//   AgencyAnalytics   $79/mo   freelancer tier, ~$20/client/mo annually
+//   Whatagraph       $286/mo   agency only
+//
+// Pro sits below every one of them while covering five clients, which is the
+// case a DevRel consultant actually has. Against a $1,500/month retainer it is
+// under 4% — small enough that the reporting time it saves settles the
+// argument on its own.
+//
+// The floor is $29 rather than $19 deliberately: every payment is collected by
+// hand, so the fixed admin cost per customer is the same whatever they pay, and
+// a $19 quarterly block is barely worth the bank transfer.
 
 export type PlanId = 'free' | 'starter' | 'pro' | 'agency'
 
@@ -15,7 +32,7 @@ export const PLAN_IDS: PlanId[] = ['free', 'starter', 'pro', 'agency']
 export interface PlanDefinition {
   id: PlanId
   name: string
-  /** One-time price in whole dollars. */
+  /** Price per month in whole dollars, before any term discount. */
   price: number
   description: string
   /** `null` means unlimited. */
@@ -44,7 +61,7 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
   starter: {
     id: 'starter',
     name: 'Starter',
-    price: 49,
+    price: 29,
     description: 'Perfect for freelancers managing one client.',
     maxClients: 1,
     maxEntries: null,
@@ -62,7 +79,7 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
   pro: {
     id: 'pro',
     name: 'Pro',
-    price: 149,
+    price: 59,
     description: 'Built for consultants with multiple clients.',
     maxClients: 5,
     maxEntries: null,
@@ -78,7 +95,7 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
   agency: {
     id: 'agency',
     name: 'Agency',
-    price: 349,
+    price: 119,
     description: 'Unlimited clients for growing agencies.',
     maxClients: null,
     maxEntries: null,
@@ -91,6 +108,37 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
       'Priority SLA support',
     ],
   },
+}
+
+// ── Terms ─────────────────────────────────────────────────────────────────────
+//
+// Sold in blocks rather than renewed monthly. Every payment is a bank transfer
+// and a manual grant, so twelve collections a year per customer is twelve times
+// the work of one — the discount buys down that overhead as much as it rewards
+// commitment.
+
+export interface Term {
+  months: number
+  label: string
+  /** Percentage off the monthly rate. */
+  discount: number
+}
+
+export const TERMS: Term[] = [
+  { months: 1, label: '1 month', discount: 0 },
+  { months: 3, label: '3 months', discount: 10 },
+  { months: 6, label: '6 months', discount: 15 },
+  { months: 12, label: '12 months', discount: 20 },
+]
+
+/** What a term actually costs, rounded to whole dollars. */
+export function termPrice(plan: PlanDefinition, term: Term): number {
+  return Math.round(plan.price * term.months * (1 - term.discount / 100))
+}
+
+/** The effective monthly rate on a term — what the discount is worth. */
+export function termMonthly(plan: PlanDefinition, term: Term): number {
+  return Math.round(termPrice(plan, term) / term.months)
 }
 
 /** Plans that can be bought, in upgrade order. */

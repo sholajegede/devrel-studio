@@ -37,10 +37,11 @@ const PLAN_ICONS: Record<PlanId, React.ElementType> = {
 }
 
 const FAQ_ITEMS = [
-  { q: 'What does "one-time fee" mean?', a: 'You pay once and own the software forever. No monthly charges, no annual renewals, no seat fees. Updates are included for 12 months from your purchase date.' },
-  { q: 'Can I upgrade later?', a: 'Yes \u2014 upgrading is a separate one-time purchase at the new plan\u2019s price. Your current plan stays active until the upgrade completes.' },
-  { q: 'What\'s your refund policy?', a: 'Full refund within 14 days of purchase, no questions asked. Just email us at support@devrel.studio.' },
-  { q: 'Need a larger team?', a: 'The Agency plan includes 5 seats. Contact us directly for larger teams or custom enterprise arrangements.' },
+  { q: 'How do I pay?', a: 'Pick a plan below and it opens an email. Say how many months you want, we send transfer details, and access opens once payment lands. Card payments are not available yet — Stripe requires a US entity.' },
+  { q: 'What happens when access runs out?', a: 'Nothing is deleted. Your content stays and your clients’ dashboards stay online. You just cannot add or edit until access is extended.' },
+  { q: 'Does extending early lose me time?', a: 'No. A new term is added to the end of your current window, never in place of it.' },
+  { q: 'What’s your refund policy?', a: 'Full refund within 14 days of a payment, no questions asked. Email support@devrel.studio.' },
+  { q: 'Need a larger team?', a: 'The Agency plan includes 5 seats. Contact us directly for larger teams.' },
 ]
 
 function SettingSection({
@@ -130,7 +131,7 @@ function BillingPageContent() {
         <div>
           <h1 className="text-2xl font-semibold text-foreground">Billing</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Manage your plan and license. One-time fee — no subscriptions, ever.
+            Your access window, and how to extend it.
           </p>
         </div>
         <AdminTourTriggerButton onStartTour={() => tourControls?.startTour()} />
@@ -240,7 +241,7 @@ function BillingPageContent() {
         {/* Plan comparison */}
         <SettingSection
           title="Choose a plan"
-          description="Pay once, use forever. No recurring charges. Upgrade any time."
+          description="Priced monthly, bought in terms. Longer terms cost less."
         >
           <div id="plans" className="grid gap-4 sm:grid-cols-3 scroll-mt-8" data-tour="billing-plans">
             {PURCHASABLE_PLANS.map((planId) => {
@@ -289,7 +290,7 @@ function BillingPageContent() {
 
                     <div className="flex items-baseline gap-1 mb-1">
                       <span className="text-3xl font-bold text-foreground">${plan.price}</span>
-                      <span className="text-xs text-muted-foreground">per month</span>
+                      <span className="text-xs text-muted-foreground">/month</span>
                     </div>
                     <p className="text-xs text-muted-foreground mb-4 leading-relaxed">{plan.description}</p>
 

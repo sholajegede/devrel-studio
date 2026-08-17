@@ -9,12 +9,19 @@ import {
 } from '@/components/ui/accordion'
 import { MarketingNav } from '@/components/marketing/nav'
 import { MarketingFooter } from '@/components/marketing/footer'
-import { PLANS, PURCHASABLE_PLANS, type PlanId } from '@/convex/model/plans'
+import {
+  PLANS,
+  PURCHASABLE_PLANS,
+  TERMS,
+  termMonthly,
+  termPrice,
+  type PlanId,
+} from '@/convex/model/plans'
 
 export const metadata: Metadata = {
   title: 'Pricing · DevRel Studio',
   description:
-    'One-time pricing for DevRel Studio. Starter $49, Pro $149, Agency $349 — pay once, use forever.',
+    'DevRel Studio pricing. Starter $29, Pro $59, Agency $119 a month, sold in terms. 14-day free trial.',
 }
 
 // ─── Plan presentation ────────────────────────────────────────────────────────
@@ -68,12 +75,16 @@ function limitLabel(limit: number | null): string {
 
 const FAQ = [
   {
-    q: 'What exactly is a "one-time fee"?',
-    a: 'You pay once and own DevRel Studio forever. No monthly charges, no annual renewals, no seat fees. Updates are included for 12 months from your purchase date.',
+    q: 'How does payment work?',
+    a: 'Personally, not through a card form. Tell us the plan and how many months, we send transfer details, and access opens as soon as payment lands. Card payments are not available yet — Stripe requires a US entity, and DevRel Studio is run from Nigeria.',
   },
   {
-    q: 'Can I upgrade to a higher plan later?',
-    a: 'Yes — upgrading is a separate one-time purchase at the new plan’s price. Your current plan stays active until the upgrade completes.',
+    q: 'What happens when my access runs out?',
+    a: 'Nothing disappears. Your content stays where it is and your clients’ dashboards stay online — a billing gap of yours should never reach them. You simply cannot add or edit until access is extended.',
+  },
+  {
+    q: 'Can I change plan later?',
+    a: 'Yes. Ask for the plan you want and it applies from that point. Extending early adds to your existing window rather than replacing it, so you never lose time already paid for.',
   },
   {
     q: 'What counts as a client workspace?',
@@ -81,11 +92,11 @@ const FAQ = [
   },
   {
     q: 'Is there a free trial?',
-    a: 'Yes. The free trial gives you one client workspace and up to 10 content entries, with no card required, so you can see the product working against your real content before paying.',
+    a: 'Fourteen days, no card, starting the moment you sign up. One client workspace and up to 10 entries — enough to run it against real content before deciding.',
   },
   {
     q: 'What is your refund policy?',
-    a: 'Full refund within 14 days of purchase, no questions asked. Email support@devrel.studio.',
+    a: 'Full refund within 14 days of a payment, no questions asked. Email support@devrel.studio.',
   },
   {
     q: 'Do clients need an account to see their dashboard?',
@@ -93,7 +104,7 @@ const FAQ = [
   },
   {
     q: 'Can my team use one account?',
-    a: 'The Agency plan includes five seats with admin, editor and viewer roles. Starter and Pro are single-user.',
+    a: 'The Agency plan includes five seats with admin, editor and viewer roles. Invited members work under your access, so they do not need their own. Starter and Pro are single-user.',
   },
 ]
 
@@ -130,7 +141,7 @@ function PlanCard({ id }: { id: PlanId }) {
           ${plan.price}
         </span>
         <span className="text-sm text-muted-foreground">
-          {isFree ? 'to try' : 'once'}
+          {isFree ? 'for 14 days' : '/month'}
         </span>
       </div>
 
@@ -172,11 +183,11 @@ export default function PricingPage() {
           Pricing
         </span>
         <h1 className="mt-3 text-4xl sm:text-5xl font-semibold tracking-[-0.03em] text-foreground leading-[1.1]">
-          Pay once. Use forever.
+          Priced for one consultant, not an agency
         </h1>
         <p className="mx-auto mt-5 max-w-lg text-[15px] leading-relaxed text-muted-foreground">
-          No subscriptions, no per-seat charges, no renewal you forget to cancel. Pick the
-          plan that fits your practice and own it.
+          Start free for 14 days, no card. After that, buy the months you want — pay for
+          three or twelve at a time and the rate drops.
         </p>
       </section>
 
@@ -185,6 +196,60 @@ export default function PricingPage() {
           {ALL_PLANS.map((id) => (
             <PlanCard key={id} id={id} />
           ))}
+        </div>
+      </section>
+
+      {/* Terms */}
+      <section className="mx-auto max-w-5xl px-6 pb-24">
+        <div className="rounded-xl border border-border">
+          <div className="border-b border-border px-6 py-5">
+            <h2 className="text-[15px] font-medium text-foreground">Buy months at a time</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Every payment is handled personally rather than through a card form, so longer
+              terms cost less — for both of us.
+            </p>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[560px] border-collapse text-left">
+              <thead>
+                <tr className="border-b border-border">
+                  <th className="px-6 py-3 text-sm font-medium text-muted-foreground">Term</th>
+                  {PURCHASABLE_PLANS.map((id) => (
+                    <th key={id} className="px-6 py-3 text-center text-sm font-medium text-foreground">
+                      {PLANS[id].name}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {TERMS.map((term) => (
+                  <tr key={term.months} className="border-b border-border last:border-b-0">
+                    <td className="px-6 py-3.5 text-sm text-foreground">
+                      {term.label}
+                      {term.discount > 0 && (
+                        <span className="ml-2 rounded-full bg-accent/10 px-2 py-0.5 text-[11px] text-accent">
+                          save {term.discount}%
+                        </span>
+                      )}
+                    </td>
+                    {PURCHASABLE_PLANS.map((id) => (
+                      <td key={id} className="px-6 py-3.5 text-center">
+                        <span className="text-sm tabular-nums text-foreground">
+                          ${termPrice(PLANS[id], term).toLocaleString()}
+                        </span>
+                        {term.months > 1 && (
+                          <span className="block text-[11px] tabular-nums text-muted-foreground">
+                            ${termMonthly(PLANS[id], term)}/mo
+                          </span>
+                        )}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       </section>
 

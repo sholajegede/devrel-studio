@@ -51,7 +51,7 @@ export default function SignUpPage() {
         </div>
 
         <p className="text-xs text-white/20 relative z-10">
-          &copy; {new Date().getFullYear()} DevRel Studio · One-time fee, no subscriptions
+          &copy; {new Date().getFullYear()} DevRel Studio · 14 days free, no card required
         </p>
       </div>
 

@@ -398,11 +398,12 @@ function Testimonial() {
 // ─── FAQ ──────────────────────────────────────────────────────────────────────
 
 const FAQ_ITEMS = [
-  { q: 'What exactly is a "one-time fee"?',            a: 'You pay once and own DevRel Studio forever. No monthly charges, no annual renewals, no seat fees. Updates are included for 12 months from your purchase date.' },
-  { q: 'Can I upgrade to a higher plan later?',        a: 'Yes — upgrading is a separate one-time purchase at the new plan’s price. Your current plan stays active until the upgrade completes.' },
+  { q: 'How much is it?',                              a: 'Starter $29, Pro $59 and Agency $119 a month, bought in blocks of 1, 3, 6 or 12 months — longer terms cost less. Fourteen days free first, no card.' },
+  { q: 'How does payment work?',                       a: 'Personally, not through a card form. You say which plan and how many months, we send transfer details, and access opens once payment lands. Card payments are not available yet — Stripe requires a US entity.' },
+  { q: 'What happens when access runs out?',           a: 'Nothing disappears. Your content stays and your clients’ dashboards stay online. You simply cannot add or edit until access is extended.' },
   { q: 'What counts as a "client workspace"?',         a: 'Each client you manage has their own content log and unique dashboard URL. The Starter plan covers one client; Pro covers up to five.' },
-  { q: 'Is there a free trial?',                       a: 'Yes — a limited free trial lets you create one workspace with up to 10 entries so you can see the product in action before committing.' },
-  { q: 'What is your refund policy?',                  a: 'Full refund within 14 days of purchase, no questions asked. If DevRel Studio isn’t working for you, just email us.' },
+  { q: 'Is there a free trial?',                       a: 'Fourteen days, no card, starting the moment you sign up. One client workspace and up to 10 entries.' },
+  { q: 'What is your refund policy?',                  a: 'Full refund within 14 days of a payment, no questions asked. Just email us.' },
   { q: 'Do clients need to create an account?',        a: 'No. The client dashboard is a read-only URL. Share the link and it works in any browser — optionally behind an access code you control.' },
   { q: 'Can multiple people use one account?',         a: 'Starter and Pro are single-user. The Agency plan includes up to 5 team member seats, each with an admin, editor or viewer role.' },
   { q: 'What content types does DevRel Studio track?', a: 'Six categories: Written, Video, Event, Podcast, Package and Demo — each with fields and metrics suited to that kind of work.' },

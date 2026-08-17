@@ -6,9 +6,10 @@ export const metadata: Metadata = {
   description: 'The terms under which DevRel Studio is sold and used.',
 }
 
-// These mirror the commercial promises made on the pricing page — one-time fee,
-// 12 months of updates, 14-day refund. If that copy changes, this has to change
-// with it. Needs review by someone qualified before being relied on.
+// These mirror the commercial promises made on the pricing page — monthly
+// pricing sold in terms, manual payment, 14-day refund. If that copy changes,
+// this has to change with it. Needs review by someone qualified before being
+// relied on.
 
 export default function TermsPage() {
   return (
@@ -19,26 +20,31 @@ export default function TermsPage() {
     >
       <Section heading="What you are buying">
         <p>
-          A licence to use DevRel Studio, paid once rather than by subscription. There is no
-          recurring charge and no renewal. The plan you buy sets how many client workspaces,
-          content entries and team seats your account may use.
+          Access to DevRel Studio for a fixed period, priced per month and bought in blocks of
+          one, three, six or twelve months. The plan you choose sets how many client
+          workspaces, content entries and team seats your account may use.
         </p>
         <p>
-          Updates are included for 12 months from the date of purchase. After that the software
-          continues to work; new features may require a further purchase.
+          Payment is handled directly rather than through a card processor. You tell us the
+          plan and term, we send transfer details, and access opens once payment is received.
         </p>
       </Section>
 
-      <Section heading="Upgrades">
+      <Section heading="Changing plan and extending">
         <p>
-          Moving to a higher plan is a separate one-time purchase at that plan&apos;s price. Your
-          existing plan stays active until the upgrade completes. Plans do not move downward.
+          You can move to a different plan at any time; it applies from that point. Extending
+          before your current period ends adds to it rather than replacing it, so no paid time
+          is lost.
+        </p>
+        <p>
+          When a period ends, your content and your clients&apos; dashboards remain available.
+          Creating and editing stops until access is extended.
         </p>
       </Section>
 
       <Section heading="Refunds">
         <p>
-          Full refund within 14 days of purchase, for any reason, by emailing
+          Full refund within 14 days of a payment, for any reason, by emailing
           support@devrel.studio. We do not require an explanation. After 14 days, refunds are at
           our discretion.
         </p>
@@ -83,7 +89,8 @@ export default function TermsPage() {
       <Section heading="Liability">
         <p>
           DevRel Studio is provided as-is. To the extent the law allows, our total liability is
-          limited to what you paid for your licence. We are not liable for indirect losses, or
+          limited to what you paid for your current access period. We are not liable for
+          indirect losses, or
           for lost data you have not exported — export is available at any time, in CSV and PDF.
         </p>
       </Section>
@@ -92,7 +99,8 @@ export default function TermsPage() {
         <p>
           You can delete your account at any time from Settings, which removes your data
           immediately. Deleting your account does not by itself entitle you to a refund outside
-          the 14-day window.
+          the 14-day window, and unused time on a period is not refunded automatically — email
+          us and we will look at it.
         </p>
       </Section>
 

@@ -59,7 +59,7 @@ export default function Image() {
               padding: '10px 18px',
             }}
           >
-            Pay once
+            Free 14 days
           </div>
         </div>
       </div>

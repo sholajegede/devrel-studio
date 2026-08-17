@@ -6,7 +6,7 @@ import { PLANS, isComped, planOf } from './model/plans'
 
 // ── Billing ───────────────────────────────────────────────────────────────────
 //
-// Plans are a one-time purchase made through Stripe Checkout. The only writer
+// Access is time-limited and granted by hand — see convex/migrations.ts. The only writer
 // of `plan` is the Stripe webhook (convex/http.ts → recordPurchase), reached
 // through an internal mutation: nothing the browser can call is allowed to
 // change an account's plan, or a user could grant themselves Agency by hand.

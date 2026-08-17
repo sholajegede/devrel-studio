@@ -86,9 +86,9 @@ const MEMBERS_STEPS: TourStep[] = [
 
 // ── Billing ───────────────────────────────────────────────────────────────────
 const BILLING_STEPS: TourStep[] = [
-  { target: "body", title: "Billing & Licensing", content: "One-time fee model — no subscriptions, no recurring charges. This page shows your active plan and lets you upgrade any time.", position: "center", highlight: false },
+  { target: "body", title: "Billing & Licensing", content: "Your access window and how to extend it. Priced monthly, bought in terms, paid by transfer.", position: "center", highlight: false },
   { target: '[data-tour="billing-plan"]', title: "Your Current Plan", content: "Shows your active license, included limits, and spend so far. You're on the Free Trial — unlimited time, limited entries.", position: "bottom", highlight: true },
-  { target: '[data-tour="billing-plans"]', title: "Upgrade Options", content: "Starter $49, Pro $149, Agency $349. Each is a one-time purchase; upgrading later is a separate purchase at the new plan's price.", position: "top", highlight: true },
+  { target: '[data-tour="billing-plans"]', title: "Upgrade Options", content: "Starter $29, Pro $59, Agency $119 a month. Buy 1, 3, 6 or 12 months at a time — longer terms cost less.", position: "top", highlight: true },
   { target: '[data-tour="billing-receipts"]', title: "Receipts & License", content: "License key and downloadable invoices appear here after purchase. Download any time for accounting.", position: "top", highlight: true },
 ];
 
