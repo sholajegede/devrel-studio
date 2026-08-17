@@ -295,6 +295,32 @@ export default defineSchema({
   // userId here. Attribution is the client row plus whatever name they type.
   // One row per submission rather than one per period: a client who sends a
   // second thought a week later should not overwrite the first.
+  /**
+   * A request to buy or extend access.
+   *
+   * Payments are arranged by hand, so the request has to survive leaving the
+   * page: the buyer needs to see that it was received, and the owner needs a
+   * list to work from. Neither is served by a mailto link, which asks the
+   * browser to open software the buyer may not have.
+   */
+  accessRequests: defineTable({
+    userId: v.id("users"),
+    email: v.string(),
+    name: v.optional(v.string()),
+    plan: v.string(),
+    months: v.number(),
+    /** Currency and amount quoted at the time, so a later price change cannot
+     *  rewrite what someone was asked to pay. */
+    currency: v.string(),
+    amount: v.number(),
+    note: v.optional(v.string()),
+    /** 'open' until the owner grants access or turns it down. */
+    status: v.string(),
+    createdAt: v.number(),
+  })
+    .index("by_user", ["userId"])
+    .index("by_status", ["status"]),
+
   reportFeedback: defineTable({
     clientId: v.id("clients"),
     slug: v.string(),

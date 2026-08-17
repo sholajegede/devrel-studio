@@ -11,6 +11,7 @@ import {
   PURCHASABLE_PLANS,
   type PlanId,
 } from '@/convex/model/plans'
+import { UpgradeDialog } from '@/components/dashboard/upgrade-dialog'
 import {
   currencyForTimeZone,
   formatPrice,
@@ -120,38 +121,15 @@ function BillingPageContent() {
 
   /**
    * Card payments are not available: Stripe requires a US entity and this is
-   * run from Nigeria. Rather than a checkout that cannot complete, this opens a
-   * prefilled email — the buyer says which plan and for how long, pays by
-   * transfer, and access is extended by hand.
+   * run from Nigeria, so buying is arranged by hand.
    *
-   * Prefilled because "email us" with a blank compose window loses people; the
-   * plan and the account are already in the message.
+   * This used to send the browser to a mailto: URL, which does nothing at all
+   * on a machine with no mail client registered — no error, no window, no hint.
+   * For anyone using webmail in a browser the only route to paying was a button
+   * that appeared broken. The dialog records the request server-side instead,
+   * and still offers the mailto to anyone who prefers it.
    */
-  const requestAccess = (plan: PlanId) => {
-    const definition = PLAN_DEFS[plan]
-    const subject = `DevRel Studio ${definition.name} access`
-
-    /**
-     * The rate goes in the message, currency code and all. Both sides then hold
-     * the same figure in writing, so a transfer that arrives short has an
-     * answer already on the page rather than an argument after the fact.
-     */
-    const rate = priceWithCode(monthlyPrice(plan, currency), currency)
-
-    const body = [
-      `I'd like ${definition.name} access for DevRel Studio.`,
-      '',
-      `Plan: ${definition.name}`,
-      `Rate: ${rate} a month`,
-      'Length: (1 month / 3 months / 6 months / 12 months)',
-      '',
-      'Please send payment details.',
-    ].join('\n')
-
-    window.location.href = `mailto:support@devrel.studio?subject=${encodeURIComponent(
-      subject,
-    )}&body=${encodeURIComponent(body)}`
-  }
+  const [upgrading, setUpgrading] = useState<PlanId | null>(null)
 
   const currentPlanId = (billing?.plan ?? 'free') as PlanId
   const currentPlan = PLAN_DEFS[currentPlanId]
@@ -340,7 +318,7 @@ function BillingPageContent() {
 
                     <Button
                       size="sm"
-                      onClick={() => requestAccess(planId)}
+                      onClick={() => setUpgrading(planId)}
                       disabled={isCurrent || isDowngrade}
                       className={`w-full mt-auto gap-1.5 ${highlight && !isCurrent ? 'bg-accent text-accent-foreground hover:bg-accent/90' : ''}`}
                       variant={highlight && !isCurrent ? 'default' : 'outline'}
@@ -452,6 +430,15 @@ function BillingPageContent() {
         </SettingSection>
 
       </div>
+
+      {upgrading && (
+        <UpgradeDialog
+          plan={upgrading}
+          currency={currency}
+          open={upgrading !== null}
+          onOpenChange={(next) => !next && setUpgrading(null)}
+        />
+      )}
 
       <AdminTour
         variant={'billing' as TourVariant}

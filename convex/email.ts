@@ -407,3 +407,86 @@ export const sendTrialEnded = internalAction({
     })
   },
 })
+
+/**
+ * Tells the owner someone wants to buy, and confirms to the buyer.
+ *
+ * Two messages from one action because they are the same event and must not
+ * come apart: a buyer who is told "we have it" while nothing reached the owner
+ * is waiting on somebody who does not know they exist.
+ *
+ * The owner's copy carries a reply-to of the buyer, so answering it opens a
+ * conversation with them rather than with support@.
+ */
+export const sendAccessRequest = internalAction({
+  args: {
+    email: v.string(),
+    name: v.optional(v.string()),
+    planName: v.string(),
+    months: v.number(),
+    currency: v.string(),
+    amount: v.number(),
+    note: v.optional(v.string()),
+  },
+  handler: async (_ctx, args): Promise<SendResult> => {
+    const owner = process.env.OWNER_EMAIL ?? 'support@devrel.studio'
+    const who = args.name ? `${args.name} (${args.email})` : args.email
+    const term = args.months === 1 ? '1 month' : `${args.months} months`
+    const total = `${args.amount.toLocaleString('en-US')} ${args.currency}`
+
+    // The owner's copy first: it is the one that must not be lost, since the
+    // buyer's confirmation is a courtesy but this is the whole transaction.
+    const toOwner = await send({
+      to: owner,
+      replyTo: args.email,
+      subject: `Access request: ${args.planName}, ${term}`,
+      html: layout(`
+        <p style="margin:0 0 14px;font-size:15px;line-height:1.6;">
+          <strong>${who}</strong> asked for <strong>${args.planName}</strong> access.
+        </p>
+        <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 22px;font-size:15px;line-height:1.9;">
+          <tr><td style="padding-right:16px;color:#718096;">Plan</td><td>${args.planName}</td></tr>
+          <tr><td style="padding-right:16px;color:#718096;">Term</td><td>${term}</td></tr>
+          <tr><td style="padding-right:16px;color:#718096;">Total</td><td><strong>${total}</strong></td></tr>
+        </table>
+        ${
+          args.note
+            ? `<blockquote style="margin:0 0 22px;padding:14px 16px;background:#f7fafc;border-left:3px solid #38b2ac;border-radius:0 8px 8px 0;font-size:15px;line-height:1.6;">${args.note}</blockquote>`
+            : ''
+        }
+        <p style="margin:0;font-size:13px;line-height:1.6;color:#718096;">
+          Reply to this email to reach them. Send the transfer details, then open
+          their window with migrations:grantAccess once it clears.
+        </p>
+      `),
+      text: `${who} asked for ${args.planName} access.\n\nPlan: ${args.planName}\nTerm: ${term}\nTotal: ${total}\n${args.note ? `\nNote: ${args.note}\n` : ''}\nReply to reach them. Grant with migrations:grantAccess once the transfer clears.`,
+    })
+
+    await send({
+      to: args.email,
+      replyTo: owner,
+      subject: `We have your request for ${args.planName}`,
+      html: layout(`
+        <p style="margin:0 0 14px;font-size:15px;line-height:1.6;">
+          ${args.name ? `Hi ${args.name.split(' ')[0]},` : 'Hi,'}
+        </p>
+        <p style="margin:0 0 14px;font-size:15px;line-height:1.6;">
+          Your request for <strong>${args.planName}</strong>, ${term}, at
+          <strong>${total}</strong> has reached us.
+        </p>
+        <p style="margin:0 0 22px;font-size:15px;line-height:1.6;">
+          We reply within one working day with the transfer details. Your access
+          opens once the payment clears. Nothing changes on your account until
+          then, and your trial runs as normal.
+        </p>
+        <p style="margin:0;font-size:13px;line-height:1.6;color:#718096;">
+          Replying to this email reaches a person, not a bot. Tell us if you need
+          an invoice with particular details on it.
+        </p>
+      `),
+      text: `Your request for ${args.planName}, ${term}, at ${total} has reached us.\n\nWe reply within one working day with the transfer details. Your access opens once the payment clears. Nothing changes on your account until then, and your trial runs as normal.\n\nReplying to this email reaches a person, not a bot.`,
+    })
+
+    return toOwner
+  },
+})
