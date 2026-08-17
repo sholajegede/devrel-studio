@@ -7,7 +7,7 @@ import { useState, useEffect } from 'react'
 import { cn } from '@/lib/utils'
 import {
   LayoutDashboard, FileText, Users, CreditCard, Settings,
-  PlusCircle, X, Menu, LogOut, Building2, KanbanSquare,
+  PlusCircle, X, Menu, LogOut, Building2, KanbanSquare, Search,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useUserContext } from '@/contexts/user-context'
@@ -68,6 +68,28 @@ function SidebarInner({ onClose }: { onClose?: () => void }) {
 
       {/* Workspace switcher — renders nothing unless there is a choice to make */}
       <WorkspaceSwitcher onNavigate={onClose} />
+
+      {/* A keyboard shortcut nobody knows about does not exist. This is the
+          only advertisement for ⌘K, and it opens the palette when clicked so it
+          works for people who never try the shortcut. */}
+      <div className="px-3 pt-3">
+        <button
+          type="button"
+          onClick={() => {
+            document.dispatchEvent(
+              new KeyboardEvent('keydown', { key: 'k', metaKey: true, bubbles: true }),
+            )
+            onClose?.()
+          }}
+          className="flex w-full items-center gap-2 rounded-md border border-border px-2.5 py-1.5 text-left text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+        >
+          <Search className="h-3.5 w-3.5 shrink-0" />
+          <span className="flex-1">Search</span>
+          <kbd className="rounded border border-border bg-muted px-1.5 py-0.5 font-mono text-[10px]">
+            ⌘K
+          </kbd>
+        </button>
+      </div>
 
       {/* Nav */}
       <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-0.5">
