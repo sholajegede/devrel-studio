@@ -167,7 +167,11 @@ function BillingPageContent() {
                       {currentPlan.name}
                     </span>
                     <Badge className="bg-accent/15 text-accent border-accent/30 text-xs">
-                      {billing?.isPaid ? 'Purchased' : 'Active'}
+                      {billing?.status === 'comped'
+                        ? 'Complimentary'
+                        : billing?.isPaid
+                          ? 'Purchased'
+                          : 'Active'}
                     </Badge>
                   </div>
                   <p className="text-sm text-muted-foreground mt-1">
@@ -233,10 +237,14 @@ function BillingPageContent() {
 
             {/* Trust bar */}
             <div className="mt-6 pt-5 border-t border-accent/15 flex flex-wrap items-center gap-5">
+              {/* Each of these has to be something we actually do. The bar
+                  previously promised instant access and an invoice: access is
+                  opened by hand once a transfer clears, and no invoice is
+                  generated anywhere in this codebase. */}
               {[
-                { icon: ShieldCheck, label: '14-day money-back guarantee' },
-                { icon: Zap,         label: 'Instant access after purchase' },
-                { icon: Receipt,     label: 'Invoice included' },
+                { icon: ShieldCheck, label: 'Refundable for 14 days' },
+                { icon: Zap,         label: 'Access opens when payment clears' },
+                { icon: Receipt,     label: 'Ask us for an invoice any time' },
               ].map(({ icon: Icon, label }) => (
                 <span key={label} className="flex items-center gap-1.5 text-xs text-muted-foreground">
                   <Icon className="h-3.5 w-3.5 text-accent" />
