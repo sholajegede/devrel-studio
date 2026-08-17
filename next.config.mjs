@@ -38,24 +38,34 @@ const nextConfig = {
  * cannot quietly drop the reports; blockers already interfere here, which is
  * how the portfolio page's ERR_BLOCKED_BY_CLIENT turned up.
  *
- * Conditional on the org and project being set, so a build before Sentry is
- * provisioned is exactly the build it is today, with no warnings about
- * credentials it has not been given. Uploads additionally need
- * SENTRY_AUTH_TOKEN, which is a build-time secret and separate from the DSN.
+ * The org and project are now real, so this is unconditional. Source maps are
+ * the part that still needs a credential: uploads happen only when
+ * SENTRY_AUTH_TOKEN is present, which is a build-time secret and separate from
+ * the DSN. Without it the build succeeds and simply uploads nothing.
  */
-const sentryConfigured = Boolean(process.env.SENTRY_ORG && process.env.SENTRY_PROJECT)
+const SENTRY_ORG = process.env.SENTRY_ORG ?? 'devrel-studio'
+const SENTRY_PROJECT = process.env.SENTRY_PROJECT ?? 'javascript-nextjs'
 
-export default sentryConfigured
-  ? withSentryConfig(nextConfig, {
-      org: process.env.SENTRY_ORG,
-      project: process.env.SENTRY_PROJECT,
+export default withSentryConfig(nextConfig, {
+      org: SENTRY_ORG,
+      project: SENTRY_PROJECT,
       authToken: process.env.SENTRY_AUTH_TOKEN,
       // Widens the set of client files uploaded, which materially improves
       // client-side stack traces.
       widenClientFileUpload: true,
-      // Must stay in step with the public-route list in proxy.ts, or every
-      // report is redirected to the sign-in page instead of reaching Sentry.
-      tunnelRoute: '/monitoring',
+      /**
+       * Not Sentry's default of '/monitoring'.
+       *
+       * The tunnel exists to stop ad blockers dropping error reports, and the
+       * default path is itself on their lists: tested in a real browser, a POST
+       * to /monitoring with Sentry's query string is blocked outright, while
+       * the same request to this path arrives. /api/monitoring is blocked too,
+       * so it is the word rather than the prefix.
+       *
+       * It sits under /api deliberately. proxy.ts lets every non-auth /api path
+       * through untouched, so the tunnel cannot be bounced to the sign-in page
+       * and needs no entry in the public-route list to maintain.
+       */
+      tunnelRoute: '/api/client-events',
       silent: !process.env.CI,
     })
-  : nextConfig

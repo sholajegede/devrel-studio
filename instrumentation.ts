@@ -1,19 +1,25 @@
 import * as Sentry from '@sentry/nextjs'
 
 /**
- * Server and edge error reporting.
+ * Server and edge registration hook. Next calls this once per runtime at boot.
  *
- * Next calls this once per runtime at boot. Like the client half, it does
- * nothing without a DSN, so local development and CI are unaffected.
+ * Each runtime loads its own config rather than sharing one `init` call here:
+ * the two take different options — `includeLocalVariables` is Node-only — and
+ * importing conditionally keeps Node-only code out of the edge bundle.
+ *
+ * This replaced an inline `Sentry.init` guarded on `SENTRY_DSN`. The DSN now
+ * has a literal fallback inside each config, so reporting no longer depends on
+ * an environment variable being remembered.
  */
 export async function register() {
-  if (!process.env.SENTRY_DSN) return
+  if (process.env.NEXT_RUNTIME === 'nodejs') {
+    await import('./sentry.server.config')
+  }
 
-  Sentry.init({
-    dsn: process.env.SENTRY_DSN,
-    environment: process.env.VERCEL_ENV ?? 'development',
-    tracesSampleRate: 0.1,
-  })
+  if (process.env.NEXT_RUNTIME === 'edge') {
+    await import('./sentry.edge.config')
+  }
 }
 
+/** Captures unhandled errors thrown while rendering a request. */
 export const onRequestError = Sentry.captureRequestError

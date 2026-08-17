@@ -33,3 +33,9 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Sentry
+# The wizard writes the source-map upload token here. It is a real credential
+# and this repository is public.
+.env.sentry-build-plugin
+.sentryclirc
