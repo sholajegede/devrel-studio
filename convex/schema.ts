@@ -236,6 +236,19 @@ export default defineSchema({
     .index("by_token_hash", ["tokenHash"])
     .index("by_client", ["clientId"]),
 
+  // Counters for the unauthenticated mutations — waitlist signups and report
+  // feedback. Anyone on the internet can call those, and without a ceiling a
+  // single script can fill a table overnight.
+  //
+  // `bucket` is a hashed caller IP or a shared fallback; `scope` names which
+  // mutation, so one noisy client dashboard cannot lock out the waitlist.
+  publicWriteAttempts: defineTable({
+    scope: v.string(),
+    bucket: v.string(),
+    count: v.number(),
+    windowStartedAt: v.number(),
+  }).index("by_scope_and_bucket", ["scope", "bucket"]),
+
   // Feedback a client leaves on a monthly report.
   //
   // Left by the manager reading the report, who has no account — so there is no

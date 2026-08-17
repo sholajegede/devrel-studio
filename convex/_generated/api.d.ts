@@ -20,6 +20,7 @@ import type * as members from "../members.js";
 import type * as migrations from "../migrations.js";
 import type * as model_auth from "../model/auth.js";
 import type * as model_plans from "../model/plans.js";
+import type * as model_rateLimit from "../model/rateLimit.js";
 import type * as model_workspaces from "../model/workspaces.js";
 import type * as portfolio from "../portfolio.js";
 import type * as reports from "../reports.js";
@@ -46,6 +47,7 @@ declare const fullApi: ApiFromModules<{
   migrations: typeof migrations;
   "model/auth": typeof model_auth;
   "model/plans": typeof model_plans;
+  "model/rateLimit": typeof model_rateLimit;
   "model/workspaces": typeof model_workspaces;
   portfolio: typeof portfolio;
   reports: typeof reports;

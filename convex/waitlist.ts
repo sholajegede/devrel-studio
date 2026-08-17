@@ -1,6 +1,7 @@
 import { internalMutation, internalQuery, mutation } from './_generated/server'
 import { internal } from './_generated/api'
 import { v } from 'convex/values'
+import { enforceRateLimit } from './model/rateLimit'
 
 // Signup list — joining is the only public surface. Reading the list (names,
 // emails, companies), counting it and removing entries are all internal until
@@ -33,9 +34,20 @@ export const addToWaitlist = mutation({
     company: v.optional(v.string()),
     role: v.optional(v.string()),
     useCase: v.optional(v.string()),
+    ipHash: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const email = args.email.trim().toLowerCase()
+
+    // Unauthenticated and public. Five signups an hour from one caller is far
+    // more than a person needs and far less than a script wants.
+    await enforceRateLimit(
+      ctx,
+      'waitlist',
+      args.ipHash ?? 'unknown',
+      5,
+      'Too many signups from this connection. Try again shortly.',
+    )
 
     const existing = await ctx.db
       .query('waitlist')

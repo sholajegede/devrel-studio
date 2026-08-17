@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { ConvexHttpClient } from 'convex/browser'
 import { api } from '@/convex/_generated/api'
+import { hashClientIp } from '@/lib/manager-auth'
 
 export const runtime = 'nodejs'
 
@@ -59,6 +60,12 @@ export async function POST(req: NextRequest) {
       api.waitlist.addToWaitlist,
       {
         email,
+      // Hashed here so Convex never stores a raw address; the rate limiter
+      // needs a stable identifier, not an identity.
+      ipHash: hashClientIp(
+        req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ??
+          req.headers.get('x-real-ip'),
+      ),
         name: text(payload.name, MAX_LENGTHS.name),
         company: text(payload.company, MAX_LENGTHS.company),
         role: text(payload.role, MAX_LENGTHS.role),

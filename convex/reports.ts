@@ -2,6 +2,7 @@ import { ConvexError, v } from 'convex/values'
 import { internal } from './_generated/api'
 import { internalAction, internalQuery, mutation, query } from './_generated/server'
 import { getCurrentWorkspace } from './model/workspaces'
+import { enforceRateLimit } from './model/rateLimit'
 
 // ── Monthly report notifications ──────────────────────────────────────────────
 //
@@ -322,10 +323,22 @@ export const submitFeedback = mutation({
     comment: v.string(),
     rating: v.optional(v.number()),
     authorName: v.optional(v.string()),
+    /** Hashed in the Next.js layer; Convex never sees a raw address. */
+    ipHash: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const slug = args.slug.trim().toLowerCase()
     const comment = args.comment.trim().slice(0, 2000)
+
+    // Generous — a client leaving several considered comments is normal, and
+    // this exists to stop a script, not a person.
+    await enforceRateLimit(
+      ctx,
+      'feedback',
+      args.ipHash ?? 'unknown',
+      20,
+      'That is a lot of feedback in one hour. Try again shortly.',
+    )
 
     if (!comment) throw new ConvexError('Write something before sending')
 
