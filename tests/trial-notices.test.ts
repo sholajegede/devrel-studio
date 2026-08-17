@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  canReceiveMail,
   NOTICE_GRACE_DAYS,
   NOTICE_LEAD_DAYS,
   daysLeftOn,
@@ -97,5 +98,39 @@ describe('daysLeftOn', () => {
   it('never counts below zero', () => {
     expect(daysLeftOn(trialist(-5), NOW)).toBe(0)
     expect(daysLeftOn({ email: 'x@example.com' }, NOW)).toBe(0)
+  })
+})
+
+describe('canReceiveMail', () => {
+  it('accepts an ordinary address', () => {
+    expect(canReceiveMail({ email: 'someone@example.org' })).toBe(true)
+    expect(canReceiveMail({ email: 'shola+work@gmail.com' })).toBe(true)
+  })
+
+  // Fixtures share a table with real accounts. Every hard bounce counts against
+  // the sending domain, and a batch that is a quarter fixtures hurts delivery
+  // for the real users sitting in the same batch.
+  it('refuses reserved domains that can never take delivery', () => {
+    expect(canReceiveMail({ email: 'admin@ci-demo.test' })).toBe(false)
+    expect(canReceiveMail({ email: 'a@thing.example' })).toBe(false)
+    expect(canReceiveMail({ email: 'a@thing.invalid' })).toBe(false)
+    expect(canReceiveMail({ email: 'root@localhost' })).toBe(false)
+  })
+
+  it('refuses the seeded demo account', () => {
+    expect(
+      canReceiveMail({ email: 'demo@devrel.studio', kindeId: 'demo-account-not-a-real-login' }),
+    ).toBe(false)
+  })
+
+  it('refuses a missing or malformed address', () => {
+    expect(canReceiveMail({})).toBe(false)
+    expect(canReceiveMail({ email: '' })).toBe(false)
+    expect(canReceiveMail({ email: 'not-an-address' })).toBe(false)
+  })
+
+  it('keeps undeliverable accounts out of the notice queue entirely', () => {
+    const fixture = { email: 'admin@ci-demo.test', trialEndsAt: NOW + 2 * DAY }
+    expect(trialNoticeFor(fixture, NOW)).toBeNull()
   })
 })

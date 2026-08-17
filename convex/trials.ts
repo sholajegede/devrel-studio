@@ -44,10 +44,6 @@ export const dueTrialNotices = internalQuery({
       const notice = trialNoticeFor(user, now)
       if (!notice) continue
 
-      // No address, nothing to send. Worth skipping rather than failing the
-      // run, since one unusable row should not stop everybody else's mail.
-      if (!user.email) continue
-
       const workspaces = await ctx.db
         .query('workspaces')
         .withIndex('by_owner', (q) => q.eq('ownerId', user._id))
@@ -72,7 +68,7 @@ export const dueTrialNotices = internalQuery({
 
       due.push({
         userId: user._id,
-        email: user.email,
+        email: user.email!,
         firstName: user.firstName,
         notice,
         daysLeft: daysLeftOn(user, now),
