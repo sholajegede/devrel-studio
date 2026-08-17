@@ -34,6 +34,10 @@ export const clientsDueAReport = internalQuery({
       // No email means nobody to notify; no slug means no dashboard to link to.
       if (!client.email || !client.slug) continue
       if (client.status !== 'Active') continue
+      // The seeded demo is a marketing surface, not an engagement. It has an
+      // address and published entries, so without this it would be mailed a
+      // monthly report like a paying client.
+      if (client.slug === 'demo') continue
 
       const entries = client.workspaceId
         ? await ctx.db
@@ -95,21 +99,44 @@ function monthLabel(key: string): string {
   return `${MONTH_NAMES[month - 1]} ${year}`
 }
 
+/**
+ * Where reports actually go.
+ *
+ * While the wording and cadence are still being judged, every report is sent to
+ * this address instead of the client's. Deliberately an override rather than a
+ * disabled cron: the job still runs on its real schedule against real data, so
+ * what arrives is exactly what a client would have received — which is the only
+ * way to review it honestly.
+ *
+ * Clear it to start sending to clients:
+ *   npx convex env remove REPORT_REDIRECT_TO --prod
+ */
+function redirectTarget(): string | null {
+  const target = process.env.REPORT_REDIRECT_TO?.trim()
+  return target && target.includes('@') ? target : null
+}
+
 export const sendMonthlyReports = internalAction({
   args: { month: v.optional(v.string()) },
-  handler: async (ctx, args): Promise<{ month: string; sent: number; failed: number }> => {
+  handler: async (ctx, args): Promise<{
+    month: string
+    sent: number
+    failed: number
+    redirectedTo: string | null
+  }> => {
     const month = args.month ?? lastMonth(new Date())
 
     const due = await ctx.runQuery(internal.reports.clientsDueAReport, { month })
 
     const root = process.env.SITE_URL?.replace(/^https?:\/\//, '') ?? 'devrel.studio'
+    const redirect = redirectTarget()
 
     let sent = 0
     let failed = 0
 
     for (const client of due) {
       const result = await ctx.runAction(internal.email.sendMonthlyReportReady, {
-        email: client.email,
+        email: redirect ?? client.email,
         clientName: client.clientName,
         period: monthLabel(month),
         publishedCount: client.publishedCount,
@@ -121,8 +148,11 @@ export const sendMonthlyReports = internalAction({
       else failed++
     }
 
-    console.log(`[reports] ${month}: ${sent} sent, ${failed} failed, ${due.length} due`)
+    console.log(
+      `[reports] ${month}: ${sent} sent, ${failed} failed, ${due.length} due` +
+        (redirect ? ` — all redirected to ${redirect}` : ''),
+    )
 
-    return { month, sent, failed }
+    return { month, sent, failed, redirectedTo: redirect }
   },
 })
