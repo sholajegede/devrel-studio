@@ -101,10 +101,12 @@ export async function generateMetadata({
       title: `${name} · DevRel Portfolio`,
       description,
       type: 'profile',
-      images: data.profile.imageUrl ? [{ url: data.profile.imageUrl }] : undefined,
+      // `images` is deliberately not set: Next uses opengraph-image.tsx in this
+      // folder unless metadata names an image explicitly, and the generated card
+      // (name, handle, headline stats) is a far better preview than an avatar.
     },
     twitter: {
-      card: 'summary',
+      card: 'summary_large_image',
       title: `${name} · DevRel Portfolio`,
       description,
     },
