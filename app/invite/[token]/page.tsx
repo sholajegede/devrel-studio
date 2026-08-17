@@ -96,17 +96,34 @@ export default async function InvitePage({
           <AcceptInvite token={token} workspaceName={invite.workspaceName} />
         ) : (
           <>
-            {/* Kinde returns here after sign-in, so the token survives the round
-                trip and the invite can be claimed without pasting it again. */}
+            {/* Creating an account is the primary action, not signing in. Most
+                people receiving an invitation have never used this before —
+                offering only "sign in" is a dead end that reads as "you should
+                already have an account", which is the opposite of an invitation.
+
+                Kinde returns here afterwards either way, so the token survives
+                the round trip and the invite is claimed without pasting it. */}
             <Link
-              href={`/api/auth/login?post_login_redirect_url=${encodeURIComponent(`/invite/${token}`)}`}
+              href={`/api/auth/register?post_login_redirect_url=${encodeURIComponent(
+                `/invite/${token}`,
+              )}`}
               className="inline-flex w-full items-center justify-center rounded-lg bg-accent px-4 py-2 text-sm font-medium text-accent-foreground transition-colors hover:bg-accent/90"
             >
-              Sign in to accept
+              Create an account to accept
             </Link>
-            <p className="mt-3 text-xs text-muted-foreground">
-              Invited as {invite.email}. You can sign in with any account — this link is what
-              grants access.
+
+            <Link
+              href={`/api/auth/login?post_login_redirect_url=${encodeURIComponent(
+                `/invite/${token}`,
+              )}`}
+              className="mt-2.5 inline-flex w-full items-center justify-center rounded-lg border border-border px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted"
+            >
+              I already have an account
+            </Link>
+
+            <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
+              Invited as {invite.email}. Either route works and you can use any address — this
+              link is what grants access, not the email it was sent to.
             </p>
           </>
         )}

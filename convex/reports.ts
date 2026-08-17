@@ -1,10 +1,21 @@
 import { ConvexError, v } from 'convex/values'
-import { internal } from './_generated/api'
-import { internalAction, internalQuery, mutation, query } from './_generated/server'
-import { getCurrentWorkspace } from './model/workspaces'
+import { api, internal } from './_generated/api'
+import { action, internalAction,
+  internalMutation,
+  internalQuery,
+  mutation,
+  query,
+} from './_generated/server'
+import { getCurrentWorkspace, requireInWorkspace } from './model/workspaces'
+import { dueNow } from '../lib/schedule'
 import { enforceRateLimit } from './model/rateLimit'
 
 // ── Monthly report notifications ──────────────────────────────────────────────
+//
+// There is exactly one sender: `sendReportsNow`. The scheduler calls it and so
+// does the button in the dashboard. A second path existed briefly and was
+// removed — two senders drift, and the way that shows up is the manual button
+// quietly not matching what a client actually receives on the 1st.
 //
 // Deliberately not a Node action: Convex only allows actions in a 'use node'
 // module, and this file needs a query alongside its action. The email senders
@@ -17,64 +28,6 @@ import { enforceRateLimit } from './model/rateLimit'
 // Sent on the 1st for the month that just closed. A client with nothing
 // published that month is skipped — "0 pieces published" is a worse message
 // than no message.
-
-/** Clients that should receive a report for `month` (YYYY-MM), with their counts. */
-export const clientsDueAReport = internalQuery({
-  args: { month: v.string() },
-  handler: async (ctx, args) => {
-    const clients = await ctx.db.query('clients').collect()
-
-    const due: {
-      clientId: string
-      email: string
-      clientName: string
-      slug: string
-      publishedCount: number
-    }[] = []
-
-    for (const client of clients) {
-      // No email means nobody to notify; no slug means no dashboard to link to.
-      if (!client.email || !client.slug) continue
-      if (client.status !== 'Active') continue
-      // The seeded demo is a marketing surface, not an engagement. It has an
-      // address and published entries, so without this it would be mailed a
-      // monthly report like a paying client.
-      if (client.slug === 'demo') continue
-
-      const entries = client.workspaceId
-        ? await ctx.db
-            .query('contentEntries')
-            .withIndex('by_workspace_and_client', (q) =>
-              q.eq('workspaceId', client.workspaceId).eq('client', client.slug!),
-            )
-            .collect()
-        : await ctx.db
-            .query('contentEntries')
-            .withIndex('by_user_and_client', (q) =>
-              q.eq('userId', client.userId).eq('client', client.slug!),
-            )
-            .collect()
-
-      const publishedCount = entries.filter(
-        (entry) =>
-          entry.status === 'Published' &&
-          entry.publicationDate?.startsWith(args.month),
-      ).length
-
-      if (publishedCount === 0) continue
-
-      due.push({
-        clientId: client._id,
-        email: client.email,
-        clientName: client.company || client.name,
-        slug: client.slug,
-        publishedCount,
-      })
-    }
-
-    return due
-  },
-})
 
 /** The month that just ended, as YYYY-MM. */
 function lastMonth(now: Date): string {
@@ -167,51 +120,6 @@ async function buildReportPdf(slug: string, month: string): Promise<string | nul
   }
 }
 
-export const sendMonthlyReports = internalAction({
-  args: { month: v.optional(v.string()) },
-  handler: async (ctx, args): Promise<{
-    month: string
-    sent: number
-    failed: number
-    redirectedTo: string | null
-  }> => {
-    const month = args.month ?? lastMonth(new Date())
-
-    const due = await ctx.runQuery(internal.reports.clientsDueAReport, { month })
-
-    const root = process.env.SITE_URL?.replace(/^https?:\/\//, '') ?? 'devrel.studio'
-    const redirect = redirectTarget()
-
-    let sent = 0
-    let failed = 0
-
-    for (const client of due) {
-      const pdf = await buildReportPdf(client.slug, month)
-
-      const result = await ctx.runAction(internal.email.sendMonthlyReportReady, {
-        email: redirect ?? client.email,
-        ...(pdf ? { pdfBase64: pdf, pdfFilename: `${client.slug}-report-${month}.pdf` } : {}),
-        clientName: client.clientName,
-        period: monthLabel(month),
-        publishedCount: client.publishedCount,
-        // Deep-linked to the period the email is about, so the reader lands on
-        // that report rather than on a dashboard they have to filter.
-        dashboardUrl: `https://${client.slug}.${root}/report?month=${month}`,
-      })
-
-      // One provider failure must not stop the rest of the run.
-      if (result.ok) sent++
-      else failed++
-    }
-
-    console.log(
-      `[reports] ${month}: ${sent} sent, ${failed} failed, ${due.length} due` +
-        (redirect ? ` — all redirected to ${redirect}` : ''),
-    )
-
-    return { month, sent, failed, redirectedTo: redirect }
-  },
-})
 
 // ── The report page ───────────────────────────────────────────────────────────
 //
@@ -515,5 +423,331 @@ export const listReportPeriods = query({
         .map(([period, stats]) => ({ period, ...stats }))
         .sort((a, b) => b.period.localeCompare(a.period)),
     }
+  },
+})
+
+// ── Schedules ─────────────────────────────────────────────────────────────────
+//
+// Convex crons are fixed at deploy time, so per-client timing cannot be its own
+// cron job. One hourly job asks every schedule whether it is their hour — which
+// is what moves the timing out of a source file and into the dashboard.
+
+/** Every client in the workspace with its schedule, for the settings screen. */
+export const listSchedules = query({
+  args: {},
+  handler: async (ctx) => {
+    const context = await getCurrentWorkspace(ctx)
+    if (!context) return []
+
+    const clients = await ctx.db
+      .query('clients')
+      .withIndex('by_workspace', (q) => q.eq('workspaceId', context.workspaceId))
+      .collect()
+
+    return await Promise.all(
+      clients
+        .filter((client) => !!client.slug)
+        .map(async (client) => {
+          const schedule = await ctx.db
+            .query('reportSchedules')
+            .withIndex('by_client', (q) => q.eq('clientId', client._id))
+            .first()
+
+          const entries = await ctx.db
+            .query('contentEntries')
+            .withIndex('by_workspace_and_client', (q) =>
+              q.eq('workspaceId', context.workspaceId).eq('client', client.slug!),
+            )
+            .collect()
+
+          // Only periods with published work can be reported on — offering an
+          // empty month in the picker invites sending a report that says
+          // nothing happened.
+          const periods = [
+            ...new Set(
+              entries
+                .filter((entry) => entry.status === 'Published')
+                .map((entry) => entry.publicationDate?.slice(0, 7))
+                .filter((period): period is string => !!period && period.length === 7),
+            ),
+          ].sort((a, b) => b.localeCompare(a))
+
+          return {
+            clientId: client._id,
+            clientName: client.company || client.name,
+            slug: client.slug!,
+            clientEmail: client.email ?? null,
+            schedule: schedule
+              ? {
+                  enabled: schedule.enabled,
+                  recipients: schedule.recipients,
+                  dayOfMonth: schedule.dayOfMonth,
+                  hourLocal: schedule.hourLocal,
+                  timezone: schedule.timezone,
+                  lastSentPeriod: schedule.lastSentPeriod ?? null,
+                  lastSentAt: schedule.lastSentAt ?? null,
+                }
+              : null,
+            periods,
+          }
+        }),
+    )
+  },
+})
+
+const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
+export const saveSchedule = mutation({
+  args: {
+    clientId: v.id('clients'),
+    enabled: v.boolean(),
+    recipients: v.array(v.string()),
+    dayOfMonth: v.number(),
+    hourLocal: v.number(),
+    timezone: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const { doc: client } = await requireInWorkspace(ctx, args.clientId, 'admin')
+
+    const recipients = [
+      ...new Set(args.recipients.map((email) => email.trim().toLowerCase()).filter(Boolean)),
+    ]
+
+    for (const email of recipients) {
+      if (!EMAIL.test(email)) throw new ConvexError(`"${email}" is not a valid email address`)
+    }
+
+    if (args.enabled && recipients.length === 0) {
+      throw new ConvexError('Add at least one recipient before turning the schedule on')
+    }
+
+    // 1–28 only. The 29th, 30th and 31st do not exist in every month, and a
+    // schedule that silently skips February is worse than one that cannot be set.
+    if (args.dayOfMonth < 1 || args.dayOfMonth > 28) {
+      throw new ConvexError('Pick a day between 1 and 28 so every month is covered')
+    }
+    if (args.hourLocal < 0 || args.hourLocal > 23) {
+      throw new ConvexError('Hour must be between 0 and 23')
+    }
+
+    const existing = await ctx.db
+      .query('reportSchedules')
+      .withIndex('by_client', (q) => q.eq('clientId', args.clientId))
+      .first()
+
+    const fields = {
+      clientId: args.clientId,
+      workspaceId: client.workspaceId,
+      enabled: args.enabled,
+      recipients,
+      dayOfMonth: args.dayOfMonth,
+      hourLocal: args.hourLocal,
+      timezone: args.timezone,
+    }
+
+    if (existing) await ctx.db.patch(existing._id, fields)
+    else await ctx.db.insert('reportSchedules', fields)
+
+    return { ok: true }
+  },
+})
+
+/** Internal: mark a period as sent so the hourly job does not repeat it. */
+export const markSent = internalMutation({
+  args: { clientId: v.id('clients'), period: v.string() },
+  handler: async (ctx, args) => {
+    const schedule = await ctx.db
+      .query('reportSchedules')
+      .withIndex('by_client', (q) => q.eq('clientId', args.clientId))
+      .first()
+
+    if (schedule) {
+      await ctx.db.patch(schedule._id, {
+        lastSentPeriod: args.period,
+        lastSentAt: new Date().toISOString(),
+      })
+    }
+  },
+})
+
+/** Internal: everything the sender needs for one client and one period. */
+export const sendPayload = internalQuery({
+  args: { clientId: v.id('clients'), period: v.string() },
+  handler: async (ctx, args) => {
+    const client = await ctx.db.get(args.clientId)
+    if (!client?.slug) return null
+
+    const schedule = await ctx.db
+      .query('reportSchedules')
+      .withIndex('by_client', (q) => q.eq('clientId', args.clientId))
+      .first()
+
+    const entries = client.workspaceId
+      ? await ctx.db
+          .query('contentEntries')
+          .withIndex('by_workspace_and_client', (q) =>
+            q.eq('workspaceId', client.workspaceId).eq('client', client.slug!),
+          )
+          .collect()
+      : []
+
+    const published = entries.filter(
+      (entry) =>
+        entry.status === 'Published' && entry.publicationDate?.startsWith(args.period),
+    ).length
+
+    // Falls back to the client's own address so a manual send works before a
+    // schedule has ever been configured.
+    const recipients = schedule?.recipients?.length
+      ? schedule.recipients
+      : client.email
+        ? [client.email]
+        : []
+
+    return {
+      slug: client.slug,
+      clientName: client.company || client.name,
+      recipients,
+      published,
+    }
+  },
+})
+
+/**
+ * Send one client's report for a set of periods.
+ *
+ * Public, and the same code path the scheduler uses. Two senders for one job
+ * would drift — the manual button would quietly stop matching what a client
+ * actually receives on the 1st, which is the one thing that must not happen.
+ *
+ * Requires admin: sending a report puts something in a client's inbox, which
+ * sits alongside issuing access codes rather than alongside editing an entry.
+ */
+export const sendReportsNow = action({
+  args: {
+    clientId: v.id('clients'),
+    periods: v.array(v.string()),
+    /** Overrides the schedule's recipients for this send only. */
+    to: v.optional(v.array(v.string())),
+  },
+  handler: async (
+    ctx,
+    args,
+  ): Promise<{ sent: number; failed: number; skipped: string[] }> => {
+    // Authorisation lives in the mutation, which can read the workspace.
+    await ctx.runMutation(api.reports.assertCanSend, { clientId: args.clientId })
+
+    let sent = 0
+    let failed = 0
+    const skipped: string[] = []
+
+    for (const period of args.periods.slice(0, 24)) {
+      const payload = await ctx.runQuery(internal.reports.sendPayload, {
+        clientId: args.clientId,
+        period,
+      })
+
+      if (!payload) {
+        skipped.push(`${period}: client not found`)
+        continue
+      }
+
+      const recipients = args.to?.length ? args.to : payload.recipients
+      if (recipients.length === 0) {
+        skipped.push(`${period}: no recipient`)
+        continue
+      }
+
+      // A report saying nothing was published is worse than no report, and a
+      // manual send should not be the way that slips out.
+      if (payload.published === 0) {
+        skipped.push(`${period}: nothing published`)
+        continue
+      }
+
+      const pdf = await buildReportPdf(payload.slug, period)
+      const root = process.env.SITE_URL?.replace(/^https?:\/\//, '') ?? 'devrel.studio'
+      const redirect = redirectTarget()
+
+      for (const recipient of recipients) {
+        const result = await ctx.runAction(internal.email.sendMonthlyReportReady, {
+          email: redirect ?? recipient,
+          clientName: payload.clientName,
+          period: monthLabel(period),
+          publishedCount: payload.published,
+          dashboardUrl: `https://${payload.slug}.${root}/report?month=${period}`,
+          ...(pdf ? { pdfBase64: pdf, pdfFilename: `${payload.slug}-report-${period}.pdf` } : {}),
+        })
+
+        if (result.ok) sent++
+        else failed++
+      }
+
+      await ctx.runMutation(internal.reports.markSent, {
+        clientId: args.clientId,
+        period,
+      })
+    }
+
+    return { sent, failed, skipped }
+  },
+})
+
+/** Permission check for `sendReportsNow`, which as an action cannot read the db. */
+export const assertCanSend = mutation({
+  args: { clientId: v.id('clients') },
+  handler: async (ctx, args) => {
+    await requireInWorkspace(ctx, args.clientId, 'admin')
+    return { ok: true }
+  },
+})
+
+/**
+ * The hourly sweep.
+ *
+ * Every enabled schedule is asked whether this is its hour in its own timezone.
+ * Hourly rather than daily because the hour is configurable — a daily job could
+ * only ever honour the day.
+ */
+export const runScheduledReports = internalAction({
+  args: {},
+  handler: async (ctx): Promise<{ checked: number; sent: number }> => {
+    const schedules = await ctx.runQuery(internal.reports.dueSchedules, {})
+
+    let sent = 0
+    for (const item of schedules) {
+      const result = await ctx.runAction(api.reports.sendReportsNow, {
+        clientId: item.clientId,
+        periods: [item.period],
+      }).catch((error) => {
+        console.error(`[reports] scheduled send failed for ${item.clientId}:`, error)
+        return null
+      })
+
+      if (result) sent += result.sent
+    }
+
+    return { checked: schedules.length, sent }
+  },
+})
+
+/** Internal: which schedules are due right now. */
+export const dueSchedules = internalQuery({
+  args: { at: v.optional(v.number()) },
+  handler: async (ctx, args) => {
+    const now = args.at ? new Date(args.at) : new Date()
+
+    const schedules = await ctx.db
+      .query('reportSchedules')
+      .withIndex('by_enabled', (q) => q.eq('enabled', true))
+      .collect()
+
+    return schedules
+      .map((schedule) => ({ schedule, verdict: dueNow(schedule, now) }))
+      .filter(({ verdict }) => verdict.due)
+      .map(({ schedule, verdict }) => ({
+        clientId: schedule.clientId,
+        period: verdict.period,
+      }))
   },
 })

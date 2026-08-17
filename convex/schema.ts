@@ -260,6 +260,34 @@ export default defineSchema({
     windowStartedAt: v.number(),
   }).index("by_scope_and_bucket", ["scope", "bucket"]),
 
+  // When and to whom a client's monthly report goes.
+  //
+  // One row per client, because the recipient and the timing are properties of
+  // the engagement, not of the account: one client's manager wants it on the 1st
+  // at 9am Lagos time, another's wants the 5th at 8am New York.
+  //
+  // `recipients` is separate from `clients.email` on purpose. The billing
+  // contact and the person who reads the report are frequently different people,
+  // and the reader changes when someone leaves the company.
+  reportSchedules: defineTable({
+    clientId: v.id("clients"),
+    workspaceId: v.optional(v.id("workspaces")),
+    enabled: v.boolean(),
+    recipients: v.array(v.string()),
+    /** 1–28. Capped so a schedule cannot silently skip February. */
+    dayOfMonth: v.number(),
+    /** 0–23, in the timezone below. */
+    hourLocal: v.number(),
+    /** IANA name, e.g. Africa/Lagos. */
+    timezone: v.string(),
+    /** `YYYY-MM` of the last period sent — what makes the cron idempotent. */
+    lastSentPeriod: v.optional(v.string()),
+    lastSentAt: v.optional(v.string()),
+  })
+    .index("by_client", ["clientId"])
+    .index("by_workspace", ["workspaceId"])
+    .index("by_enabled", ["enabled"]),
+
   // Feedback a client leaves on a monthly report.
   //
   // Left by the manager reading the report, who has no account — so there is no

@@ -25,6 +25,7 @@ import {
   FileText,
   Kanban,
   LayoutDashboard,
+  Mail,
   Monitor,
   Moon,
   PlusCircle,
@@ -112,6 +113,10 @@ export function CommandPalette() {
           <CommandItem onSelect={() => go('/dashboard/clients')}>
             <Building2 className="h-4 w-4" />
             Clients
+          </CommandItem>
+          <CommandItem onSelect={() => go('/dashboard/reports')}>
+            <Mail className="h-4 w-4" />
+            Reports
           </CommandItem>
           <CommandItem onSelect={() => go('/dashboard/members')}>
             <Users className="h-4 w-4" />

@@ -12,14 +12,16 @@ crons.daily(
   internal.sync.syncAllStats,
 )
 
-// The report has always been live at the client's dashboard URL; this is the
-// nudge to go and look. Sent on the 1st for the month that just closed, at an
-// hour that lands in the morning across the Americas and Europe rather than at
-// 4am for whoever happens to be furthest east.
-crons.monthly(
-  'notify clients their monthly report is ready',
-  { day: 1, hourUTC: 9, minuteUTC: 0 },
-  internal.reports.sendMonthlyReports,
+// Hourly, not monthly. The day, hour and timezone are configured per client in
+// the dashboard, and a cron can only honour that by waking up every hour and
+// asking each schedule whether this is its hour where the client lives.
+//
+// Each run is cheap: one indexed read of enabled schedules, and almost always
+// nothing to do.
+crons.hourly(
+  'send scheduled client reports',
+  { minuteUTC: 5 },
+  internal.reports.runScheduledReports,
   {},
 )
 
