@@ -120,13 +120,13 @@ export const sendWaitlistConfirmation = internalAction({
       html: layout(`
         <p style="margin:0 0 14px;font-size:15px;line-height:1.6;">${greeting}</p>
         <p style="margin:0 0 14px;font-size:15px;line-height:1.6;">
-          Thanks for joining the waitlist. We'll email you as soon as your spot opens up — no newsletter, no drip sequence, just the one message.
+          Thanks for joining the waitlist. We email you when your spot opens. No newsletter, no drip sequence, just the one message.
         </p>
         <p style="margin:0;font-size:15px;line-height:1.6;">
-          In the meantime, replying to this email reaches a human if you have questions.
+          Replying to this email reaches a person, not a bot.
         </p>
       `),
-      text: `${greeting}\n\nThanks for joining the DevRel Studio waitlist. We'll email you as soon as your spot opens up — no newsletter, just the one message.\n\nReplying to this email reaches a human if you have questions.`,
+      text: `${greeting}\n\nThanks for joining the DevRel Studio waitlist. We email you when your spot opens. No newsletter, just the one message.\n\nReplying to this email reaches a person, not a bot.`,
     })
   },
 })
@@ -155,7 +155,7 @@ export const sendWorkspaceInvite = internalAction({
           <strong>${args.role}</strong>.
         </p>
         <p style="margin:0 0 22px;font-size:15px;line-height:1.6;">
-          Create your account to get started. This invitation expires in 14 days.
+          Create an account to accept it. The invitation expires in 14 days.
         </p>
         <p style="margin:0 0 22px;">${button(args.signUpUrl, 'Accept invitation')}</p>
         <p style="margin:0;font-size:13px;line-height:1.6;color:#718096;">
@@ -306,7 +306,7 @@ export const sendMonthlyReportReady = internalAction({
 
     return await send({
       to: args.email,
-      subject: `${args.clientName} — your ${args.period} report`,
+      subject: `Your ${args.period} report for ${args.clientName}`,
       attachments:
         args.pdfBase64 && args.pdfFilename
           ? [{ filename: args.pdfFilename, content: args.pdfBase64 }]
@@ -320,11 +320,11 @@ export const sendMonthlyReportReady = internalAction({
         </p>
         <p style="margin:0 0 22px;">${button(args.dashboardUrl, 'Read the report')}</p>
         <p style="margin:0;font-size:13px;line-height:1.6;color:#718096;">
-          The report covers the full period, compares it with the one before, and has a space
-          at the end for your thoughts. You can download it as a PDF from the same page.
+          The report covers the full period and compares it with the one before. A space at the end
+          takes your reply. The same page has a PDF download.
         </p>
       `),
-      text: `Your ${args.period} report for ${args.clientName} is ready — ${args.publishedCount} ${piece} published this period.\n\nRead it: ${args.dashboardUrl}\n\nThe report covers the full period, compares it with the one before, and has a space at the end for your thoughts. A PDF is available from the same page.`,
+      text: `Your ${args.period} report for ${args.clientName} is ready. ${args.publishedCount} ${piece} published this period.\n\nRead it: ${args.dashboardUrl}\n\nThe report covers the full period and compares it with the one before. A space at the end takes your reply. The same page has a PDF download.`,
     })
   },
 })

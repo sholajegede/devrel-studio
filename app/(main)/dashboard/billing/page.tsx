@@ -142,7 +142,7 @@ function BillingPageContent() {
         {/* Current plan */}
         <SettingSection
           title="Current plan"
-          description="Your active license. Upgrade any time."
+          description="The plan you are on now. Change it whenever you want."
         >
           <div className="rounded-2xl bg-linear-to-br from-accent/10 via-accent/5 to-transparent border border-accent/25 p-6" data-tour="billing-plan">
             <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-5">
@@ -241,7 +241,7 @@ function BillingPageContent() {
         {/* Plan comparison */}
         <SettingSection
           title="Choose a plan"
-          description="Priced monthly, bought in terms. Longer terms cost less."
+          description="Prices are monthly. Pay for more months at once and the rate drops."
         >
           <div id="plans" className="grid gap-4 sm:grid-cols-3 scroll-mt-8" data-tour="billing-plans">
             {PURCHASABLE_PLANS.map((planId) => {
@@ -334,8 +334,8 @@ function BillingPageContent() {
 
         {/* License & receipts */}
         <SettingSection
-          title="License & receipts"
-          description="After purchasing, your license key and invoices appear here. Download them any time for accounting."
+          title="Payment record"
+          description="Every payment you make shows up here with the date it cleared and the date access runs to."
         >
           <Card data-tour="billing-receipts">
             <CardContent className="p-6">
@@ -347,7 +347,7 @@ function BillingPageContent() {
                     </div>
                     <div>
                       <p className="text-sm font-medium text-foreground">
-                        {currentPlan.name} licence
+                        {currentPlan.name} plan
                       </p>
                       <p className="text-xs text-muted-foreground mt-0.5">
                         ${currentPlan.price} paid
@@ -361,7 +361,7 @@ function BillingPageContent() {
                     </div>
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    Stripe emails your receipt at the time of purchase.
+                    We email a receipt once the transfer clears.
                   </p>
                 </div>
               ) : (
@@ -371,7 +371,7 @@ function BillingPageContent() {
                   </div>
                   <p className="text-sm font-medium text-foreground mb-1">No purchases yet</p>
                   <p className="text-xs text-muted-foreground max-w-xs mx-auto">
-                    Your licence and payment receipt will appear here after your first purchase.
+                    Your first payment will show up here once it clears.
                   </p>
                   <a href="#plans">
                     <Button size="sm" className="mt-5 bg-accent text-accent-foreground hover:bg-accent/90 gap-1.5">
@@ -389,7 +389,7 @@ function BillingPageContent() {
         {/* FAQ */}
         <SettingSection
           title="Billing FAQ"
-          description="Common questions about our pricing and payment policies."
+          description="How paying works."
         >
           <Accordion type="single" collapsible className="space-y-2">
             {FAQ_ITEMS.map(({ q, a }, i) => (

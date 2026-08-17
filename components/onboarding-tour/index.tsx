@@ -17,25 +17,25 @@ interface TourStep {
 const STEPS: TourStep[] = [
   {
     target: "body",
-    title: "Welcome to Your Performance Dashboard 👋",
+    title: "Welcome to your performance dashboard 👋",
     content:
-      "Track every piece of DevRel content — articles, videos, events, podcasts, and packages — all in one place. Let's take a 60-second walkthrough.",
+      "This dashboard holds every piece of work delivered for you: articles, videos, events, podcasts, packages and demos. The tour takes about a minute.",
     position: "center",
     highlight: false,
   },
   {
     target: '[data-tour="stats-cards"]',
-    title: "Your Key Metrics",
+    title: "The headline numbers",
     content:
-      "Five live numbers at the top: Published pieces, In Progress work, total Views (articles & videos), Downloads (packages & podcasts), and Attendees (events). All update in real time.",
+      "Five numbers sit at the top. Published work, work in progress, views from articles and videos, downloads from packages and podcasts, and attendees at events. They update as the work lands.",
     position: "bottom",
     highlight: true,
   },
   {
     target: '[data-tour="filter-bar"]',
-    title: "Search & Filter",
+    title: "Search and filter",
     content:
-      "Search by title, then narrow down by month, platform, or status. All filters stack together — click Clear to reset everything at once.",
+      "Search by title. Then narrow by month, platform or status. Filters stack. Clear resets all of them at once.",
     position: "bottom",
     highlight: true,
   },
@@ -43,55 +43,55 @@ const STEPS: TourStep[] = [
     target: '[data-tour="export-button"]',
     title: "Export as PDF",
     content:
-      "Generate a clean PDF of the current filtered view — ideal for client check-ins, stakeholder updates, or keeping your own records.",
+      "This button turns whatever the page currently shows into a PDF. Filters carry over, so the file matches the view.",
     position: "bottom",
     highlight: true,
   },
   {
     target: '[data-tour="category-pills"]',
-    title: "Filter by Content Type",
+    title: "Filter by content type",
     content:
-      "Jump between Written, Video, Event, Podcast, Package, and Demo with one click. The count on each pill reflects how many pieces match your other active filters.",
+      "One click moves between Written, Video, Event, Podcast, Package and Demo. Each count respects the filters already set.",
     position: "bottom",
     highlight: true,
   },
   {
     target: '[data-tour="content-table"]',
-    title: "Your Deliverables",
+    title: "The work itself",
     content:
-      "Content grouped by month, sorted by status. Each row shows the category type, platform, status, and the right metric for that content type — views, attendees, or downloads.",
+      "Rows group by month and sort by status. Each row names the type, the platform and the status. The last column carries the number that suits that type: views, attendees or downloads.",
     position: "top",
     highlight: true,
   },
   {
     target: '[data-tour="status-badge"]',
-    title: "Content Status",
+    title: "What each status means",
     content:
-      "Published = live. In Review = waiting on a platform's editorial team (e.g. freeCodeCamp). Scheduled = dropping soon. Draft = still being written.",
+      "Published means the piece is live. In Review means an editor still holds it. Scheduled means a date is set. Draft means writing is under way.",
     position: "bottom",
     highlight: true,
   },
   {
     target: '[data-tour="content-link"]',
-    title: "Link & UTM Tracking",
+    title: "Links and tracking",
     content:
-      "Click View to open the live piece in a new tab. The UTM column holds your campaign tracking link — click Copy to grab it for reports or attribution.",
+      "View opens the live piece in a new tab. The UTM column holds the tracking link for that piece. Copy puts it on the clipboard.",
     position: "top",
     highlight: true,
   },
   {
     target: '[data-tour="share-button"]',
-    title: "Reshare Tracking",
+    title: "Reshares",
     content:
-      "The share icon shows how many platforms this piece was reshared on. Click it to expand and see every reshare with a direct link — LinkedIn, Twitter/X, Reddit, Hacker News, and more.",
+      "The share icon counts the places a piece was reshared. Click it to open the list. Every reshare carries a direct link, from LinkedIn to Reddit to Hacker News.",
     position: "bottom",
     highlight: true,
   },
   {
     target: "body",
-    title: "You're all set! ✨",
+    title: "That is the whole tour ✨",
     content:
-      "Restart this tour any time by clicking the Help button in the top right. Your DevRel Studio contact is always available for questions.",
+      "The Help button in the top right starts this tour again. For anything else, ask the person who shared this dashboard.",
     position: "center",
     highlight: false,
   },

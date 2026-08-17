@@ -156,7 +156,7 @@ export default function MembersPage() {
         {/* Current members */}
         <SettingSection
           title="Workspace members"
-          description="Everyone with access to this workspace. The owner has full control and cannot be removed."
+          description="Everyone in this workspace. The owner keeps full control and no one can remove them."
         >
           <Card>
             <CardContent className="p-0">
@@ -237,7 +237,7 @@ export default function MembersPage() {
         {/* Invite */}
         <SettingSection
           title="Invite a team member"
-          description="Reserve a seat for someone on your team and record the role they should have."
+          description="Send someone an invite link. Opening it puts them in this workspace with the role you pick."
         >
           <Card data-tour="members-invite">
             <CardContent className="p-6">
@@ -353,7 +353,7 @@ export default function MembersPage() {
             <Separator />
             <SettingSection
               title="Pending invitations"
-              description="Seats reserved for people you plan to add. Cancel any of them to free the seat."
+              description="Invites nobody has opened yet. Cancel one to free the seat."
             >
               <Card>
                 <CardContent className="p-0 divide-y divide-border">
@@ -402,7 +402,7 @@ export default function MembersPage() {
         {/* Seat usage */}
         <SettingSection
           title="Seat usage"
-          description="Seats are set by your plan. The Agency plan raises the workspace to 5 seats."
+          description="Your plan sets the number of seats. Agency raises this workspace to 5."
         >
           <Card>
             <CardContent className="p-6">

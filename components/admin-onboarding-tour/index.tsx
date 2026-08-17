@@ -27,77 +27,77 @@ interface TourStep {
 
 // ── Dashboard overview ────────────────────────────────────────────────────────
 const DASHBOARD_STEPS: TourStep[] = [
-  { target: "body", title: "Your Admin Dashboard", content: "Command central — live stats, a monthly bar chart, and a filterable content view. Everything you need to track your DevRel output.", position: "center", highlight: false },
-  { target: '[data-tour="admin-stats"]', title: "Live Performance Stats", content: "Five counters mirroring your client dashboard exactly: Published, In Progress, Views, Downloads, and Attendees. They update the moment you add or edit an entry.", position: "bottom", highlight: true },
-  { target: '[data-tour="admin-chart"]', title: "Monthly Bar Chart", content: "Published vs in-progress content across the last 6 months. Great for spotting slow periods or showing momentum to a new client.", position: "bottom", highlight: true },
-  { target: '[data-tour="admin-filters"]', title: "Filter by Month & Category", content: "Narrow down by month and content category. Useful when reviewing a specific reporting period or auditing a single content type.", position: "bottom", highlight: true },
-  { target: '[data-tour="admin-content"]', title: "Monthly Content View", content: "Entries grouped by month, sorted by status. Same data your client sees, with edit access added for you.", position: "top", highlight: true },
-  { target: '[data-tour="admin-add-button"]', title: "Add New Content", content: "Log a new blog, video, event, podcast, or package. The form adapts to whichever category you pick.", position: "bottom", highlight: true },
-  { target: '[data-tour="admin-view-btn"]', title: "View the Client Dashboard", content: "Jump to the read-only client view to verify everything looks right before a check-in call.", position: "bottom", highlight: true },
-  { target: "body", title: "You're all set!", content: "Use the sidebar to navigate. Restart this tour any time from the Tour button in the top-right.", position: "center", highlight: false },
+  { target: "body", title: "Your dashboard", content: "Live stats, a monthly chart and a filter for everything you have logged. This is where you workput.", position: "center", highlight: false },
+  { target: '[data-tour="admin-stats"]', title: "The headline numbers", content: "Five counters, the same five your client sees: Published, In Progress, Views, Downloads and Attendees. They update the moment you add or edit an entry.", position: "bottom", highlight: true },
+  { target: '[data-tour="admin-chart"]', title: "The monthly chart", content: "Published work against work in progress over six months. Slow months are easy to spotum to a new client.", position: "bottom", highlight: true },
+  { target: '[data-tour="admin-filters"]', title: "Filter by month and category", content: "Narrow the page to one month or one category. Use it when you review a reporting period or auditing a single content type.", position: "bottom", highlight: true },
+  { target: '[data-tour="admin-content"]', title: "Your work by month", content: "Entries group by month and sort by status. Your client sees the same rows without the edit controls.", position: "top", highlight: true },
+  { target: '[data-tour="admin-add-button"]', title: "Add an entry", content: "Log an article, video, event, podcast, package or demo. The form changes to match the category you pick.", position: "bottom", highlight: true },
+  { target: '[data-tour="admin-view-btn"]', title: "See the client view", content: "Open the read-only dashboard your client gets. Check it before a call.", position: "bottom", highlight: true },
+  { target: "body", title: "That is the tour", content: "The sidebar moves you around. The Tour button in the top right starts this again.", position: "center", highlight: false },
 ];
 
 // ── Add entry ─────────────────────────────────────────────────────────────────
 const ADD_ENTRY_STEPS: TourStep[] = [
-  { target: "body", title: "Adding a New Entry", content: "Log a single piece of DevRel content. Fields adapt based on the category you choose.", position: "center", highlight: false },
-  { target: '[data-tour="form-category"]', title: "1. Pick a Category", content: "Always start here. Your selection controls which platforms, sub-types, and metric fields appear below.", position: "bottom", highlight: true },
-  { target: '[data-tour="form-details"]', title: "2. Fill in the Details", content: "Client, title, platform, sub-type, date, and status are the core fields. Metric inputs appear automatically for the chosen category.", position: "top", highlight: true },
-  { target: '[data-tour="form-reshares"]', title: "3. Log Reshares", content: "Record every platform where this piece was promoted. Clients can expand each reshare on their dashboard.", position: "top", highlight: true },
-  { target: '[data-tour="form-tags"]', title: "4. Add Tags", content: "Tags make filtering faster. Click a suggestion or type a custom one.", position: "top", highlight: true },
-  { target: '[data-tour="form-actions"]', title: "5. Save the Entry", content: "Click Add Entry to save. The entry appears on the client dashboard immediately.", position: "top", highlight: true },
-  { target: "body", title: "All set!", content: "You'll land on the content list after saving. Restart this tour any time from the Tour button.", position: "center", highlight: false },
+  { target: "body", title: "Adding an entry", content: "This form logs one piece of work. The fields change with the category you choose.", position: "center", highlight: false },
+  { target: '[data-tour="form-category"]', title: "1. Pick a category", content: "Start here. The category sets which platforms, sub-types and metric fields appear below.", position: "bottom", highlight: true },
+  { target: '[data-tour="form-details"]', title: "2. Fill in the details", content: "Client, title, platform, sub-type, date and status carry the entry. Metric fields appear on their own, basedcally for the chosen category.", position: "top", highlight: true },
+  { target: '[data-tour="form-reshares"]', title: "3. Log reshares", content: "Record each place you promoted the piece. Your client can open the list on their dashboard.", position: "top", highlight: true },
+  { target: '[data-tour="form-tags"]', title: "4. Add tags", content: "Tags make filtering faster. Click a suggestion or type your own.", position: "top", highlight: true },
+  { target: '[data-tour="form-actions"]', title: "5. Save it", content: "Add Entry saves the work. It reaches the client dashboard at once.", position: "top", highlight: true },
+  { target: "body", title: "Done", content: "Saving returns you to the content list. The Tour button starts this again.", position: "center", highlight: false },
 ];
 
 // ── All Content ───────────────────────────────────────────────────────────────
 const CONTENT_STEPS: TourStep[] = [
-  { target: "body", title: "All Content", content: "Your full content library — every entry across all clients, categories, and time periods.", position: "center", highlight: false },
-  { target: '[data-tour="content-filters"]', title: "Combine Filters", content: "Search by keyword, then narrow by category, status, platform, or client. Use them together for precise reporting.", position: "bottom", highlight: true },
-  { target: '[data-tour="content-table"]', title: "Your Content Library", content: "Every row is a logged entry. See the category badge, platform, status, metric, and a direct link to the live piece.", position: "top", highlight: true },
-  { target: '[data-tour="content-add"]', title: "Quick Add", content: "The Add New Entry button is available here too — log content without going back to the overview.", position: "bottom", highlight: true },
-  { target: "body", title: "Pro tip", content: "Use 'Clear filters' to reset everything at once. The entry count updates live so you always know how many results match.", position: "center", highlight: false },
+  { target: "body", title: "All your work", content: "Every entry you have logged, across all clients, categories and dates.", position: "center", highlight: false },
+  { target: '[data-tour="content-filters"]', title: "Stack the filters", content: "Search by keyword. Then narrow by category, status, platform or client. They stack, so you can cut this to one reporting.", position: "bottom", highlight: true },
+  { target: '[data-tour="content-table"]', title: "The table", content: "One row per entry. Each carries the category, platform, status, metric and a link to the live piece.", position: "top", highlight: true },
+  { target: '[data-tour="content-add"]', title: "Add from here", content: "This page has its own Add button, so you can log work without going back.", position: "bottom", highlight: true },
+  { target: "body", title: "One tip", content: "Clear filters resets the lot. The entry count tracks whatever the filters leave.", position: "center", highlight: false },
 ];
 
 // ── Clients ───────────────────────────────────────────────────────────────────
 const CLIENTS_STEPS: TourStep[] = [
-  { target: "body", title: "Client Management", content: "Your client roster — track every engagement, retainer, start date, and contact detail in one place.", position: "center", highlight: false },
-  { target: '[data-tour="clients-stats"]', title: "Revenue Overview", content: "Active clients, combined monthly retainer, and average retainer at a glance — your book of business in three numbers.", position: "bottom", highlight: true },
-  { target: '[data-tour="clients-add"]', title: "Add a Client", content: "Open the client form to fill in company, email, retainer amount, contract type, and start date. Only the name is required.", position: "bottom", highlight: true },
-  { target: '[data-tour="clients-list"]', title: "Client Cards", content: "Each card shows status (Active, Paused, Ended), monthly retainer, contract type, and start date at a glance. Click the menu to edit or delete.", position: "top", highlight: true },
-  { target: "body", title: "Linking clients to content", content: "The slug shown on each client card (e.g. 'kinde') is what you use in the Client field when logging content entries — keeping everything connected.", position: "center", highlight: false },
+  { target: "body", title: "Your clients", content: "Every engagement in one list, with the retainer, the start date and who to contact.", position: "center", highlight: false },
+  { target: '[data-tour="clients-stats"]', title: "What you earn", content: "Active clients, total monthly retainer and the average. Three numbers.", position: "bottom", highlight: true },
+  { target: '[data-tour="clients-add"]', title: "Add a client", content: "The form takes company, email, retainer, contract type and start date. Only the name is required.", position: "bottom", highlight: true },
+  { target: '[data-tour="clients-list"]', title: "The cards", content: "Each card carries the status, the monthly retainer, the contract type and the start date. Click the menu to edit or delete.", position: "top", highlight: true },
+  { target: "body", title: "How clients link to work", content: "Each card shows a slug, such as 'kinde'. Type that same slug in the Client field when you log an entry. Keeping everything connected.", position: "center", highlight: false },
 ];
 
 // ── Pipeline ──────────────────────────────────────────────────────────────────
 const PIPELINE_STEPS: TourStep[] = [
-  { target: "body", title: "Your Pipeline", content: "Everything in flight, as a board. Four lanes by status, so you can see what's stuck without reading a table.", position: "center", highlight: false },
-  { target: '[data-tour="pipeline-summary"]', title: "What Needs Attention", content: "How many pieces are in flight, how many have slipped past their planned date, and what's due in the next two weeks.", position: "bottom", highlight: true },
-  { target: '[data-tour="pipeline-filter"]', title: "Focus on One Client", content: "Filter the whole board down to a single client — useful right before a check-in call. Appears once you have more than one client.", position: "bottom", highlight: true },
-  { target: '[data-tour="pipeline-board"]', title: "Four Lanes", content: "Draft, Waiting Approval, Scheduled, and Published. Cards show the client, platform, and planned date; anything overdue turns amber.", position: "top", highlight: true },
-  { target: '[data-tour="pipeline-card"]', title: "Move Work Along", content: "Open a card's menu and pick a lane to change its status. It saves immediately — no need to open the full edit form.", position: "right", highlight: true },
-  { target: "body", title: "That's the board", content: "Restart this tour any time from the Tour button in the top-right.", position: "center", highlight: false },
+  { target: "body", title: "Your pipeline", content: "Work in flight, as a board. Four lanes by status. Stuck work stands out without reading a table.", position: "center", highlight: false },
+  { target: '[data-tour="pipeline-summary"]', title: "What needs attention", content: "How much work is in flight, how much has slipped past its planned date, and what falls due in the next two weeks.", position: "bottom", highlight: true },
+  { target: '[data-tour="pipeline-filter"]', title: "Focus on one client", content: "This cuts the board to a single client. Handy before a check-in call. It appears once you have more than one client.", position: "bottom", highlight: true },
+  { target: '[data-tour="pipeline-board"]', title: "Four lanes", content: "Draft, Waiting Approval, Scheduled and Published. Each card carries the client, the platform and the planned date. Anything overdue turns amber.", position: "top", highlight: true },
+  { target: '[data-tour="pipeline-card"]', title: "Move work along", content: "Open a card menu and pick a lane. It saves at once. You never open the full edit form.", position: "right", highlight: true },
+  { target: "body", title: "That is the board", content: "The Tour button in the top right starts this again.", position: "center", highlight: false },
 ];
 
 // ── Members ───────────────────────────────────────────────────────────────────
 const MEMBERS_STEPS: TourStep[] = [
-  { target: "body", title: "Team Members", content: "Manage who can access your workspace. You're the Owner and always have full control.", position: "center", highlight: false },
-  { target: '[data-tour="members-invite"]', title: "Invite a Team Member", content: "Enter an email and choose a role. The invitation is sent instantly — they'll be prompted to create an account if needed.", position: "top", highlight: true },
-  { target: '[data-tour="members-roles"]', title: "Three Permission Levels", content: "Admin: full access. Editor: add and edit content, no delete. Viewer: read-only access to the admin dashboard.", position: "top", highlight: true },
-  { target: '[data-tour="members-seats"]', title: "Seat Usage", content: "Your current plan includes 1 seat. Upgrade to Agency to add up to 5 team members.", position: "top", highlight: true },
+  { target: "body", title: "Your team", content: "This page controls who reaches your workspace. You own it, so you keep full control.", position: "center", highlight: false },
+  { target: '[data-tour="members-invite"]', title: "Invite someone", content: "Enter an email and pick a role. We send the invite at once. Opening the link takes them through creating an account if needed.", position: "top", highlight: true },
+  { target: '[data-tour="members-roles"]', title: "Three roles", content: "Admin does everything. Editor adds and edits work but deletes nothing. Viewer only reads the dashboard.", position: "top", highlight: true },
+  { target: '[data-tour="members-seats"]', title: "Seats", content: "Your plan sets the seat count. Agency raises this workspace to 5.", position: "top", highlight: true },
 ];
 
 // ── Billing ───────────────────────────────────────────────────────────────────
 const BILLING_STEPS: TourStep[] = [
-  { target: "body", title: "Billing & Licensing", content: "Your access window and how to extend it. Priced monthly, bought in terms, paid by transfer.", position: "center", highlight: false },
-  { target: '[data-tour="billing-plan"]', title: "Your Current Plan", content: "Shows your active license, included limits, and spend so far. You're on the Free Trial — unlimited time, limited entries.", position: "bottom", highlight: true },
-  { target: '[data-tour="billing-plans"]', title: "Upgrade Options", content: "Starter $29, Pro $59, Agency $119 a month. Buy 1, 3, 6 or 12 months at a time — longer terms cost less.", position: "top", highlight: true },
-  { target: '[data-tour="billing-receipts"]', title: "Receipts & License", content: "License key and downloadable invoices appear here after purchase. Download any time for accounting.", position: "top", highlight: true },
+  { target: "body", title: "Billing", content: "How long your access runs, and how to extend it. Prices are monthly. You pay by bank transfer.", position: "center", highlight: false },
+  { target: '[data-tour="billing-plan"]', title: "Your plan", content: "The plan you are on, what it includes, and the date access runs to. A free trial lasts 14 days.", position: "bottom", highlight: true },
+  { target: '[data-tour="billing-plans"]', title: "The plans", content: "Starter $29, Pro $59, Agency $119 a month. Buy 1, 3, 6 or 12 months at a time. Longer terms cost less.", position: "top", highlight: true },
+  { target: '[data-tour="billing-receipts"]', title: "Payment record", content: "Each payment lands here with the date it cleared and the date access runs to.", position: "top", highlight: true },
 ];
 
 // ── Settings ──────────────────────────────────────────────────────────────────
 const SETTINGS_STEPS: TourStep[] = [
-  { target: "body", title: "Account Settings", content: "Manage your profile, preferences, and account security here.", position: "center", highlight: false },
-  { target: '[data-tour="settings-profile"]', title: "Your Profile", content: "Update your display name. Your email is managed by Kinde and can't be changed from this page.", position: "bottom", highlight: true },
-  { target: '[data-tour="settings-preferences"]', title: "Preferences", content: "Theme and notification preferences. Email notifications are coming soon.", position: "top", highlight: true },
-  { target: '[data-tour="settings-danger"]', title: "Danger Zone", content: "Account deletion is permanent and removes all content data. We'll ask you to confirm before anything is deleted.", position: "top", highlight: true },
+  { target: "body", title: "Settings", content: "Your profile, your theme and your public handle.", position: "center", highlight: false },
+  { target: '[data-tour="settings-profile"]', title: "Your profile", content: "Change your display name here. Kinde owns your email address, so change that with Kinde.", position: "bottom", highlight: true },
+  { target: '[data-tour="settings-preferences"]', title: "Preferences", content: "Pick a theme. System follows your machine and changes with it.", position: "top", highlight: true },
+  { target: '[data-tour="settings-danger"]', title: "Danger zone", content: "Deleting your account wipes every entry with it and nothing comes back. We ask you to confirm before anything is deleted.", position: "top", highlight: true },
 ];
 
 // ── Step map ──────────────────────────────────────────────────────────────────

@@ -396,7 +396,7 @@ export default function SettingsPage() {
       <div className="flex items-start justify-between mb-8 gap-4">
         <div>
           <h1 className="text-2xl font-semibold text-foreground">Settings</h1>
-          <p className="text-sm text-muted-foreground mt-1">Manage your profile and account preferences.</p>
+          <p className="text-sm text-muted-foreground mt-1">Your profile, your theme and your public handle.</p>
         </div>
         <AdminTourTriggerButton onStartTour={() => tourControls?.startTour()} />
       </div>
@@ -406,7 +406,7 @@ export default function SettingsPage() {
         {/* Profile section */}
         <SettingSection
           title="Profile"
-          description="Your public-facing name and contact email. Your email is managed by your authentication provider."
+          description="The name clients see. Your sign-in provider owns the email address, so change it there."
         >
           <Card data-tour="settings-profile">
             <CardContent className="p-6">
@@ -475,7 +475,7 @@ export default function SettingsPage() {
         {/* Danger zone */}
         <SettingSection
           title="Danger Zone"
-          description="These actions are permanent and cannot be undone. Proceed with caution."
+          description="These actions are permanent. Nothing here can be undone."
         >
           <Card className="border-destructive/30" data-tour="settings-danger">
             <CardContent className="p-6">
