@@ -23,7 +23,7 @@ import {
 import PageLoader from '@/components/page-loader'
 import { RoleNotice } from '@/components/dashboard/role-notice'
 import { toast } from 'sonner'
-import { Clock, Loader2, Mail, Send, X } from 'lucide-react'
+import { AlertTriangle, Clock, Loader2, Mail, Send, X } from 'lucide-react'
 
 // ── Report delivery ───────────────────────────────────────────────────────────
 //
@@ -404,6 +404,7 @@ function ordinal(n: number): string {
 export default function ReportsPage() {
   const { profile } = useUserContext()
   const schedules = useQuery(api.reports.listSchedules, profile?._id ? {} : 'skip')
+  const override = useQuery(api.reports.deliveryOverride, profile?._id ? {} : 'skip')
 
   if (!profile || schedules === undefined) return <PageLoader />
 
@@ -418,6 +419,21 @@ export default function ReportsPage() {
           any month by hand.
         </p>
       </div>
+
+      {/* An override makes every recipient below wrong. Saying so is the only
+          thing that keeps the cards honest. */}
+      {override && (
+        <div className="mb-6 flex items-start gap-2.5 rounded-lg border border-amber-300 bg-amber-50/60 px-4 py-3 dark:border-amber-500/30 dark:bg-amber-500/10">
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
+          <p className="text-sm text-amber-900 dark:text-amber-200">
+            <span className="font-medium">Delivery is being redirected.</span> Every report —
+            scheduled or sent by hand — goes to{' '}
+            <span className="font-mono text-xs">{override.redirectingTo}</span>, not the
+            recipients below. Clear <span className="font-mono text-xs">REPORT_REDIRECT_TO</span>{' '}
+            to send for real.
+          </p>
+        </div>
+      )}
 
       {schedules.length === 0 ? (
         <Card>

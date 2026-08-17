@@ -751,3 +751,21 @@ export const dueSchedules = internalQuery({
       }))
   },
 })
+
+/**
+ * Whether a delivery override is active, and where mail is going instead.
+ *
+ * Surfaced in the dashboard because the alternative is an interface that lies:
+ * the schedule card names a recipient, and with an override set that is not who
+ * receives it. A debugging aid that cannot be seen is a trap.
+ */
+export const deliveryOverride = query({
+  args: {},
+  handler: async (ctx) => {
+    const context = await getCurrentWorkspace(ctx)
+    if (!context) return null
+
+    const target = process.env.REPORT_REDIRECT_TO?.trim()
+    return target && target.includes('@') ? { redirectingTo: target } : null
+  },
+})
