@@ -21,6 +21,7 @@ import type * as model_auth from "../model/auth.js";
 import type * as model_plans from "../model/plans.js";
 import type * as model_workspaces from "../model/workspaces.js";
 import type * as portfolio from "../portfolio.js";
+import type * as reports from "../reports.js";
 import type * as sync from "../sync.js";
 import type * as users from "../users.js";
 import type * as waitlist from "../waitlist.js";
@@ -45,6 +46,7 @@ declare const fullApi: ApiFromModules<{
   "model/plans": typeof model_plans;
   "model/workspaces": typeof model_workspaces;
   portfolio: typeof portfolio;
+  reports: typeof reports;
   sync: typeof sync;
   users: typeof users;
   waitlist: typeof waitlist;
