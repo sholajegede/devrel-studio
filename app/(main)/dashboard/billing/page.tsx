@@ -39,7 +39,7 @@ const PLAN_ICONS: Record<PlanId, React.ElementType> = {
 const FAQ_ITEMS = [
   { q: 'What does "one-time fee" mean?', a: 'You pay once and own the software forever. No monthly charges, no annual renewals, no seat fees. Updates are included for 12 months from your purchase date.' },
   { q: 'Can I upgrade later?', a: 'Yes \u2014 upgrading is a separate one-time purchase at the new plan\u2019s price. Your current plan stays active until the upgrade completes.' },
-  { q: 'What\'s your refund policy?', a: 'Full refund within 14 days of purchase, no questions asked. Just email us at hello@devrel.studio.' },
+  { q: 'What\'s your refund policy?', a: 'Full refund within 14 days of purchase, no questions asked. Just email us at support@devrel.studio.' },
   { q: 'Need a larger team?', a: 'The Agency plan includes 5 seats. Contact us directly for larger teams or custom enterprise arrangements.' },
 ]
 
@@ -337,7 +337,7 @@ function BillingPageContent() {
 
           <p className="mt-4 text-xs text-muted-foreground text-center">
             Need a custom arrangement?{' '}
-            <Link href="mailto:hello@devrel.studio" className="text-accent hover:underline inline-flex items-center gap-1">
+            <Link href="mailto:support@devrel.studio" className="text-accent hover:underline inline-flex items-center gap-1">
               Contact us <ExternalLink className="h-3 w-3" />
             </Link>
           </p>
@@ -423,7 +423,7 @@ function BillingPageContent() {
 
           <p className="mt-4 text-xs text-muted-foreground">
             Other questions?{' '}
-            <Link href="mailto:hello@devrel.studio" className="text-accent hover:underline inline-flex items-center gap-1">
+            <Link href="mailto:support@devrel.studio" className="text-accent hover:underline inline-flex items-center gap-1">
               Contact support <ExternalLink className="h-3 w-3" />
             </Link>
           </p>

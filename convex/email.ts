@@ -17,7 +17,7 @@ import { api } from './_generated/api'
 //
 // Set on the Convex deployment, not .env.local:
 //   npx convex env set RESEND_API_KEY re_...
-//   npx convex env set EMAIL_FROM "DevRel Studio <hello@devrel.studio>"
+//   npx convex env set EMAIL_FROM "DevRel Studio <support@devrel.studio>"
 
 const RESEND_ENDPOINT = 'https://api.resend.com/emails'
 
@@ -131,9 +131,9 @@ export const sendWaitlistConfirmation = internalAction({
 /**
  * Invitation to join a workspace. Triggered from `members:inviteMember`.
  *
- * Note the deliberately careful wording: invites reserve a seat and record
- * intent, but shared access is not implemented yet, so this must not promise the
- * recipient they can sign in and see anything.
+ * The link carries the invite token, so accepting it grants real access to the
+ * workspace — the earlier caveat here, that invites recorded intent without
+ * conferring access, no longer applies.
  */
 export const sendWorkspaceInvite = internalAction({
   args: {

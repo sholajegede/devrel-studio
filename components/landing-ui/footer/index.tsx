@@ -20,10 +20,10 @@ const Footer = () => {
 
           <div className="flex flex-col items-center gap-4">
             <a
-              href="mailto:hello@devrel.studio"
+              href="mailto:support@devrel.studio"
               className="text-surface-light/80 hover:text-surface-light transition-colors font-mono text-sm"
             >
-              hello@devrel.studio
+              support@devrel.studio
             </a>
             
             {/* Social Links */}

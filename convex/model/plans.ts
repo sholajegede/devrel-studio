@@ -87,9 +87,8 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
       'Unlimited client workspaces',
       'Everything in Pro',
       'Up to 5 team seats',
-      'White-label dashboard',
       'Onboarding call',
-      'SLA support',
+      'Priority SLA support',
     ],
   },
 }

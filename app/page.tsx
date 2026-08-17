@@ -471,7 +471,7 @@ function FAQ() {
 
       <p className="mt-8 text-center text-sm text-muted-foreground">
         Still have questions?{' '}
-        <Link href="mailto:hello@devrel.studio" className="text-foreground underline underline-offset-4 hover:text-accent">
+        <Link href="mailto:support@devrel.studio" className="text-foreground underline underline-offset-4 hover:text-accent">
           Email us
         </Link>
       </p>

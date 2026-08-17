@@ -25,7 +25,6 @@ export function MarketingFooter() {
               {[
                 { href: '/#features',     label: 'Features' },
                 { href: '/#how-it-works', label: 'How it works' },
-                { href: '/#testimonials', label: 'Reviews' },
                 { href: '/pricing',       label: 'Pricing' },
               ].map(({ href, label }) => (
                 <li key={label}>
@@ -40,6 +39,7 @@ export function MarketingFooter() {
             <ul className="space-y-2">
               {[
                 { href: '/dashboard', label: 'Sign in' },
+                { href: '/demo',      label: 'Live demo' },
                 { href: '/waitlist',  label: 'Join waitlist' },
               ].map(({ href, label }) => (
                 <li key={label}>
@@ -53,8 +53,11 @@ export function MarketingFooter() {
             <p className="text-xs font-semibold text-white/60 uppercase tracking-wider mb-3">Support</p>
             <ul className="space-y-2">
               {[
-                { href: 'mailto:hello@devrel.studio', label: 'Email support', external: true },
-                { href: '/#faq',                      label: 'FAQ',           external: false },
+                { href: 'mailto:support@devrel.studio', label: 'Email support', external: true },
+                { href: '/contact', label: 'Contact',  external: false },
+                { href: '/#faq',    label: 'FAQ',      external: false },
+                { href: '/privacy', label: 'Privacy',  external: false },
+                { href: '/terms',   label: 'Terms',    external: false },
               ].map(({ href, label, external }) => (
                 <li key={label}>
                   <Link href={href} className="text-sm text-white/40 hover:text-white transition-colors inline-flex items-center gap-1">

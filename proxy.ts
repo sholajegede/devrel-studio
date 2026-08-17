@@ -8,10 +8,12 @@ import { isReservedSubdomain } from '@/lib/naming';
 
 const publicRoutes = [
   '/',
-  '/about(.*)',
   '/contact(.*)',
   '/pricing(.*)',
   '/waitlist(.*)',
+  '/privacy(.*)',
+  '/terms(.*)',
+  '/demo(.*)',
   '/sign-in(.*)',
   '/sign-up(.*)',
   '/api/auth(.*)',
