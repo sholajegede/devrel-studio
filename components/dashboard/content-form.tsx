@@ -47,6 +47,7 @@ import {
 } from "lucide-react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
+import { ALL_CLIENTS, useClientScope } from "@/contexts/client-scope";
 import { useUserContext } from "@/contexts/user-context";
 import Link from "next/link";
 
@@ -79,6 +80,7 @@ export function ContentForm({ existingEntry, onSuccess }: ContentFormProps) {
   // be tagged with a slug that actually exists — hence the real client list
   // rather than a hardcoded one.
   const clients = useQuery(api.clients.getClients);
+  const { scope } = useClientScope();
 
   // ── Category ──────────────────────────────────────────────────────────────
 
@@ -89,7 +91,9 @@ export function ContentForm({ existingEntry, onSuccess }: ContentFormProps) {
   // ── Core form fields ──────────────────────────────────────────────────────
 
   const [formData, setFormData] = useState({
-    client: existingEntry?.client || "",
+    // A new entry created while the dashboard is scoped to one client almost
+    // always belongs to that client. Editing keeps whatever it already had.
+    client: existingEntry?.client || (scope !== ALL_CLIENTS ? scope : ""),
     title: existingEntry?.title || "",
     link: existingEntry?.link || "",
     trackingLink: existingEntry?.trackingLink || "",

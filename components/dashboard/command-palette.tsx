@@ -7,6 +7,7 @@ import { useMutation, useQuery } from 'convex/react'
 import { api } from '@/convex/_generated/api'
 import { Id } from '@/convex/_generated/dataModel'
 import { useWorkspaceRole } from '@/hooks/use-workspace-role'
+import { ALL_CLIENTS, useClientScope } from '@/contexts/client-scope'
 import {
   CommandDialog,
   CommandEmpty,
@@ -50,6 +51,7 @@ export function CommandPalette() {
   const router = useRouter()
   const { setTheme } = useTheme()
   const { can } = useWorkspaceRole()
+  const { scope, setScope, clients: scopeClients } = useClientScope()
 
   const clients = useQuery(api.clients.getClients, {})
   // The palette navigated but could not find. "Where is that post about
@@ -193,6 +195,35 @@ export function CommandPalette() {
                     <CommandShortcut>{client.slug}</CommandShortcut>
                   </CommandItem>
                 ))}
+            </CommandGroup>
+          </>
+        )}
+
+        {scopeClients.length > 1 && (
+          <>
+            <CommandSeparator />
+            <CommandGroup heading="View client">
+              <CommandItem
+                value="client all clients"
+                onSelect={() => run(() => setScope(ALL_CLIENTS))}
+              >
+                <Building2 className="h-4 w-4" />
+                All clients
+                {scope === ALL_CLIENTS && <CommandShortcut>current</CommandShortcut>}
+              </CommandItem>
+              {scopeClients.map((client) => (
+                <CommandItem
+                  key={client.slug}
+                  value={`view client ${client.name} ${client.slug}`}
+                  onSelect={() => run(() => setScope(client.slug))}
+                >
+                  <Building2 className="h-4 w-4" />
+                  {client.name}
+                  <CommandShortcut>
+                    {scope === client.slug ? 'current' : client.slug}
+                  </CommandShortcut>
+                </CommandItem>
+              ))}
             </CommandGroup>
           </>
         )}

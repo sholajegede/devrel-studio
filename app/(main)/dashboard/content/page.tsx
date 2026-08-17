@@ -4,6 +4,7 @@ import { useEffect, useState, useMemo } from 'react'
 import Link from 'next/link'
 import { AdminTour, AdminTourTriggerButton, TourVariant } from '@/components/admin-onboarding-tour'
 import { useWorkspaceRole } from '@/hooks/use-workspace-role'
+import { useClientScope } from '@/contexts/client-scope'
 import { RoleNotice } from '@/components/dashboard/role-notice'
 import { ImportDialog } from '@/components/dashboard/import-dialog'
 import {
@@ -62,6 +63,7 @@ export default function ContentListPage() {
 
   const syncMyStats = useAction(api.sync.syncMyStats)
   const { can } = useWorkspaceRole()
+  const { matches } = useClientScope()
 
   const content = useQuery(
     api.content.getAllContent,
@@ -89,7 +91,7 @@ export default function ContentListPage() {
 
   const filteredContent = useMemo(() => {
     if (!content) return []
-    let filtered = [...content] as ContentEntry[]
+    let filtered = (content as ContentEntry[]).filter((entry) => matches(entry.client))
 
     if (searchQuery) {
       const q = searchQuery.toLowerCase()

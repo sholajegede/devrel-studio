@@ -22,6 +22,7 @@ import {
 } from '@/components/ui/select'
 import PageLoader from '@/components/page-loader'
 import { RoleNotice } from '@/components/dashboard/role-notice'
+import { useClientScope } from '@/contexts/client-scope'
 import { toast } from 'sonner'
 import { AlertTriangle, Clock, Loader2, Mail, Send, X } from 'lucide-react'
 
@@ -405,6 +406,7 @@ export default function ReportsPage() {
   const { profile } = useUserContext()
   const schedules = useQuery(api.reports.listSchedules, profile?._id ? {} : 'skip')
   const override = useQuery(api.reports.deliveryOverride, profile?._id ? {} : 'skip')
+  const { matches } = useClientScope()
 
   if (!profile || schedules === undefined) return <PageLoader />
 
@@ -446,7 +448,7 @@ export default function ReportsPage() {
         </Card>
       ) : (
         <div className="space-y-5">
-          {schedules.map((entry) => (
+          {schedules.filter((entry) => matches(entry.slug)).map((entry) => (
             <ClientReportCard key={entry.clientId} entry={entry} />
           ))}
         </div>

@@ -12,6 +12,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { useUserContext } from '@/contexts/user-context'
 import { WorkspaceSwitcher } from '@/components/dashboard/workspace-switcher'
+import { ClientSwitcher } from '@/components/dashboard/client-switcher'
 import { ThemeToggle } from '@/components/theme-toggle'
 import { LogoutLink } from '@kinde-oss/kinde-auth-nextjs'
 
@@ -69,6 +70,7 @@ function SidebarInner({ onClose }: { onClose?: () => void }) {
 
       {/* Workspace switcher — renders nothing unless there is a choice to make */}
       <WorkspaceSwitcher onNavigate={onClose} />
+      <ClientSwitcher onNavigate={onClose} />
 
       {/* A keyboard shortcut nobody knows about does not exist. This is the
           only advertisement for ⌘K, and it opens the palette when clicked so it

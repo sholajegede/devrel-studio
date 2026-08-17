@@ -25,6 +25,7 @@ import { useUserContext } from '@/contexts/user-context'
 import PageLoader from '@/components/page-loader'
 import { RoleNotice } from '@/components/dashboard/role-notice'
 import { useWorkspaceRole } from '@/hooks/use-workspace-role'
+import { useClientScope } from '@/contexts/client-scope'
 import {
   AdminTour,
   AdminTourTriggerButton,
@@ -217,9 +218,9 @@ function EntryCard({
 
 export default function PipelinePage() {
   const { profile } = useUserContext()
-  const [clientFilter, setClientFilter] = useState('all')
   const [tourControls, setTourControls] = useState<{ startTour: () => void } | null>(null)
   const { can } = useWorkspaceRole()
+  const { matches } = useClientScope()
 
   const content = useQuery(api.content.getAllContent, profile?._id ? {} : 'skip')
   // Optimistic: the card jumps lanes on click rather than after the round trip.
@@ -247,17 +248,11 @@ export default function PipelinePage() {
     [content],
   )
 
-  const clients = useMemo(
-    () => Array.from(new Set(entries.map((e) => e.client).filter(Boolean))).sort(),
-    [entries],
-  )
-
+  // Scoped globally now, from the sidebar — a per-page dropdown alongside a
+  // dashboard-wide one gives two answers to the same question.
   const visible = useMemo(
-    () =>
-      clientFilter === 'all'
-        ? entries
-        : entries.filter((e) => e.client === clientFilter),
-    [entries, clientFilter],
+    () => entries.filter((entry) => matches(entry.client)),
+    [entries, matches],
   )
 
   // Published is capped: the lane is there for context, not as an archive —
@@ -342,30 +337,6 @@ export default function PipelinePage() {
 
         <div className="flex flex-wrap items-center gap-2">
           <AdminTourTriggerButton onStartTour={() => tourControls?.startTour()} />
-          {clients.length > 1 && (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="gap-1.5 bg-transparent"
-                  data-tour="pipeline-filter"
-                >
-                  {clientFilter === 'all' ? 'All clients' : clientFilter}
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => setClientFilter('all')}>
-                  All clients
-                </DropdownMenuItem>
-                {clients.map((client) => (
-                  <DropdownMenuItem key={client} onClick={() => setClientFilter(client!)}>
-                    {client}
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          )}
           {can.create && (
             <Link href="/dashboard/add">
               <Button size="sm" className="gap-1.5">

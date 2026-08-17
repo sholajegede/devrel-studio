@@ -16,6 +16,7 @@ import { AccessBanner } from '@/components/dashboard/access-banner'
 import { FeedbackInbox } from '@/components/dashboard/feedback-inbox'
 import { GettingStarted } from '@/components/dashboard/getting-started'
 import { RoleNotice } from '@/components/dashboard/role-notice'
+import { useClientScope } from '@/contexts/client-scope'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -55,6 +56,7 @@ function currentMonthKey() {
 
 export default function DashboardPage() {
   const { profile } = useUserContext()
+  const { matches } = useClientScope()
   const [selectedMonth,  setSelectedMonth]  = useState<string>(currentMonthKey())
   const [categoryFilter, setCategoryFilter] = useState<string>('all')
   const [dateRange,      setDateRange]      = useState<DateRange | undefined>(undefined)
@@ -123,7 +125,9 @@ export default function DashboardPage() {
 
   const filteredContent = useMemo(() => {
     if (!rawContent) return []
-    let result = rawContent as ContentEntry[]
+    // Client scope is applied before every other filter, so the counts, the
+    // chart and the list all describe the same client.
+    let result = (rawContent as ContentEntry[]).filter((entry) => matches(entry.client))
     if (dateRange?.from) {
       const from = dateRange.from
       const to = dateRange.to ? new Date(dateRange.to.getFullYear(), dateRange.to.getMonth(), dateRange.to.getDate(), 23, 59, 59, 999) : from
