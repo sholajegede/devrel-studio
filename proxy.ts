@@ -23,6 +23,12 @@ const publicRoutes = [
   // page renders a sign-in prompt itself rather than being bounced by Kinde,
   // which would lose the token from the URL.
   '/invite(.*)',
+  // Sentry's tunnel, set as `tunnelRoute` in next.config.mjs. Error reports are
+  // posted here by the browser and forwarded on, which is what stops an ad
+  // blocker dropping them. Public because the poster is an unauthenticated
+  // page as often as a signed-in one, and because bouncing a crash report to
+  // the sign-in page would lose exactly the errors worth seeing.
+  '/monitoring(.*)',
   // Crawler-facing files. These are generated routes rather than files in
   // /public, so they pass through this proxy — without them a crawler asking
   // for the sitemap gets bounced to the Kinde sign-in page.
