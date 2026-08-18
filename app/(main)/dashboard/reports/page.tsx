@@ -22,9 +22,10 @@ import {
 } from '@/components/ui/select'
 import PageLoader from '@/components/page-loader'
 import { RoleNotice } from '@/components/dashboard/role-notice'
+import { ReportComposer } from '@/components/dashboard/report-composer'
 import { useClientScope } from '@/contexts/client-scope'
 import { toast } from 'sonner'
-import { AlertTriangle, Clock, Loader2, Mail, Send, X } from 'lucide-react'
+import { AlertTriangle, Clock, Loader2, Mail, PenLine, Send, Target, X } from 'lucide-react'
 
 // ── Report delivery ───────────────────────────────────────────────────────────
 //
@@ -127,11 +128,15 @@ function ClientReportCard({
     clientName: string
     slug: string
     clientEmail: string | null
+    reachTarget: number | null
+    publishedTarget: number | null
+    written: string[]
     schedule: Schedule | null
     periods: string[]
   }
 }) {
   const save = useMutation(api.reports.saveSchedule)
+  const saveTargets = useMutation(api.reports.saveClientTargets)
   const send = useAction(api.reports.sendReportsNow)
   const { can } = useWorkspaceRole()
 
@@ -154,7 +159,47 @@ function ClientReportCard({
   const [selected, setSelected] = useState<string[]>([])
   const [sending, setSending] = useState(false)
 
+  // Writing the report is the work; sending it is the administrative act. An
+  // editor may compose, but only an admin may put something in a client's inbox.
+  const [composing, setComposing] = useState<string | null>(null)
+  const [reachGoal, setReachGoal] = useState(
+    entry.reachTarget === null ? '' : String(entry.reachTarget),
+  )
+  const [publishedGoal, setPublishedGoal] = useState(
+    entry.publishedTarget === null ? '' : String(entry.publishedTarget),
+  )
+  const [savingGoals, setSavingGoals] = useState(false)
+
+  const written = new Set(entry.written)
   const readOnly = !can.manageAccess
+  const canWrite = can.edit
+
+  const persistGoals = async () => {
+    const parse = (value: string) => {
+      const trimmed = value.trim()
+      if (!trimmed) return null
+      const parsed = Number(trimmed.replace(/,/g, ''))
+      return Number.isFinite(parsed) && parsed >= 0 ? Math.round(parsed) : null
+    }
+
+    setSavingGoals(true)
+    try {
+      await saveTargets({
+        clientId: entry.clientId,
+        reachTarget: parse(reachGoal),
+        publishedTarget: parse(publishedGoal),
+      })
+      toast.success('Standing goals saved')
+    } catch (error) {
+      const message =
+        error && typeof error === 'object' && 'data' in error && typeof error.data === 'string'
+          ? error.data
+          : 'Could not save those goals'
+      toast.error(message)
+    } finally {
+      setSavingGoals(false)
+    }
+  }
 
   const persist = async (overrides: Partial<Schedule> = {}) => {
     setSaving(true)
@@ -310,6 +355,113 @@ function ClientReportCard({
                 year: 'numeric',
               })}`}
           </p>
+        )}
+
+        {/* Standing goals.
+            A report without a target states activity and calls it performance.
+            Set once for the engagement; any month can override it in its own
+            write-up, because a launch month is not a quiet month's goal. */}
+        <div className="mt-6 border-t border-border pt-5">
+          <Label className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <Target className="h-3 w-3" />
+            Standing goals
+          </Label>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Applied to every period that does not set its own. Leave blank for none.
+          </p>
+
+          <div className="mt-3 flex flex-wrap items-end gap-3">
+            <div>
+              <Label className="text-xs text-muted-foreground">Monthly reach</Label>
+              <Input
+                inputMode="numeric"
+                value={reachGoal}
+                onChange={(event) => setReachGoal(event.target.value)}
+                disabled={!canWrite}
+                placeholder="40000"
+                className="mt-1.5 h-9 w-36 text-sm"
+              />
+            </div>
+            <div>
+              <Label className="text-xs text-muted-foreground">Pieces published</Label>
+              <Input
+                inputMode="numeric"
+                value={publishedGoal}
+                onChange={(event) => setPublishedGoal(event.target.value)}
+                disabled={!canWrite}
+                placeholder="6"
+                className="mt-1.5 h-9 w-32 text-sm"
+              />
+            </div>
+            {canWrite && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={persistGoals}
+                disabled={savingGoals}
+                className="h-9 gap-1.5"
+              >
+                {savingGoals && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+                Save goals
+              </Button>
+            )}
+          </div>
+        </div>
+
+        {/* Write-ups.
+            The only part of a report a person writes. Listed per period with a
+            marker, because a report going out with nothing written is a choice
+            and it should be a visible one. */}
+        <div className="mt-6 border-t border-border pt-5">
+          <Label className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <PenLine className="h-3 w-3" />
+            Write-up
+          </Label>
+
+          {entry.periods.length === 0 ? (
+            <p className="mt-2 text-xs text-muted-foreground">
+              Nothing published yet, so there is no period to write about.
+            </p>
+          ) : (
+            <>
+              <p className="mt-1 text-xs text-muted-foreground">
+                The summary, what drove the numbers, an answer to last month, and anything
+                worth quoting.
+              </p>
+              <div className="mt-3 flex flex-wrap gap-1.5">
+                {entry.periods.map((period) => (
+                  <button
+                    key={period}
+                    type="button"
+                    disabled={!canWrite}
+                    onClick={() => setComposing(period)}
+                    className="inline-flex items-center gap-1.5 rounded-md border border-border px-2.5 py-1 text-xs text-muted-foreground transition-colors hover:border-foreground/30 hover:text-foreground disabled:opacity-50"
+                  >
+                    <span
+                      className={`h-1.5 w-1.5 rounded-full ${
+                        written.has(period) ? 'bg-accent' : 'bg-muted-foreground/30'
+                      }`}
+                      aria-hidden
+                    />
+                    {periodLabel(period)}
+                    <span className="sr-only">
+                      {written.has(period) ? '— written' : '— not written yet'}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+
+        {composing && (
+          <ReportComposer
+            clientId={entry.clientId}
+            clientName={entry.clientName}
+            period={composing}
+            open={!!composing}
+            onOpenChange={(open) => !open && setComposing(null)}
+          />
         )}
 
         {/* Manual send */}

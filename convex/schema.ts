@@ -166,6 +166,14 @@ export default defineSchema({
     notes: v.optional(v.string()),
     slug: v.optional(v.string()),
 
+    // ── Standing goals ────────────────────────────────────────────────────────
+    // The engagement's targets, used when a period has not set its own. Without
+    // a target a report states activity and calls it performance: "48K reach"
+    // is a number, "48K against 40K" is a result. A period may override these
+    // in `reportNotes` — a launch month is not held to a quiet month's goal.
+    reachTarget: v.optional(v.number()),
+    publishedTarget: v.optional(v.number()),
+
     // ── Client dashboard access ───────────────────────────────────────────────
     // Managers reach [slug].devrel.studio without a devrel.studio account. They
     // enter an access code, which is stored here only as a salted hash.
@@ -289,12 +297,6 @@ export default defineSchema({
     .index("by_workspace", ["workspaceId"])
     .index("by_enabled", ["enabled"]),
 
-  // Feedback a client leaves on a monthly report.
-  //
-  // Left by the manager reading the report, who has no account — so there is no
-  // userId here. Attribution is the client row plus whatever name they type.
-  // One row per submission rather than one per period: a client who sends a
-  // second thought a week later should not overwrite the first.
   /**
    * A request to buy or extend access.
    *
@@ -321,6 +323,65 @@ export default defineSchema({
     .index("by_user", ["userId"])
     .index("by_status", ["status"]),
 
+  // ── The written half of a report ────────────────────────────────────────────
+  //
+  // Everything in a report used to be generated from the data. That makes a
+  // competent activity log and a poor report: a reader sees "+40%" and cannot
+  // tell whether it was a launch, a conference or an algorithm change, and the
+  // person who actually knows had nowhere to say so.
+  //
+  // One row per client per period, holding the parts only a human can write.
+  // Separate from `clients` because it is per-period, and separate from
+  // `contentEntries` because it is about the period rather than any one piece.
+  //
+  // Every field is optional. A report with no write-up renders exactly as it
+  // did before, so this is additive for every period already sent.
+  reportNotes: defineTable({
+    clientId: v.id("clients"),
+    workspaceId: v.optional(v.id("workspaces")),
+    /** Denormalised so the public report can be read by slug in one query. */
+    slug: v.string(),
+    /** `YYYY-MM`. */
+    period: v.string(),
+
+    /** The opening paragraph, in the DevRel's voice. */
+    summary: v.optional(v.string()),
+    /** One line on why the numbers moved, shown beneath the figures. */
+    performanceNote: v.optional(v.string()),
+    /** Answers the feedback left on the previous period. */
+    responseToFeedback: v.optional(v.string()),
+
+    /**
+     * Quotes, reactions and mentions worth showing.
+     *
+     * DevRel value is disproportionately qualitative, and a numbers-only report
+     * systematically undersells it — a maintainer's reply can matter more than
+     * the view count on the post that prompted it.
+     */
+    quotes: v.optional(v.array(v.object({
+      text: v.string(),
+      attribution: v.optional(v.string()),
+      link: v.optional(v.string()),
+    }))),
+
+    /** Overrides the client's standing goal for this period only. */
+    reachTarget: v.optional(v.number()),
+    publishedTarget: v.optional(v.number()),
+
+    updatedAt: v.string(),
+    /** Who last wrote it, for a workspace with several people in it. */
+    updatedBy: v.optional(v.id("users")),
+  })
+    .index("by_client_and_period", ["clientId", "period"])
+    .index("by_slug_and_period", ["slug", "period"])
+    .index("by_workspace", ["workspaceId"]),
+
+  // Feedback a client leaves on a monthly report.
+  //
+  // Left by the manager reading the report, who has no account — so there is no
+  // userId here. Attribution is the client row plus whatever name they type.
+  // One row per submission rather than one per period: a client who sends a
+  // second thought a week later should not overwrite the first.
   reportFeedback: defineTable({
     clientId: v.id("clients"),
     slug: v.string(),

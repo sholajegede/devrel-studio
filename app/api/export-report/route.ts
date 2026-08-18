@@ -52,6 +52,17 @@ async function reportFromSlug(slug: string, month: string): Promise<ReportData |
       totalStars: report.totals.stars,
       totalReshares: report.totals.reshares,
     },
+    // The written half. The cron path is the one that reaches a client's inbox,
+    // so leaving these out here would mean the emailed PDF silently dropped the
+    // only part of the report a person actually wrote.
+    notes: data.notes ?? null,
+    targets: data.targets ?? null,
+    highlights: report.highlights.map(({ entry, metric }) => ({
+      title: entry.title,
+      platform: entry.platform,
+      category: entry.category,
+      metric,
+    })),
   }
 }
 

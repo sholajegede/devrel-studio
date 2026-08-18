@@ -35,6 +35,13 @@ export interface ReportContentItem {
   reshares?: { platform: string; link: string; date: string }[]
 }
 
+export interface ReportHighlight {
+  title: string
+  platform: string
+  category?: string
+  metric: number
+}
+
 export interface ReportData {
   client: string
   content: ReportContentItem[]
@@ -48,6 +55,19 @@ export interface ReportData {
     totalReshares: number
   }
   period: string
+  /**
+   * The written half of the report. Optional throughout: a period nobody wrote
+   * up prints exactly as it did before this existed, which is what keeps every
+   * already-sent report reproducible.
+   */
+  notes?: {
+    summary?: string | null
+    performanceNote?: string | null
+    responseToFeedback?: string | null
+    quotes?: { text: string; attribution?: string; link?: string }[]
+  } | null
+  targets?: { reach?: number | null; published?: number | null } | null
+  highlights?: ReportHighlight[]
 }
 
 // ── Design tokens ─────────────────────────────────────────────────────────────
@@ -140,6 +160,45 @@ const s = StyleSheet.create({
   },
   statLabel: { fontSize: 7.5, color: C.muted, marginBottom: 6 },
   statValue: { fontFamily: 'Helvetica-Bold', fontSize: 20, color: C.fg },
+
+  // Written sections
+  prose: { fontSize: 9.5, color: C.fg, lineHeight: 1.6, marginBottom: 8 },
+  proseSection: { marginBottom: 28 },
+  pullQuote: {
+    borderLeftWidth: 2,
+    borderLeftColor: C.accent,
+    paddingLeft: 12,
+    marginBottom: 14,
+  },
+  quoteText: { fontSize: 10, color: C.fg, lineHeight: 1.55 },
+  quoteAttribution: { fontSize: 7.5, color: C.muted, marginTop: 4 },
+
+  // Target progress, shown under a stat card's number
+  targetTrack: {
+    height: 3,
+    borderRadius: 1.5,
+    backgroundColor: C.border,
+    marginTop: 7,
+    overflow: 'hidden',
+  },
+  targetFill: { height: 3, borderRadius: 1.5 },
+  targetLabel: { fontSize: 6.5, color: C.muted, marginTop: 4 },
+
+  // Highlights
+  highlightRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    borderWidth: 1,
+    borderColor: C.border,
+    borderRadius: 6,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    marginBottom: 8,
+  },
+  highlightRank:   { fontFamily: 'Helvetica-Bold', fontSize: 14, color: C.border, width: 20 },
+  highlightTitle:  { fontSize: 9.5, color: C.fg, lineHeight: 1.4 },
+  highlightMeta:   { fontSize: 7.5, color: C.muted, marginTop: 3 },
+  highlightMetric: { fontFamily: 'Helvetica-Bold', fontSize: 12, color: C.fg, textAlign: 'right' },
 
   // Category breakdown
   breakdownSection: { marginBottom: 28 },
@@ -301,9 +360,59 @@ function StatusBadge({ status }: { status: string }) {
 
 // ── Main export ───────────────────────────────────────────────────────────────
 
+/** A written block, rendered only when there is something in it. */
+function Prose({ label, body }: { label: string; body?: string | null }) {
+  if (!body?.trim()) return null
+
+  return (
+    <View style={s.proseSection}>
+      <Text style={s.sectionLabel}>{label}</Text>
+      <View style={s.divider} />
+      {body.split(/\n{2,}/).map((paragraph, i) => (
+        <Text key={i} style={s.prose}>{paragraph.trim()}</Text>
+      ))}
+    </View>
+  )
+}
+
+/**
+ * Progress against a goal, under a stat card.
+ *
+ * Nothing renders without a positive target — an absent goal should look
+ * absent, not like a goal of zero that was triumphantly exceeded.
+ */
+function TargetBar({ actual, target }: { actual: number; target?: number | null }) {
+  if (typeof target !== 'number' || !Number.isFinite(target) || target <= 0) return null
+
+  const percent = Math.round((actual / target) * 100)
+
+  return (
+    <View>
+      <View style={s.targetTrack}>
+        <View
+          style={[
+            s.targetFill,
+            {
+              width: `${Math.min(percent, 100)}%`,
+              backgroundColor: actual >= target ? C.accent : C.muted,
+            },
+          ]}
+        />
+      </View>
+      <Text style={s.targetLabel}>{percent}% of {fmtNum(target)} target</Text>
+    </View>
+  )
+}
+
 export function createReportDocument(data: ReportData) {
-  const { client, content, stats, period } = data
+  const { client, content, stats, period, notes, targets, highlights } = data
   const clientName = client.charAt(0).toUpperCase() + client.slice(1)
+
+  // Same definition as lib/report's `reachOf` — views, attendees and downloads,
+  // with stars deliberately left out. A star is an endorsement from someone who
+  // had already arrived, not a person reached, and the two documents must not
+  // print different totals under the same word.
+  const reach = stats.totalViews + stats.totalAttendees + stats.totalDownloads
 
   // Group by month
   const byMonth: Record<string, ReportContentItem[]> = {}
@@ -338,13 +447,27 @@ export function createReportDocument(data: ReportData) {
           <Text style={s.heroPeriod}>{period}</Text>
         </View>
 
+        {/* The written opening, before any table. */}
+        <Prose label="SUMMARY" body={notes?.summary} />
+
         {/* Activity summary */}
         <Text style={s.sectionLabel}>ACTIVITY SUMMARY</Text>
         <View style={s.divider} />
         <View style={s.statsGrid}>
           {[
-            { label: 'Published',   value: String(stats.published) },
+            {
+              label: 'Published',
+              value: String(stats.published),
+              actual: stats.published,
+              target: targets?.published,
+            },
             { label: 'In Progress', value: String(stats.inProgress) },
+            {
+              label: 'Total Reach',
+              value: reach > 0 ? fmtNum(reach) : '—',
+              actual: reach,
+              target: targets?.reach,
+            },
             { label: 'Total Views', value: stats.totalViews     > 0 ? fmtNum(stats.totalViews)     : '—' },
             { label: 'Downloads',   value: stats.totalDownloads > 0 ? fmtNum(stats.totalDownloads) : '—' },
             { label: 'Attendees',   value: stats.totalAttendees > 0 ? fmtNum(stats.totalAttendees) : '—' },
@@ -356,9 +479,56 @@ export function createReportDocument(data: ReportData) {
             <View key={stat.label} style={[s.statCard, i % 3 === 2 ? { marginRight: 0 } : {}]}>
               <Text style={s.statLabel}>{stat.label}</Text>
               <Text style={s.statValue}>{stat.value}</Text>
+              {stat.actual !== undefined && (
+                <TargetBar actual={stat.actual} target={stat.target} />
+              )}
             </View>
           ))}
         </View>
+
+        {/* Why the numbers moved. */}
+        <Prose label="WHAT DROVE THIS" body={notes?.performanceNote} />
+
+        {/* What performed, before the chronological list on the detail page. */}
+        {(highlights?.length ?? 0) > 0 && (
+          <View style={s.proseSection}>
+            <Text style={s.sectionLabel}>
+              {highlights!.length === 1 ? 'THE STANDOUT' : `TOP ${highlights!.length}`}
+            </Text>
+            <View style={s.divider} />
+            {highlights!.map((item, i) => (
+              <View key={`${item.title}-${i}`} style={s.highlightRow}>
+                <Text style={s.highlightRank}>{i + 1}</Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={s.highlightTitle}>{item.title}</Text>
+                  <Text style={s.highlightMeta}>
+                    {[item.category, item.platform].filter(Boolean).join(' · ')}
+                  </Text>
+                </View>
+                <Text style={[s.highlightMetric, { width: 70 }]}>{fmtNum(item.metric)}</Text>
+              </View>
+            ))}
+          </View>
+        )}
+
+        {/* Answering last period's feedback. */}
+        <Prose label="SINCE LAST PERIOD" body={notes?.responseToFeedback} />
+
+        {/* Evidence a total cannot carry. */}
+        {(notes?.quotes?.length ?? 0) > 0 && (
+          <View style={s.proseSection}>
+            <Text style={s.sectionLabel}>IN THEIR WORDS</Text>
+            <View style={s.divider} />
+            {notes!.quotes!.map((quote, i) => (
+              <View key={i} style={s.pullQuote}>
+                <Text style={s.quoteText}>&ldquo;{quote.text}&rdquo;</Text>
+                {quote.attribution && (
+                  <Text style={s.quoteAttribution}>— {quote.attribution}</Text>
+                )}
+              </View>
+            ))}
+          </View>
+        )}
 
         {/* Content breakdown */}
         <Text style={s.sectionLabel}>CONTENT BREAKDOWN</Text>

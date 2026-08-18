@@ -8,6 +8,7 @@ import { action, internalAction,
 } from './_generated/server'
 import { getCurrentWorkspace, requireInWorkspace } from './model/workspaces'
 import { dueNow } from '../lib/schedule'
+import { previousMonth } from '../lib/metrics'
 import { enforceRateLimit } from './model/rateLimit'
 
 // ── Monthly report notifications ──────────────────────────────────────────────
@@ -193,6 +194,24 @@ export const getReport = query({
       )
       .collect()
 
+    const notes = await ctx.db
+      .query('reportNotes')
+      .withIndex('by_slug_and_period', (q) =>
+        q.eq('slug', slug).eq('period', args.period),
+      )
+      .first()
+
+    // What the client said last time. Shown so the report can answer it —
+    // feedback that is collected and never referred to again teaches a client
+    // that leaving it was pointless.
+    const priorPeriod = previousMonth(args.period)
+    const priorFeedback = await ctx.db
+      .query('reportFeedback')
+      .withIndex('by_slug_and_period', (q) =>
+        q.eq('slug', slug).eq('period', priorPeriod),
+      )
+      .collect()
+
     return {
       client: {
         id: client._id,
@@ -203,6 +222,32 @@ export const getReport = query({
       },
       period: args.period,
       entries: visible,
+      // The written half of the report. Null when nobody has written one, and
+      // every section it feeds renders nothing in that case.
+      notes: notes
+        ? {
+            summary: notes.summary ?? null,
+            performanceNote: notes.performanceNote ?? null,
+            responseToFeedback: notes.responseToFeedback ?? null,
+            quotes: notes.quotes ?? [],
+          }
+        : null,
+      // A period may set its own goal; otherwise the engagement's standing one
+      // applies. Resolved here so the page and the PDF cannot disagree.
+      targets: {
+        reach: notes?.reachTarget ?? client.reachTarget ?? null,
+        published: notes?.publishedTarget ?? client.publishedTarget ?? null,
+      },
+      previousPeriod: priorPeriod,
+      previousFeedback: priorFeedback
+        .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+        .map((item) => ({
+          id: item._id,
+          rating: item.rating,
+          comment: item.comment,
+          authorName: item.authorName,
+          createdAt: item.createdAt,
+        })),
       feedback: feedback
         .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
         .map((item) => ({
@@ -288,6 +333,183 @@ export const submitFeedback = mutation({
         reportUrl: `https://${slug}.${root}/report?month=${args.period}`,
       })
     }
+
+    return { ok: true }
+  },
+})
+
+// ── The write-up ──────────────────────────────────────────────────────────────
+//
+// The parts of a report a person has to write: the opening paragraph, why the
+// numbers moved, an answer to last period's feedback, and anything worth
+// quoting. Read by the dashboard composer; the public report reads its own copy
+// through `getReport` so an unauthenticated visitor never touches these.
+
+const MAX_SUMMARY = 4000
+const MAX_LINE = 600
+const MAX_QUOTES = 6
+
+/** One client's write-up for one period, plus what it is answering. */
+export const getNotes = query({
+  args: { clientId: v.id('clients'), period: v.string() },
+  handler: async (ctx, args) => {
+    const context = await getCurrentWorkspace(ctx)
+    if (!context) return null
+
+    const client = await ctx.db.get(args.clientId)
+    if (!client || client.workspaceId !== context.workspaceId) return null
+
+    const notes = await ctx.db
+      .query('reportNotes')
+      .withIndex('by_client_and_period', (q) =>
+        q.eq('clientId', args.clientId).eq('period', args.period),
+      )
+      .first()
+
+    // The feedback this period's write-up is meant to answer. Loaded alongside
+    // so the composer can show it next to the box, rather than asking the
+    // writer to remember what was said a month ago.
+    const priorFeedback = await ctx.db
+      .query('reportFeedback')
+      .withIndex('by_slug_and_period', (q) =>
+        q.eq('slug', client.slug ?? '').eq('period', previousMonth(args.period)),
+      )
+      .collect()
+
+    return {
+      summary: notes?.summary ?? '',
+      performanceNote: notes?.performanceNote ?? '',
+      responseToFeedback: notes?.responseToFeedback ?? '',
+      quotes: notes?.quotes ?? [],
+      // Empty rather than the inherited value, so the field shows the standing
+      // goal as a placeholder and saving a blank keeps inheriting it.
+      reachTarget: notes?.reachTarget ?? null,
+      publishedTarget: notes?.publishedTarget ?? null,
+      inheritedReachTarget: client.reachTarget ?? null,
+      inheritedPublishedTarget: client.publishedTarget ?? null,
+      updatedAt: notes?.updatedAt ?? null,
+      previousPeriod: previousMonth(args.period),
+      previousFeedback: priorFeedback
+        .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+        .map((item) => ({
+          id: item._id,
+          rating: item.rating,
+          comment: item.comment,
+          authorName: item.authorName,
+          createdAt: item.createdAt,
+        })),
+    }
+  },
+})
+
+/**
+ * Save the write-up for one period.
+ *
+ * Editor rather than admin: writing the report is the work, not an
+ * administrative act. Sending it stays at admin, because that is what puts
+ * something in a client's inbox.
+ */
+export const saveNotes = mutation({
+  args: {
+    clientId: v.id('clients'),
+    period: v.string(),
+    summary: v.optional(v.string()),
+    performanceNote: v.optional(v.string()),
+    responseToFeedback: v.optional(v.string()),
+    quotes: v.optional(v.array(v.object({
+      text: v.string(),
+      attribution: v.optional(v.string()),
+      link: v.optional(v.string()),
+    }))),
+    reachTarget: v.optional(v.union(v.number(), v.null())),
+    publishedTarget: v.optional(v.union(v.number(), v.null())),
+  },
+  handler: async (ctx, args) => {
+    const { user, doc: client } = await requireInWorkspace(ctx, args.clientId, 'editor')
+
+    if (!client.slug) {
+      throw new ConvexError('Give this client a dashboard slug before writing a report')
+    }
+    if (!/^\d{4}-\d{2}$/.test(args.period)) {
+      throw new ConvexError('That is not a valid period')
+    }
+
+    // An empty box means "say nothing here", which has to be stored as absent
+    // rather than as an empty string — otherwise the report renders a heading
+    // over nothing.
+    const text = (value: string | undefined, max: number) => {
+      const trimmed = value?.trim().slice(0, max)
+      return trimmed ? trimmed : undefined
+    }
+
+    const target = (value: number | null | undefined) => {
+      if (value === null || value === undefined) return undefined
+      if (!Number.isFinite(value) || value < 0) {
+        throw new ConvexError('A target cannot be negative')
+      }
+      return Math.round(value)
+    }
+
+    const quotes = (args.quotes ?? [])
+      .map((quote) => ({
+        text: quote.text.trim().slice(0, MAX_LINE),
+        attribution: quote.attribution?.trim().slice(0, 120) || undefined,
+        link: quote.link?.trim().slice(0, 500) || undefined,
+      }))
+      .filter((quote) => quote.text.length > 0)
+      .slice(0, MAX_QUOTES)
+
+    const fields = {
+      clientId: args.clientId,
+      workspaceId: client.workspaceId,
+      slug: client.slug,
+      period: args.period,
+      summary: text(args.summary, MAX_SUMMARY),
+      performanceNote: text(args.performanceNote, MAX_LINE),
+      responseToFeedback: text(args.responseToFeedback, MAX_LINE * 2),
+      quotes: quotes.length > 0 ? quotes : undefined,
+      reachTarget: target(args.reachTarget),
+      publishedTarget: target(args.publishedTarget),
+      updatedAt: new Date().toISOString(),
+      updatedBy: user._id,
+    }
+
+    const existing = await ctx.db
+      .query('reportNotes')
+      .withIndex('by_client_and_period', (q) =>
+        q.eq('clientId', args.clientId).eq('period', args.period),
+      )
+      .first()
+
+    if (existing) await ctx.db.patch(existing._id, fields)
+    else await ctx.db.insert('reportNotes', fields)
+
+    return { ok: true }
+  },
+})
+
+/** The engagement's standing goals, applied to any period that sets none. */
+export const saveClientTargets = mutation({
+  args: {
+    clientId: v.id('clients'),
+    reachTarget: v.optional(v.union(v.number(), v.null())),
+    publishedTarget: v.optional(v.union(v.number(), v.null())),
+  },
+  handler: async (ctx, args) => {
+    await requireInWorkspace(ctx, args.clientId, 'editor')
+
+    const target = (value: number | null | undefined) => {
+      if (value === null || value === undefined) return undefined
+      if (!Number.isFinite(value) || value < 0) {
+        throw new ConvexError('A target cannot be negative')
+      }
+      return Math.round(value)
+    }
+
+    await ctx.db.patch(args.clientId, {
+      reachTarget: target(args.reachTarget),
+      publishedTarget: target(args.publishedTarget),
+    })
 
     return { ok: true }
   },
@@ -472,11 +694,26 @@ export const listSchedules = query({
             ),
           ].sort((a, b) => b.localeCompare(a))
 
+          // Which periods already have something written. Drives the marker on
+          // the period chips — a report going out with no write-up is a choice,
+          // but it should be a visible one.
+          const notes = await ctx.db
+            .query('reportNotes')
+            .withIndex('by_client_and_period', (q) => q.eq('clientId', client._id))
+            .collect()
+
+          const written = notes
+            .filter((note) => !!note.summary)
+            .map((note) => note.period)
+
           return {
             clientId: client._id,
             clientName: client.company || client.name,
             slug: client.slug!,
             clientEmail: client.email ?? null,
+            reachTarget: client.reachTarget ?? null,
+            publishedTarget: client.publishedTarget ?? null,
+            written,
             schedule: schedule
               ? {
                   enabled: schedule.enabled,
