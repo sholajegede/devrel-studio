@@ -1,6 +1,7 @@
 import React from "react"
 import type { Metadata } from 'next'
 import { cookies } from 'next/headers'
+import { notFound } from 'next/navigation'
 import { ConvexHttpClient } from 'convex/browser'
 import { api } from '@/convex/_generated/api'
 import { AccessGate } from '@/components/subdomain/access-gate'
@@ -36,10 +37,17 @@ export default async function PerformanceDashboardLayout({
   const convex = new ConvexHttpClient(convexUrl)
   const gate = await convex.query(api.managerAccess.getGateInfo, { slug: subdomain })
 
-  // No client with this slug, or no code configured yet: fall through to the
-  // dashboard rather than locking the DevRel out of their own unconfigured
-  // workspace. Setting a code is what turns the gate on.
-  if (!gate.exists || (!gate.hasCode && !gate.isPublic)) {
+  // Nobody owns this slug. The wildcard answers for every name under the
+  // domain, so without this every company on earth had a live 200 dashboard
+  // shell at their name — see not-found.tsx.
+  if (!gate.exists) {
+    notFound()
+  }
+
+  // A real client with no code configured yet: fall through to the dashboard
+  // rather than locking the DevRel out of their own unconfigured workspace.
+  // Setting a code is what turns the gate on.
+  if (!gate.hasCode && !gate.isPublic) {
     return children
   }
 
