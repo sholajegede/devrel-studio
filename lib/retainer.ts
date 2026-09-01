@@ -7,12 +7,59 @@
 // tested directly — this produces numbers people will put in invoices and
 // year-end summaries, and an off-by-one month is a real amount of money.
 
+/** One rate, and the first billing date it applies to. */
+export interface RateChange {
+  amount: number
+  /** `YYYY-MM-DD`. */
+  effectiveFrom: string
+  note?: string
+  recordedAt?: string
+}
+
+/** A stretch where the engagement was on hold. An open `to` means still paused. */
+export interface PausePeriod {
+  from: string
+  to?: string
+  note?: string
+  recordedAt?: string
+}
+
 export interface RetainerSource {
   monthlyRetainer?: number
   currency?: string
   startDate?: string
   endDate?: string
   status?: string
+  /** Complete rate timeline, oldest first. Absent means the rate never changed. */
+  rateHistory?: RateChange[]
+  /** Stretches on hold. Billing dates falling inside one are not charged. */
+  pausePeriods?: PausePeriod[]
+}
+
+/**
+ * Whether a date falls inside a pause.
+ *
+ * Inclusive of `from` and exclusive of `to`: the day a client resumes is a
+ * working day, and treating it as still paused would drop a month of billing
+ * whenever a resume happened to land on an anniversary.
+ */
+export function isPausedOn(pauses: PausePeriod[] | undefined, date: Ymd): boolean {
+  if (!pauses?.length) return false
+
+  return pauses.some((pause) => {
+    const from = parseYmd(pause.from)
+    if (!from || compare(date, from) < 0) return false
+
+    const to = parseYmd(pause.to)
+    // No end recorded: the pause is still running.
+    if (!to) return true
+    return compare(date, to) < 0
+  })
+}
+
+/** The pause currently running, if any. */
+export function openPause(client: RetainerSource): PausePeriod | null {
+  return (client.pausePeriods ?? []).find((pause) => !pause.to) ?? null
 }
 
 interface Ymd {
@@ -98,12 +145,147 @@ export function totalBilled(
   client: RetainerSource,
   asOf: Ymd = todayYmd(),
 ): number | null {
-  if (!client.monthlyRetainer || !client.startDate) return null
+  const segments = billingSegments(client, asOf)
+  if (!segments.length) return null
+
+  return segments.reduce((sum, segment) => sum + segment.subtotal, 0)
+}
+
+/**
+ * The rate timeline, oldest first and validated.
+ *
+ * Entries with an unparseable date are dropped rather than guessed at, and the
+ * list is sorted here so callers never depend on insertion order.
+ */
+function ratePeriods(client: RetainerSource): { from: Ymd; amount: number }[] {
+  const history = (client.rateHistory ?? [])
+    .map((change) => ({ from: parseYmd(change.effectiveFrom), amount: change.amount }))
+    .filter((entry): entry is { from: Ymd; amount: number } => entry.from !== null)
+    .sort((a, b) => compare(a.from, b.from))
+
+  if (history.length) return history
+
+  // No history recorded: the current rate has applied for the whole engagement,
+  // which is how this worked before rate changes were tracked.
+  const start = parseYmd(client.startDate)
+  if (!start || !client.monthlyRetainer) return []
+  return [{ from: start, amount: client.monthlyRetainer }]
+}
+
+/** Advance a calendar date by `count` whole months, keeping the day of month. */
+function addMonths(date: Ymd, count: number): Ymd {
+  const zeroBased = date.m - 1 + count
+  return {
+    y: date.y + Math.floor(zeroBased / 12),
+    m: ((zeroBased % 12) + 12) % 12 + 1,
+    d: date.d,
+  }
+}
+
+export interface BillingSegment {
+  amount: number
+  months: number
+  subtotal: number
+  /** First billing date charged at this amount. */
+  from: Ymd
+}
+
+/**
+ * The engagement broken into runs of months billed at the same rate.
+ *
+ * Walks the actual billing dates — the start date and each monthly anniversary —
+ * and charges whichever rate was in effect on each one. Multiplying a single
+ * rate by a month count cannot express a raise partway through, which is the
+ * whole point of tracking history.
+ *
+ * A rate whose `effectiveFrom` falls between two anniversaries takes effect on
+ * the next billing date, not immediately: the month already charged was charged
+ * at the old rate, and no money changes hands mid-period.
+ */
+export function billingSegments(
+  client: RetainerSource,
+  asOf: Ymd = todayYmd(),
+): BillingSegment[] {
+  const start = parseYmd(client.startDate)
+  if (!start) return []
+
+  const periods = ratePeriods(client)
+  if (!periods.length) return []
 
   const months = monthsBilled(client.startDate, client.endDate, asOf)
-  if (months === 0) return null
+  if (months === 0) return []
 
-  return client.monthlyRetainer * months
+  const segments: BillingSegment[] = []
+
+  for (let index = 0; index < months; index++) {
+    const billingDate = addMonths(start, index)
+
+    // On hold: no invoice went out for this month, so it contributes nothing.
+    // Skipping the occurrence rather than charging zero also keeps the segment
+    // boundaries meaningful — a pause splits a run rather than flattening it.
+    if (isPausedOn(client.pausePeriods, billingDate)) continue
+
+    // The newest rate that had taken effect by this billing date. Falls back to
+    // the earliest known rate for months preceding any recorded change.
+    let amount = periods[0].amount
+    for (const period of periods) {
+      if (compare(period.from, billingDate) <= 0) amount = period.amount
+      else break
+    }
+
+    const current = segments[segments.length - 1]
+    if (current && current.amount === amount) {
+      current.months += 1
+      current.subtotal += amount
+    } else {
+      segments.push({ amount, months: 1, subtotal: amount, from: billingDate })
+    }
+  }
+
+  return segments
+}
+
+/**
+ * Months actually invoiced, pauses excluded.
+ *
+ * Distinct from `monthsBilled`, which counts anniversaries elapsed and is what
+ * tenure is measured in — a client paused for two months is still ten months
+ * into the relationship, but has only paid for eight.
+ */
+export function monthsCharged(
+  client: RetainerSource,
+  asOf: Ymd = todayYmd(),
+): number {
+  return billingSegments(client, asOf).reduce(
+    (total, segment) => total + segment.months,
+    0,
+  )
+}
+
+/** Months skipped because the engagement was on hold. */
+export function monthsPaused(
+  client: RetainerSource,
+  asOf: Ymd = todayYmd(),
+): number {
+  const elapsed = monthsBilled(client.startDate, client.endDate, asOf)
+  return Math.max(0, elapsed - monthsCharged(client, asOf))
+}
+
+/** The rate being charged as of `asOf` — the newest one that has taken effect. */
+export function currentRate(
+  client: RetainerSource,
+  asOf: Ymd = todayYmd(),
+): number | null {
+  const periods = ratePeriods(client)
+  if (!periods.length) return null
+
+  let amount: number | null = null
+  for (const period of periods) {
+    if (compare(period.from, asOf) <= 0) amount = period.amount
+    else break
+  }
+  // Every recorded rate is still in the future: nothing is being charged yet.
+  return amount
 }
 
 /** Sum of `totalBilled` across many clients. Clients without a retainer contribute 0. */

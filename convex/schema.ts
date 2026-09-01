@@ -153,7 +153,41 @@ export default defineSchema({
     company: v.string(),
     email: v.optional(v.string()),
     website: v.optional(v.string()),
+    /**
+     * The rate in effect right now.
+     *
+     * Kept as a plain number so the clients list, sorting and the "total monthly
+     * retainer" sum stay one field read. `rateHistory` below is what makes it
+     * correct over time; this is always the newest entry's amount.
+     */
     monthlyRetainer: v.optional(v.number()),
+
+    /**
+     * What the client has been charged, and from when.
+     *
+     * Without this a raise rewrites the past: `totalBilled` multiplies one rate
+     * by the whole engagement, so going from 1,500 to 3,000 retroactively claims
+     * every previous month was billed at 3,000. The earnings figure is the kind
+     * of number that ends up in an invoice or a year-end summary, so it has to
+     * reflect what was actually charged at the time.
+     *
+     * The array is the complete timeline, oldest first — including the opening
+     * rate, not just changes to it. A client with no history falls back to
+     * `monthlyRetainer` for the whole engagement, which is exactly the previous
+     * behaviour, so nothing recorded before this existed needs migrating.
+     *
+     * An array rather than its own table: rate changes number in the handful
+     * over years, and they are never read without the client.
+     */
+    rateHistory: v.optional(v.array(v.object({
+      amount: v.number(),
+      /** `YYYY-MM-DD`. The first billing date charged at this amount. */
+      effectiveFrom: v.string(),
+      /** Why it changed — "scope increase", "annual review". */
+      note: v.optional(v.string()),
+      /** When the change was entered, which is not when it took effect. */
+      recordedAt: v.optional(v.string()),
+    }))),
     currency: v.optional(v.string()),
     startDate: v.optional(v.string()),
     endDate: v.optional(v.string()),
@@ -163,6 +197,28 @@ export default defineSchema({
       v.literal("Project"),
       v.literal("Hourly"),
     )),
+    /**
+     * Stretches where the engagement was on hold and nothing was billed.
+     *
+     * `status: 'Paused'` records *that* a client is paused but not since when,
+     * so the earnings figure had to assume continuous billing and label itself
+     * an estimate. With dates the arithmetic can simply skip the months nobody
+     * paid for, and the number stops being a guess.
+     *
+     * An array because engagements stop and restart — a client paused over a
+     * quiet December and again in the summer has two gaps, and one pair of
+     * fields cannot hold both. An entry with no `to` is a pause still running,
+     * which is what makes `status` derivable rather than separately maintained.
+     */
+    pausePeriods: v.optional(v.array(v.object({
+      /** `YYYY-MM-DD`. First day on hold. */
+      from: v.string(),
+      /** `YYYY-MM-DD`. Absent while the pause is still open. */
+      to: v.optional(v.string()),
+      note: v.optional(v.string()),
+      recordedAt: v.optional(v.string()),
+    }))),
+
     notes: v.optional(v.string()),
     slug: v.optional(v.string()),
 
