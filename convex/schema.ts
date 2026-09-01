@@ -1,5 +1,6 @@
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
+import { requestStatusValidator } from "./model/access";
 
 export default defineSchema({
   users: defineTable({
@@ -52,10 +53,40 @@ export default defineSchema({
     // user created before workspaces existed has none until the migration runs;
     // `model/workspaces.ts` falls back to their own personal workspace.
     activeWorkspaceId: v.optional(v.id("workspaces")),
+
+    // ── Platform administration ───────────────────────────────────────────────
+    //
+    // Authority to run devrel.studio itself, which is orthogonal to workspace
+    // membership: an admin has no implicit access to anyone's client data, and
+    // a workspace owner is not an admin.
+    //
+    // Kept here rather than as a Kinde role so the check happens in the same
+    // place as the data it protects, works without a Kinde tenant in local
+    // development, and cannot be changed by editing IdP configuration. Kinde
+    // establishes identity; this establishes authority.
+    //
+    // 'support' can read everything and approve a purchase. 'owner' can also
+    // revoke access, comp an account, impersonate, and grant admin — the
+    // destructive and the routine deliberately separated.
+    adminRole: v.optional(v.union(v.literal("owner"), v.literal("support"))),
+
+    /**
+     * Top plan without a purchase — internal and advisor accounts.
+     *
+     * Was a hardcoded array of document ids in model/plans.ts, which meant
+     * comping somebody required a source edit and a deploy, and the resulting
+     * grant was invisible to every query reporting on access.
+     */
+    comped: v.optional(v.boolean()),
   })
     .index("by_kinde_id", ["kindeId"])
     .index("by_handle", ["handle"])
-    .index("by_stripe_customer", ["stripeCustomerId"]),
+    .index("by_stripe_customer", ["stripeCustomerId"])
+    // Six call sites looked accounts up by email with `.filter(...).first()`,
+    // which scans the table and — with no uniqueness constraint anywhere —
+    // picks arbitrarily between duplicates. A grant landing on whichever row
+    // the scan happened to reach first is not a performance problem.
+    .index("by_email", ["email"]),
 
   contentEntries: defineTable({
     // `userId` is retained as "who created this row"; `workspaceId` is what
@@ -372,8 +403,15 @@ export default defineSchema({
     currency: v.string(),
     amount: v.number(),
     note: v.optional(v.string()),
-    /** 'open' until the owner grants access or turns it down. */
-    status: v.string(),
+    /**
+     * 'open' until the owner grants access or turns it down.
+     *
+     * A union rather than a string: a status nothing produces is a request no
+     * query matches, which reads as a customer who never asked. `v.string()`
+     * let one through silently, and finding it again needed a reconciliation
+     * pass over the whole table.
+     */
+    status: requestStatusValidator,
     createdAt: v.number(),
   })
     .index("by_user", ["userId"])
@@ -518,6 +556,47 @@ export default defineSchema({
     .index("by_client_and_time", ["clientId", "at"])
     .index("by_target_and_visitor", ["target", "visitorHash"])
     .index("by_time", ["at"]),
+
+  // ── Admin audit ─────────────────────────────────────────────────────────────
+  //
+  // Every privileged action, appended and never changed.
+  //
+  // Nothing recorded that a grant happened, who made it, or what it replaced.
+  // `users.accessNote` held a single overwritable string, so the second grant
+  // erased the first one's reason. With one operator that is uncomfortable; the
+  // moment a customer disputes a charge, or a second person can approve one,
+  // this table is the only thing that can answer the question.
+  //
+  // Append-only by construction: no mutation is written anywhere that patches
+  // or deletes a row here. An audit trail that can be edited is not one.
+  adminAuditLog: defineTable({
+    actorId: v.id("users"),
+    /**
+     * Denormalised on purpose. Ids dangle when an account is deleted, and the
+     * history of what somebody did must outlive their account.
+     */
+    actorEmail: v.string(),
+
+    /** Dotted verb: 'access.grant', 'access.revoke', 'admin.promote'. */
+    action: v.string(),
+
+    /** Who or what it was done to. A string rather than an id union so one
+     *  table can log actions against users, workspaces and requests alike. */
+    subjectId: v.optional(v.string()),
+    subjectEmail: v.optional(v.string()),
+
+    /** Serialised before/after for anything that changed a value. */
+    before: v.optional(v.string()),
+    after: v.optional(v.string()),
+
+    /** Why — typed by the admin at the time, not inferred later. */
+    reason: v.optional(v.string()),
+
+    at: v.number(),
+  })
+    .index("by_time", ["at"])
+    .index("by_subject", ["subjectId", "at"])
+    .index("by_actor", ["actorId", "at"]),
 
   // Failed access-code attempts, used to throttle guessing. `bucket` is either a
   // hashed caller IP or the literal "*" — the "*" row is the whole-slug counter,

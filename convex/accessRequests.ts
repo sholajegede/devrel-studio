@@ -2,6 +2,7 @@ import { v } from 'convex/values'
 import { ConvexError } from 'convex/values'
 import { internal } from './_generated/api'
 import { internalMutation, internalQuery, mutation, query } from './_generated/server'
+import { requestStatusValidator } from './model/access'
 import { getCurrentUser } from './model/auth'
 import { PLANS, isPlanId, TERMS } from './model/plans'
 
@@ -149,9 +150,20 @@ export const listOpen = internalQuery({
   },
 })
 
-/** Closes a request once access has been granted or refused. */
+/**
+ * Closes a request once access has been granted or refused.
+ *
+ * Superseded by `admin:approveRequest` and `admin:declineRequest`, which settle
+ * the request and open the access window in the same transaction. This remains
+ * only as a terminal escape hatch for a request whose account has since been
+ * deleted, where there is nothing left to grant.
+ *
+ * Settling here does **not** grant anything. Running it alone is the original
+ * two-command hazard: a request marked granted with no access behind it, which
+ * nothing surfaces except `admin:reconcileRequests`.
+ */
 export const settle = internalMutation({
-  args: { requestId: v.id('accessRequests'), status: v.string() },
+  args: { requestId: v.id('accessRequests'), status: requestStatusValidator },
   handler: async (ctx, args) => {
     await ctx.db.patch(args.requestId, { status: args.status })
   },

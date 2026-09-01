@@ -1,6 +1,6 @@
 import 'server-only'
 import Stripe from 'stripe'
-import { PlanId, PURCHASABLE_PLANS } from '@/convex/model/plans'
+import { PlanId, PURCHASABLE_PLANS, isPurchasablePlan } from '@/convex/model/plans'
 
 // ── Stripe ────────────────────────────────────────────────────────────────────
 //
@@ -33,7 +33,7 @@ export function stripeClient(): Stripe | null {
  * plan.
  */
 export function priceIdFor(plan: PlanId): string | null {
-  if (!PURCHASABLE_PLANS.includes(plan)) return null
+  if (!isPurchasablePlan(plan)) return null
   return process.env[`STRIPE_PRICE_${plan.toUpperCase()}`] ?? null
 }
 

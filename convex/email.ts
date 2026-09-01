@@ -409,6 +409,69 @@ export const sendTrialEnded = internalAction({
 })
 
 /**
+ * Tells a buyer their access is open.
+ *
+ * Sent by `admin:approveRequest` after the grant has already committed, so a
+ * failure here costs a notification and not the purchase. It carries the expiry
+ * date because "you're in" without an end date is the message people forward
+ * back six weeks later asking how long they have.
+ */
+export const sendAccessGranted = internalAction({
+  args: {
+    email: v.string(),
+    firstName: v.optional(v.string()),
+    planName: v.string(),
+    months: v.number(),
+    until: v.number(),
+    /** True when an unexpired window was extended rather than newly opened. */
+    extended: v.optional(v.boolean()),
+  },
+  handler: async (_ctx, args): Promise<SendResult> => {
+    const origin = process.env.SITE_URL ?? 'https://devrel.studio'
+    const greeting = args.firstName ? `Hi ${args.firstName},` : 'Hi,'
+    const term = args.months === 1 ? '1 month' : `${args.months} months`
+    const ends = new Date(args.until).toLocaleDateString('en-GB', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+      timeZone: 'UTC',
+    })
+
+    // A renewal and a first purchase are different news. Someone renewing
+    // already knows what the product is; what they want to see is that the
+    // months they had left were not thrown away.
+    const opening = args.extended
+      ? `Your ${args.planName} access has been extended by ${term}, added on to the time you had left.`
+      : `Your ${args.planName} access is open — ${term}, starting today.`
+
+    return await send({
+      to: args.email,
+      subject: args.extended
+        ? `Your DevRel Studio access now runs to ${ends}`
+        : 'Your DevRel Studio access is open',
+      html: layout(`
+        <p style="margin:0 0 14px;font-size:15px;line-height:1.6;">${greeting}</p>
+        <p style="margin:0 0 14px;font-size:15px;line-height:1.6;">
+          ${opening} Thank you.
+        </p>
+        <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 22px;font-size:15px;line-height:1.9;">
+          <tr><td style="padding-right:16px;color:#718096;">Plan</td><td>${args.planName}</td></tr>
+          <tr><td style="padding-right:16px;color:#718096;">Term</td><td>${term}</td></tr>
+          <tr><td style="padding-right:16px;color:#718096;">Runs until</td><td><strong>${ends}</strong></td></tr>
+        </table>
+        <p style="margin:0 0 22px;">${button(`${origin}/dashboard`, 'Open your dashboard')}</p>
+        <p style="margin:0;font-size:13px;line-height:1.6;color:#718096;">
+          Nothing renews automatically and there is no card on file — we will
+          write before this runs out. Reply to this email if anything looks
+          wrong.
+        </p>
+      `),
+      text: `${greeting}\n\n${opening} Thank you.\n\nPlan: ${args.planName}\nTerm: ${term}\nRuns until: ${ends}\n\nOpen your dashboard: ${origin}/dashboard\n\nNothing renews automatically and there is no card on file — we will write before this runs out. Reply to this email if anything looks wrong.`,
+    })
+  },
+})
+
+/**
  * Tells the owner someone wants to buy, and confirms to the buyer.
  *
  * Two messages from one action because they are the same event and must not

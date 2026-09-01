@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getKindeServerSession } from '@kinde-oss/kinde-auth-nextjs/server'
-import { isPlanId, PLANS, PURCHASABLE_PLANS } from '@/convex/model/plans'
+import { isPlanId, PLANS, isPurchasablePlan } from '@/convex/model/plans'
 import { appOrigin, billingIsConfigured, priceIdFor, stripeClient } from '@/lib/stripe'
 
 export const runtime = 'nodejs'
@@ -34,7 +34,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 })
   }
 
-  if (!isPlanId(plan) || !PURCHASABLE_PLANS.includes(plan)) {
+  if (!isPlanId(plan) || !isPurchasablePlan(plan)) {
     return NextResponse.json({ error: 'Unknown plan' }, { status: 400 })
   }
 

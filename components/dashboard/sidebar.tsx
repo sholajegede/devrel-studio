@@ -8,9 +8,11 @@ import { cn } from '@/lib/utils'
 import {
   LayoutDashboard, FileText, Users, CreditCard, Settings,
   PlusCircle, X, Menu, LogOut, Building2, KanbanSquare, Search, Mail,
-  Activity,
+  Activity, ShieldCheck,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { useQuery } from 'convex/react'
+import { api } from '@/convex/_generated/api'
 import { useUserContext } from '@/contexts/user-context'
 import { WorkspaceSwitcher } from '@/components/dashboard/workspace-switcher'
 import { ClientSwitcher } from '@/components/dashboard/client-switcher'
@@ -32,6 +34,13 @@ const NAV_ITEMS = [
 function SidebarInner({ onClose }: { onClose?: () => void }) {
   const pathname  = usePathname()
   const { profile } = useUserContext()
+
+  // Platform administration, not workspace administration — almost nobody has
+  // it, so the link only exists for the handful who do. The query returns null
+  // rather than throwing for everyone else, and the console's own queries are
+  // guarded server-side regardless of what is rendered here.
+  const adminRole = useQuery(api.admin.myAdminRole)
+  const openRequests = useQuery(api.admin.openRequestCount, adminRole ? {} : 'skip')
 
   const initials = profile
     ? (profile.firstName?.[0] ?? profile.email[0]).toUpperCase()
@@ -119,6 +128,32 @@ function SidebarInner({ onClose }: { onClose?: () => void }) {
             </Link>
           )
         })}
+
+        {/* Admin, for the one or two accounts that have it. Below the divider
+            from everyday work: it is a different job, not another page of the
+            same one. */}
+        {adminRole && (
+          <div className="mt-4 border-t border-border pt-4">
+            <Link
+              href="/admin/requests"
+              onClick={onClose}
+              className={cn(
+                'flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-colors',
+                pathname.startsWith('/admin')
+                  ? 'bg-secondary font-medium text-foreground'
+                  : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+              )}
+            >
+              <ShieldCheck className="h-4 w-4 shrink-0" />
+              Admin
+              {!!openRequests && (
+                <span className="ml-auto rounded-full bg-accent px-1.5 py-0.5 text-[11px] font-medium text-accent-foreground">
+                  {openRequests}
+                </span>
+              )}
+            </Link>
+          </div>
+        )}
 
         {/* Divider + action button */}
         <div className="pt-5">
