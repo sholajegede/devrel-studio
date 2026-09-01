@@ -1,5 +1,5 @@
 import { httpRouter } from "convex/server";
-import { internal } from "./_generated/api";
+import { api, internal } from "./_generated/api";
 import { httpAction } from "./_generated/server";
 import { jwtVerify, createRemoteJWKSet } from "jose";
 import Stripe from "stripe";
@@ -230,6 +230,81 @@ http.route({
   path: "/stripe",
   method: "POST",
   handler: handleStripeWebhook,
+});
+
+// ===== View tracking =====
+//
+// Called by proxy.ts on every view of a client dashboard or a portfolio.
+//
+// It lives here rather than in a Next.js route so the proxy reaches Convex in
+// one hop. The proxy runs ahead of the page on every request; routing it
+// through a Next function first would put a second cold-startable invocation
+// in front of traffic that must not be slowed down to be counted.
+//
+// The proxy does not await this, so a failure here costs a missing row and
+// nothing else. That tradeoff is deliberate: a page must never be slower, or
+// fail, because analytics did.
+
+const handleTrack = httpAction(async (ctx, request) => {
+  // Echoed on every response below — the portfolio beacon calls this from the
+  // browser, cross-origin from the app domain.
+  const cors = {
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Access-Control-Allow-Headers": "content-type",
+  };
+
+  try {
+    const body = await request.json();
+
+    if (body.kind === "duration") {
+      await ctx.runMutation(api.analytics.recordDuration, {
+        target: String(body.target ?? ""),
+        visitorHash: String(body.visitorHash ?? ""),
+        durationMs: Number(body.durationMs ?? 0),
+      });
+      return new Response(null, { status: 204, headers: cors });
+    }
+
+    if (body.surface !== "dashboard" && body.surface !== "portfolio") {
+      return new Response("bad surface", { status: 400, headers: cors });
+    }
+
+    await ctx.runMutation(api.analytics.record, {
+      surface: body.surface,
+      target: String(body.target ?? ""),
+      path: String(body.path ?? "/"),
+      visitorHash: String(body.visitorHash ?? ""),
+      sessionTokenHash: body.sessionTokenHash || undefined,
+      country: body.country || undefined,
+      referrer: body.referrer || undefined,
+    });
+
+    return new Response(null, { status: 204, headers: cors });
+  } catch (error) {
+    // Swallowed rather than surfaced. The rate limiter throws a ConvexError on
+    // a flood, and that is a normal outcome here, not an incident.
+    console.error("[track] dropped", error);
+    return new Response(null, { status: 204, headers: cors });
+  }
+});
+
+http.route({ path: "/track", method: "POST", handler: handleTrack });
+
+http.route({
+  path: "/track",
+  method: "OPTIONS",
+  handler: httpAction(async () => {
+    return new Response(null, {
+      status: 204,
+      headers: {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "POST, OPTIONS",
+        "Access-Control-Allow-Headers": "content-type",
+        "Access-Control-Max-Age": "86400",
+      },
+    });
+  }),
 });
 
 export default http;

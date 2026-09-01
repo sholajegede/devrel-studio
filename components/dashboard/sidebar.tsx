@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils'
 import {
   LayoutDashboard, FileText, Users, CreditCard, Settings,
   PlusCircle, X, Menu, LogOut, Building2, KanbanSquare, Search, Mail,
+  Activity,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useUserContext } from '@/contexts/user-context'
@@ -22,6 +23,7 @@ const NAV_ITEMS = [
   { href: '/dashboard/content',  label: 'All Content',  icon: FileText,        exact: false },
   { href: '/dashboard/clients',  label: 'Clients',      icon: Building2,       exact: false },
   { href: '/dashboard/reports',  label: 'Reports',      icon: Mail,            exact: false },
+  { href: '/dashboard/analytics',label: 'Analytics',    icon: Activity,        exact: false },
   { href: '/dashboard/members',  label: 'Members',      icon: Users,           exact: false },
   { href: '/dashboard/billing',  label: 'Billing',      icon: CreditCard,      exact: false },
   { href: '/dashboard/settings', label: 'Settings',     icon: Settings,        exact: false },

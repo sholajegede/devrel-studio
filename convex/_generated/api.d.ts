@@ -9,6 +9,7 @@
  */
 
 import type * as accessRequests from "../accessRequests.js";
+import type * as analytics from "../analytics.js";
 import type * as billing from "../billing.js";
 import type * as clients from "../clients.js";
 import type * as content from "../content.js";
@@ -38,6 +39,7 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   accessRequests: typeof accessRequests;
+  analytics: typeof analytics;
   billing: typeof billing;
   clients: typeof clients;
   content: typeof content;

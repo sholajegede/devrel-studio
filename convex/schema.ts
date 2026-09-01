@@ -397,6 +397,72 @@ export default defineSchema({
     .index("by_client", ["clientId"])
     .index("by_slug_and_period", ["slug", "period"]),
 
+  // ── Who looked at the work ──────────────────────────────────────────────────
+  //
+  // One row per view of a public surface: a client dashboard at
+  // [slug].devrel.studio, or a portfolio at /@handle. This is what the DevRel's
+  // own /dashboard/analytics section reads.
+  //
+  // The point of the table is not traffic measurement — the volumes here are
+  // tens to hundreds a month, not millions. It is evidence of attention: that
+  // the manager paying for the work actually opened the report, and how long
+  // they stayed. That fact is the hardest thing in DevRel to prove and the most
+  // valuable thing to be able to show.
+  //
+  // Rows are raw rather than pre-aggregated. At this volume a workspace's whole
+  // history is a few thousand documents, which is cheaper to query directly
+  // than to maintain rollups for — and it keeps the per-view detail the
+  // activity feed depends on.
+  pageViews: defineTable({
+    /** Which surface was viewed. */
+    surface: v.union(v.literal("dashboard"), v.literal("portfolio")),
+
+    // Whose analytics this belongs in. Resolved at write time by looking the
+    // slug or handle up, so the read path never has to join back through
+    // clients/users to scope a query to the signed-in workspace.
+    workspaceId: v.optional(v.id("workspaces")),
+    userId: v.optional(v.id("users")),
+    /** Set for dashboard views; absent for portfolio, which belongs to no client. */
+    clientId: v.optional(v.id("clients")),
+
+    /** The slug or handle, denormalised for display without a second read. */
+    target: v.string(),
+    /** Path within the surface — '/', '/report', '/reports'. */
+    path: v.string(),
+
+    // ── Who, to the extent it is knowable ─────────────────────────────────────
+    //
+    // 'manager' means the visitor held a valid access-code session for this
+    // client, so the view can honestly be attributed to the person the DevRel
+    // gave the code to. 'anonymous' is everyone else, including every portfolio
+    // visitor — a public page cannot identify its readers and should not claim
+    // to.
+    identity: v.union(v.literal("manager"), v.literal("anonymous")),
+
+    /**
+     * Daily-rotating hash of IP + user agent. Counts unique visitors within a
+     * day without being a durable identifier: the salt includes the date, so
+     * the same person tomorrow hashes differently and cannot be followed across
+     * days. Raw IPs never reach Convex — the hash is computed in the Next.js
+     * layer, the same rule `managerAccessAttempts` follows.
+     */
+    visitorHash: v.string(),
+
+    /** ISO-3166 alpha-2 from the CDN edge. Country granularity only. */
+    country: v.optional(v.string()),
+    /** Bare hostname of the referrer — 'linkedin.com', never the full URL. */
+    referrer: v.optional(v.string()),
+
+    /** Milliseconds on the page, when the surface reported it on unload. */
+    durationMs: v.optional(v.number()),
+
+    at: v.number(),
+  })
+    .index("by_workspace_and_time", ["workspaceId", "at"])
+    .index("by_client_and_time", ["clientId", "at"])
+    .index("by_target_and_visitor", ["target", "visitorHash"])
+    .index("by_time", ["at"]),
+
   // Failed access-code attempts, used to throttle guessing. `bucket` is either a
   // hashed caller IP or the literal "*" — the "*" row is the whole-slug counter,
   // which is what catches an attacker spread across many addresses. Raw IPs are

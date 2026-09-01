@@ -1,6 +1,15 @@
 import { withAuth } from "@kinde-oss/kinde-auth-nextjs/middleware";
-import { NextResponse, NextRequest } from 'next/server';
+import { NextResponse, NextRequest, NextFetchEvent } from 'next/server';
 import { isReservedSubdomain } from '@/lib/naming';
+import {
+  callerCountry,
+  callerIp,
+  hashSessionTokenEdge,
+  isBot,
+  isTrackablePath,
+  referrerHost,
+  visitorHashEdge,
+} from '@/lib/view-tracking';
 
 // ─────────────────────────────────────────────
 // Route matching
@@ -126,10 +135,102 @@ const handleSubdomainRewrite = (
 };
 
 // ─────────────────────────────────────────────
+// View tracking
+// ─────────────────────────────────────────────
+//
+// Both public surfaces are counted from here.
+//
+// For portfolios that is a choice — the page could count its own views — but
+// for client dashboards it is the only option, and a good one: the proxy runs
+// before the ISR cache, so a portfolio served from cache is still counted,
+// which a server component in the page never could be.
+//
+// Nothing here is awaited by the request. `event.waitUntil` keeps the runtime
+// alive for the POST after the response has already gone out, so tracking adds
+// no latency to any page.
+
+/** Which surface a request is for, or null when it is not a tracked one. */
+function trackingTarget(
+  req: NextRequest,
+  subdomain: string | null,
+): { surface: 'dashboard' | 'portfolio'; target: string; path: string } | null {
+  const pathname = req.nextUrl.pathname;
+  if (!isTrackablePath(pathname)) return null;
+
+  if (subdomain) {
+    return { surface: 'dashboard', target: subdomain, path: pathname };
+  }
+
+  if (pathname.startsWith('/@')) {
+    const rest = pathname.slice(2);
+    const handle = rest.split('/')[0];
+    if (!handle) return null;
+    return { surface: 'portfolio', target: handle, path: `/${rest.slice(handle.length + 1)}` };
+  }
+
+  return null;
+}
+
+function trackView(req: NextRequest, event: NextFetchEvent, subdomain: string | null): void {
+  const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL;
+  const secret = process.env.MANAGER_CODE_SECRET;
+  // Without either of these there is nowhere to send a view, or no way to hash
+  // one safely. Both are absent in local dev by default, and a dev server that
+  // logs nothing is better than one that logs raw IPs.
+  if (!convexUrl || !secret) return;
+
+  const userAgent = req.headers.get('user-agent');
+  if (isBot(userAgent)) return;
+
+  const found = trackingTarget(req, subdomain);
+  if (!found) return;
+
+  // Convex HTTP actions are served from .convex.site, not the .convex.cloud
+  // origin the browser client uses.
+  const endpoint = `${convexUrl.replace('.convex.cloud', '.convex.site')}/track`;
+  const hostname = req.headers.get('host') || '';
+
+  event.waitUntil(
+    (async () => {
+      try {
+        const visitorHash = await visitorHashEdge(callerIp(req.headers), userAgent, secret);
+
+        // Present only on a client dashboard, and only once the manager has
+        // entered their access code. It is what lets a view be attributed to a
+        // named client rather than counted as anonymous.
+        let sessionTokenHash: string | undefined;
+        if (found.surface === 'dashboard') {
+          const cookie = req.cookies.get(
+            `mgr_session_${found.target.replace(/[^a-z0-9-]/gi, '')}`,
+          )?.value;
+          if (cookie) sessionTokenHash = await hashSessionTokenEdge(cookie, secret);
+        }
+
+        await fetch(endpoint, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({
+            surface: found.surface,
+            target: found.target,
+            path: found.path,
+            visitorHash,
+            sessionTokenHash,
+            country: callerCountry(req.headers),
+            referrer: referrerHost(req.headers.get('referer'), hostname),
+          }),
+        });
+      } catch {
+        // A page is never allowed to fail because it could not be counted.
+      }
+    })(),
+  );
+}
+
+// ─────────────────────────────────────────────
 // Proxy
 // ─────────────────────────────────────────────
 
-export default function proxy(req: NextRequest) {
+export default function proxy(req: NextRequest, event: NextFetchEvent) {
   const hostname = req.headers.get('host') || '';
   const subdomain = getSubdomain(hostname);
   const pathname = req.nextUrl.pathname;
@@ -154,6 +255,7 @@ export default function proxy(req: NextRequest) {
   // here. Access is gated by the manager access code, enforced server-side in
   // app/(subdomain)/[subdomain]/layout.tsx.
   if (subdomain) {
+    trackView(req, event, subdomain);
     return handleSubdomainRewrite(subdomain, req);
   }
 
@@ -161,6 +263,7 @@ export default function proxy(req: NextRequest) {
   // route slot in the App Router, so the page itself lives at /portfolio/handle
   // and the pretty URL is a rewrite.
   if (pathname.startsWith('/@')) {
+    trackView(req, event, null);
     const rewriteUrl = req.nextUrl.clone();
     rewriteUrl.pathname = `/portfolio/${pathname.slice(2)}`;
     return NextResponse.rewrite(rewriteUrl);

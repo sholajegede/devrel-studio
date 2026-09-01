@@ -10,6 +10,7 @@ import { CATEGORY_META, getCategoryColor } from '@/lib/category-meta'
 import { PlatformIcon } from '@/lib/platform-meta'
 import { siteOrigin } from '@/lib/site'
 import { Badge } from '@/components/ui/badge'
+import { DwellBeacon } from '@/components/analytics/dwell-beacon'
 import {
   ArrowLeft,
   ArrowRight,
@@ -300,6 +301,9 @@ export default async function PortfolioPage({
 
   return (
     <div className="min-h-screen bg-background">
+      {/* Renders nothing. The view was already counted in proxy.ts; this only
+          reports how long the visitor stayed, on unload. */}
+      <DwellBeacon target={profile.handle} />
       <main className="mx-auto max-w-4xl px-4 sm:px-6 py-12 sm:py-16">
 
         {/* ── Identity ── */}
