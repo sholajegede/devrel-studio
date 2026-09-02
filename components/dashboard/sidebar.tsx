@@ -135,7 +135,7 @@ function SidebarInner({ onClose }: { onClose?: () => void }) {
         {adminRole && (
           <div className="mt-4 border-t border-border pt-4">
             <Link
-              href="/admin/requests"
+              href="/admin"
               onClick={onClose}
               className={cn(
                 'flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-colors',

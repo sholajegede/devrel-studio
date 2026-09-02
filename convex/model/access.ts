@@ -92,3 +92,30 @@ export function checkMonths(months: number): string | null {
   if (months > MAX_ACCESS_MONTHS) return `Months must be ${MAX_ACCESS_MONTHS} or fewer`
   return null
 }
+
+/**
+ * The fields that close somebody's access window.
+ *
+ * Shared for the same reason as the arithmetic above: revoke exists in two
+ * places — the console's owner-only action and the `migrations` command still
+ * typed by hand — and the two must agree on what revoked *means*. One clearing
+ * `accessUntil` while the other set it to `now` would leave two accounts in
+ * visibly different states after the same decision, and `accessOf` treats a
+ * past timestamp and an absent one differently in what it reports as `until`.
+ *
+ * `plan` is deliberately left alone. It records what was bought, not what is
+ * currently allowed; `accessOf` already falls back to the trial's limits once
+ * the window is shut, and erasing the plan would lose the only record of what
+ * the refund was for.
+ */
+export function revokedPatch(reason?: string): {
+  accessUntil: undefined
+  planStatus: string
+  accessNote: string
+} {
+  return {
+    accessUntil: undefined,
+    planStatus: 'revoked',
+    accessNote: reason?.trim() ? `Access revoked — ${reason.trim()}` : 'Access revoked',
+  }
+}

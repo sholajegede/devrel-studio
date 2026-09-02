@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { readFileSync, readdirSync, existsSync } from 'node:fs'
 import { join } from 'node:path'
+import { adminFiles, exportedFunctions } from './support/convex-source'
 import { atLeastAdmin } from '@/convex/model/admin'
 import { accessOf, isComped } from '@/convex/model/plans'
 
@@ -64,28 +65,21 @@ describe('isComped', () => {
 // Crude on purpose: it reads the source rather than the runtime, so it catches
 // the mistake at the point it is made, in a repo with no Convex test harness.
 
-const ADMIN_FILES = ['convex/admin.ts']
-
-/** Exported Convex functions, with the body up to the next export. */
-function exportedFunctions(source: string) {
-  const found: { name: string; kind: string; body: string }[] = []
-  const pattern = /export const (\w+) = (internalMutation|internalQuery|mutation|query|action|internalAction)\(/g
-
-  let match: RegExpExecArray | null
-  while ((match = pattern.exec(source)) !== null) {
-    pattern.lastIndex = match.index + match[0].length
-    const next = source.indexOf('\nexport const ', match.index + 1)
-    found.push({
-      name: match[1],
-      kind: match[2],
-      body: source.slice(match.index, next === -1 ? source.length : next),
-    })
-  }
-  return found
-}
+// Discovered, not listed: every convex/admin*.ts is checked, so splitting the
+// console across files cannot quietly drop a file out of this test. The helper
+// itself moved to tests/support so the phase-three tests share it.
+const ADMIN_FILES = adminFiles()
 
 describe('every admin function guards itself', () => {
   const root = process.cwd()
+
+  it('finds every admin module', () => {
+    // A discovery that silently matches nothing would make every assertion
+    // below vacuous — the test would pass loudest at the moment it stopped
+    // testing anything.
+    expect(ADMIN_FILES).toContain('convex/admin.ts')
+    expect(ADMIN_FILES).toContain('convex/adminUsers.ts')
+  })
 
   for (const file of ADMIN_FILES) {
     const path = join(root, file)

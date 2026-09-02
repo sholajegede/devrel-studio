@@ -19,7 +19,13 @@ import { ShieldCheck } from 'lucide-react'
 // `requireAdmin` server-side, because a check that only exists in the browser
 // is a check that anybody can skip by calling the API directly.
 
-const TABS = [{ href: '/admin/requests', label: 'Requests' }]
+// `exact` for the overview alone: it sits at the root of the console, so a
+// prefix match would light it up on every page underneath it.
+const TABS: { href: string; label: string; exact?: boolean }[] = [
+  { href: '/admin', label: 'Overview', exact: true },
+  { href: '/admin/requests', label: 'Requests' },
+  { href: '/admin/users', label: 'Accounts' },
+]
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
@@ -63,7 +69,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
           <nav className="mx-auto flex max-w-5xl gap-1 px-6">
             {TABS.map((tab) => {
-              const active = pathname === tab.href || pathname.startsWith(tab.href + '/')
+              const active = tab.exact
+                ? pathname === tab.href
+                : pathname === tab.href || pathname.startsWith(tab.href + '/')
               return (
                 <Link
                   key={tab.href}
