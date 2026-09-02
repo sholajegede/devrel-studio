@@ -1,7 +1,7 @@
 import { ConvexError } from 'convex/values'
 import { Doc } from '../_generated/dataModel'
 import { MutationCtx } from '../_generated/server'
-import { AnyCtx, getCurrentUser } from './auth'
+import { AnyCtx, getRealUser } from './auth'
 
 // ── Platform administration ───────────────────────────────────────────────────
 //
@@ -44,7 +44,12 @@ export async function getAdmin(
   ctx: AnyCtx,
   minimum: AdminRole = 'support',
 ): Promise<Doc<'users'> | null> {
-  const user = await getCurrentUser(ctx)
+  // `getRealUser`, never `getCurrentUser`. Authority is a fact about who is
+  // signed in, not about whose data they happen to be reading: resolving this
+  // through the impersonated account would mean that viewing an owner's
+  // dashboard made you an owner, and that ending the session required the
+  // authority you had just borrowed.
+  const user = await getRealUser(ctx)
   if (!user?.adminRole) return null
   if (!atLeastAdmin(user.adminRole, minimum)) return null
   return user

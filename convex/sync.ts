@@ -271,6 +271,21 @@ export const syncMyStats = action({
     const identity = await ctx.auth.getUserIdentity()
     if (!identity) throw new Error('Not authenticated')
 
+    // An action resolves its own identity from the token, so it never passes
+    // through `getCurrentUser` and never sees the read-only refusal that stops
+    // every other write while an admin is viewing somebody else's account.
+    // Without this check the button in front of them would refresh their *own*
+    // statistics from a screen showing another person's dashboard.
+    const impersonating: boolean = await ctx.runQuery(
+      internal.adminImpersonate.activeForKindeId,
+      { kindeId: identity.subject },
+    )
+    if (impersonating) {
+      throw new Error(
+        'You are viewing another account read-only. End that session first.',
+      )
+    }
+
     const userId: Id<'users'> | null = await ctx.runQuery(
       internal.sync.userIdForKindeId,
       { kindeId: identity.subject },

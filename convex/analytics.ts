@@ -38,7 +38,11 @@ const DEDUPE_WINDOW_MS = 10 * 1000
  */
 export const record = mutation({
   args: {
-    surface: v.union(v.literal('dashboard'), v.literal('portfolio')),
+    surface: v.union(
+      v.literal('dashboard'),
+      v.literal('portfolio'),
+      v.literal('site'),
+    ),
     target: v.string(),
     path: v.string(),
     visitorHash: v.string(),
@@ -60,7 +64,16 @@ export const record = mutation({
       'Too many requests',
     )
 
-    const owner = await resolveOwner(ctx, args.surface, target)
+    // A view of devrel.studio itself belongs to nobody's workspace — it is the
+    // platform's own traffic, read only by the admin console. It skips the
+    // ownership lookup below for the obvious reason that there is nothing to
+    // look up, and keeps the same rate limit, deduplication and bot rules as
+    // every other row.
+    const owner =
+      args.surface === 'site'
+        ? { workspaceId: undefined, userId: undefined, clientId: undefined }
+        : await resolveOwner(ctx, args.surface, target)
+
     // Nothing owns this slug or handle. The wildcard answers for every name
     // under the domain, so without this a script could fill the table by
     // hitting invented subdomains.
@@ -154,7 +167,7 @@ export const recordDuration = mutation({
  */
 async function resolveOwner(
   ctx: MutationCtx,
-  surface: 'dashboard' | 'portfolio',
+  surface: 'dashboard' | 'portfolio' | 'site',
   target: string,
 ): Promise<{
   workspaceId?: Id<'workspaces'>

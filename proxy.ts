@@ -1,12 +1,13 @@
 import { withAuth } from "@kinde-oss/kinde-auth-nextjs/middleware";
 import { NextResponse, NextRequest, NextFetchEvent } from 'next/server';
-import { isReservedSubdomain } from '@/lib/naming';
+import { adminHostFor, isAdminHost, isReservedSubdomain } from '@/lib/naming';
 import {
   callerCountry,
   callerIp,
   hashSessionTokenEdge,
   isBot,
   isTrackablePath,
+  normaliseRoute,
   referrerHost,
   visitorHashEdge,
 } from '@/lib/view-tracking';
@@ -85,6 +86,78 @@ const isDeadSubdomain = (hostname: string): boolean => {
   return candidate !== 'www' && isReservedSubdomain(candidate);
 };
 
+// ─────────────────────────────────────────────
+// The admin host
+// ─────────────────────────────────────────────
+//
+// admin.devrel.studio is its own origin for the console, and the only entrance
+// to it. Being a separate origin is the point: local storage, cookies scoped to
+// the host, and any edge rule the platform grows later all stop at the boundary
+// rather than being shared with the product every customer uses.
+//
+// It is not the security boundary. Every query and mutation behind these pages
+// still resolves the caller through `requireAdmin` server-side, because a host
+// check is a check the network can be lied to about and a Convex guard is not.
+//
+// `admin` has been reserved in lib/naming.ts since before this existed, so no
+// client could ever have claimed the name.
+
+/**
+ * Everything on the admin host lives under /admin internally.
+ *
+ * The routes were built at /admin and stay there: one set of pages, reachable
+ * at one address. The rewrite is what makes admin.devrel.studio/users and
+ * /admin/users the same page without maintaining two route trees.
+ */
+const handleAdminHost = async (
+  req: NextRequest,
+): Promise<NextResponse> => {
+  const url = req.nextUrl.clone();
+  const { pathname } = url;
+
+  // Auth callbacks, static assets and API routes are addressed as themselves.
+  if (
+    pathname.startsWith('/_next') ||
+    pathname.startsWith('/images') ||
+    pathname.startsWith('/api')
+  ) {
+    return NextResponse.next();
+  }
+
+  // The way in. Deliberately public: somebody arriving here is by definition
+  // not signed in yet, and bouncing them to the product's sign-in page on
+  // another origin is how an admin ends up signed in to the wrong thing.
+  if (pathname === '/login') {
+    return NextResponse.next();
+  }
+
+  // Everything else needs a Kinde session before it is worth rewriting. The
+  // console's own layout then decides whether this account is an *admin*, and
+  // renders the same nothing as any unknown URL if it is not — so this gate
+  // answers "signed in", never "allowed".
+  //
+  // `withAuth` hands back a redirect to the sign-in flow when there is no
+  // session, and a pass-through when there is; only the first is interesting
+  // here, because the rewrite has to happen either way afterwards.
+  const gate = (await (withAuth as unknown as (
+    request: NextRequest,
+  ) => Promise<NextResponse>)(req)) as NextResponse | undefined;
+
+  if (gate && gate.status >= 300 && gate.status < 400) return gate;
+
+  if (pathname === '/' || pathname === '') {
+    url.pathname = '/admin';
+    return NextResponse.rewrite(url);
+  }
+
+  if (!pathname.startsWith('/admin')) {
+    url.pathname = `/admin${pathname}`;
+    return NextResponse.rewrite(url);
+  }
+
+  return NextResponse.next();
+};
+
 const getSubdomain = (hostname: string): string | null => {
   const parts = hostname.split('.');
 
@@ -153,7 +226,7 @@ const handleSubdomainRewrite = (
 function trackingTarget(
   req: NextRequest,
   subdomain: string | null,
-): { surface: 'dashboard' | 'portfolio'; target: string; path: string } | null {
+): { surface: 'dashboard' | 'portfolio' | 'site'; target: string; path: string } | null {
   const pathname = req.nextUrl.pathname;
   if (!isTrackablePath(pathname)) return null;
 
@@ -168,7 +241,14 @@ function trackingTarget(
     return { surface: 'portfolio', target: handle, path: `/${rest.slice(handle.length + 1)}` };
   }
 
-  return null;
+  // Everything else on the product host: the marketing pages, pricing, and the
+  // signed-in app.
+  //
+  // The path is normalised before it is stored, so /dashboard/edit/abc123 and
+  // /dashboard/edit/def456 are one route rather than two rows nobody can group.
+  // Ids are what make a page-view table useless at exactly the moment it gets
+  // interesting, and they are also the part somebody could work backwards from.
+  return { surface: 'site', target: 'site', path: normaliseRoute(pathname) };
 }
 
 function trackView(req: NextRequest, event: NextFetchEvent, subdomain: string | null): void {
@@ -240,6 +320,13 @@ export default function proxy(req: NextRequest, event: NextFetchEvent) {
     return NextResponse.next();
   }
 
+  // The console has its own origin. Checked before the reserved-subdomain 404
+  // below, which is what `admin` would otherwise fall into — it is on that list
+  // precisely so no client could take the name before this existed.
+  if (isAdminHost(hostname)) {
+    return handleAdminHost(req);
+  }
+
   // A reserved subdomain is not a client dashboard and is not the apex. Serving
   // the marketing site from it would put a second copy of the homepage on every
   // reserved name.
@@ -268,6 +355,25 @@ export default function proxy(req: NextRequest, event: NextFetchEvent) {
     rewriteUrl.pathname = `/portfolio/${pathname.slice(2)}`;
     return NextResponse.rewrite(rewriteUrl);
   }
+
+  // One entrance. The console used to hang off /admin on the same host as
+  // everybody's dashboard, which meant an admin's session for the product and
+  // their authority over the platform lived on one origin — and that the link
+  // existed, discoverably, in the sidebar of a page every customer opens.
+  //
+  // Old links keep working by landing where the console actually is.
+  if (pathname === '/admin' || pathname.startsWith('/admin/')) {
+    const target = new URL(req.url);
+    target.hostname = adminHostFor(hostname);
+    target.pathname = pathname === '/admin' ? '/' : pathname.slice('/admin'.length);
+    return NextResponse.redirect(target);
+  }
+
+  // The product host itself, which until now counted nothing about its own
+  // pages. After the redirect above deliberately: a redirect is a hop, not a
+  // page somebody read, and counting it would put /admin at the top of a list
+  // of what people look at.
+  trackView(req, event, null);
 
   // Main domain
   if (!isPublicRoute(req)) {
