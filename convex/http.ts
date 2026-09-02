@@ -266,7 +266,11 @@ const handleTrack = httpAction(async (ctx, request) => {
       return new Response(null, { status: 204, headers: cors });
     }
 
-    if (body.surface !== "dashboard" && body.surface !== "portfolio") {
+    if (
+      body.surface !== "dashboard" &&
+      body.surface !== "portfolio" &&
+      body.surface !== "site"
+    ) {
       return new Response("bad surface", { status: 400, headers: cors });
     }
 

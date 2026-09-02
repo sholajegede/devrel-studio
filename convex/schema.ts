@@ -508,8 +508,20 @@ export default defineSchema({
   // than to maintain rollups for — and it keeps the per-view detail the
   // activity feed depends on.
   pageViews: defineTable({
-    /** Which surface was viewed. */
-    surface: v.union(v.literal("dashboard"), v.literal("portfolio")),
+    /**
+     * Which surface was viewed.
+     *
+     * 'site' is every other page on devrel.studio — the marketing pages, the
+     * pricing page, the signed-in app. It was added after the first two because
+     * "which of my own pages do people actually open" turned out to be a
+     * question nobody could answer either, and the counting hook was already
+     * sitting in the one place that sees every request.
+     */
+    surface: v.union(
+      v.literal("dashboard"),
+      v.literal("portfolio"),
+      v.literal("site"),
+    ),
 
     // Whose analytics this belongs in. Resolved at write time by looking the
     // slug or handle up, so the read path never has to join back through

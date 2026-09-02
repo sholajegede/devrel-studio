@@ -74,3 +74,35 @@ export function normalizeHandle(input: string): string {
 
 /** 3–30 characters, starting and ending alphanumeric. */
 export const HANDLE_PATTERN = /^[a-z0-9](?:[a-z0-9_-]{1,28}[a-z0-9])$/
+
+// ── The admin host ────────────────────────────────────────────────────────────
+//
+// The console answers on its own origin. It lives here rather than in proxy.ts
+// because the name has to agree with the reserved list above — `admin` is on it
+// precisely so no client could ever claim the address the console now uses — and
+// two copies of that fact would be two things to keep in step.
+
+export const ADMIN_SUBDOMAIN = 'admin'
+
+/** Whether a Host header addresses the console. */
+export function isAdminHost(hostname: string): boolean {
+  const parts = hostname.split('.')
+  if (parts[0] !== ADMIN_SUBDOMAIN) return false
+
+  // admin.localhost:3000 in development, admin.devrel.studio in production.
+  return hostname.includes('localhost') ? parts.length >= 2 : parts.length >= 3
+}
+
+/**
+ * The console's host, derived from whichever host is being served.
+ *
+ * Derived rather than read from an environment variable so a preview deployment
+ * points at its own console instead of production's, and so localhost keeps
+ * working with no configuration at all.
+ */
+export function adminHostFor(hostname: string): string {
+  const bare = hostname.split(':')[0]
+  const parts = bare.split('.')
+  const root = parts[0] === 'www' ? parts.slice(1).join('.') : bare
+  return `${ADMIN_SUBDOMAIN}.${root}`
+}

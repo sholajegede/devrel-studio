@@ -149,3 +149,32 @@ export function callerCountry(headers: Headers): string | undefined {
   }
   return headers.get('x-vercel-ip-country') || undefined;
 }
+
+/**
+ * A path reduced to the route that produced it.
+ *
+ * Anything that looks like an identifier becomes its parameter name, so
+ * /dashboard/edit/jd7anm6a… and /dashboard/edit/k579nnje… are one row rather
+ * than two nobody can group. Ids are what make a page-view table useless at
+ * exactly the point it gets interesting, and they are also the part somebody
+ * could work backwards from to a specific customer's record.
+ */
+export function normaliseRoute(pathname: string): string {
+  const segments = pathname.split('/').filter(Boolean)
+  if (segments.length === 0) return '/'
+
+  const cleaned = segments.map((segment, index) => {
+    // A Convex document id: lowercase alphanumerics, long, and containing at
+    // least one digit — which is what separates one from a word like
+    // "dashboard" or a slug like "acme-industries".
+    if (/^[a-z0-9]{20,40}$/.test(segment) && /\d/.test(segment)) return ':id'
+    if (/^[0-9a-f]{8}-[0-9a-f]{4}-/.test(segment)) return ':id'
+    // Invitation links carry an opaque token of no fixed shape.
+    if (segments[index - 1] === 'invite') return ':token'
+    // Report periods: 2026-09.
+    if (/^\d{4}-\d{2}$/.test(segment)) return ':period'
+    return segment
+  })
+
+  return `/${cleaned.join('/')}`
+}

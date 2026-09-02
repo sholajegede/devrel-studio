@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import {
+  ADMIN_SUBDOMAIN,
   HANDLE_PATTERN,
+  adminHostFor,
+  isAdminHost,
   isReservedHandle,
   isReservedSubdomain,
   normalizeHandle,
@@ -118,5 +121,45 @@ describe('reserved names', () => {
     for (const name of ['me', 'new', 'terms', 'privacy']) {
       expect(isReservedHandle(name)).toBe(true)
     }
+  })
+})
+
+// ── The admin host ────────────────────────────────────────────────────────────
+//
+// The console answers on its own origin. These pin the two facts the routing
+// depends on: which hosts are the console, and which are emphatically not.
+
+describe('isAdminHost', () => {
+  it('recognises the console in production and in development', () => {
+    expect(isAdminHost('admin.devrel.studio')).toBe(true)
+    expect(isAdminHost('admin.localhost:3000')).toBe(true)
+  })
+
+  it('is not the product host', () => {
+    expect(isAdminHost('devrel.studio')).toBe(false)
+    expect(isAdminHost('www.devrel.studio')).toBe(false)
+    expect(isAdminHost('localhost:3000')).toBe(false)
+  })
+
+  it('is not a client dashboard that merely starts with the letters', () => {
+    // administrator.devrel.studio is a slug somebody could have claimed.
+    expect(isAdminHost('administrator.devrel.studio')).toBe(false)
+    expect(isAdminHost('admin-tools.devrel.studio')).toBe(false)
+  })
+
+  it('cannot be claimed as a client slug', () => {
+    // The whole arrangement rests on this: the console took an address that was
+    // already reserved, so no existing dashboard could be shadowed by it.
+    expect(isReservedSubdomain(ADMIN_SUBDOMAIN)).toBe(true)
+  })
+})
+
+describe('adminHostFor', () => {
+  it('derives the console host from whichever host is being served', () => {
+    // Derived rather than configured, so a preview deployment redirects to its
+    // own console rather than to production's.
+    expect(adminHostFor('devrel.studio')).toBe('admin.devrel.studio')
+    expect(adminHostFor('www.devrel.studio')).toBe('admin.devrel.studio')
+    expect(adminHostFor('localhost:3000')).toBe('admin.localhost')
   })
 })

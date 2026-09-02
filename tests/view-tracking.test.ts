@@ -8,6 +8,7 @@ import {
   isBot,
   isTrackablePath,
   referrerHost,
+  normaliseRoute,
   sha256Hex,
   visitorHashEdge,
 } from '@/lib/view-tracking'
@@ -200,5 +201,43 @@ describe('callerCountry', () => {
 
   it('returns undefined when nothing reports a country', () => {
     expect(callerCountry(new Headers())).toBeUndefined()
+  })
+})
+
+// ── Routes, not URLs ──────────────────────────────────────────────────────────
+//
+// Site-wide tracking counts the product's own pages, and a page-view table keyed
+// on identifiers is one nobody can group — and one somebody could work backwards
+// from to a particular customer's record.
+
+describe('normaliseRoute', () => {
+  it('leaves a plain route alone', () => {
+    expect(normaliseRoute('/pricing')).toBe('/pricing')
+    expect(normaliseRoute('/dashboard/clients')).toBe('/dashboard/clients')
+  })
+
+  it('collapses Convex ids to their parameter', () => {
+    expect(normaliseRoute('/dashboard/edit/jd7anm6a4kqts6e9sf8bpfyxf181s70m')).toBe(
+      '/dashboard/edit/:id',
+    )
+  })
+
+  it('leaves words and slugs that are not ids', () => {
+    // The rule is "long, lowercase alphanumeric, and contains a digit" — which
+    // is what separates an id from a word or a hyphenated company slug.
+    expect(normaliseRoute('/dashboard/analytics')).toBe('/dashboard/analytics')
+    expect(normaliseRoute('/portfolio/acme-industries')).toBe('/portfolio/acme-industries')
+  })
+
+  it('hides invitation tokens whatever shape they take', () => {
+    expect(normaliseRoute('/invite/abcDEF123-token')).toBe('/invite/:token')
+  })
+
+  it('groups report periods', () => {
+    expect(normaliseRoute('/reports/2026-09')).toBe('/reports/:period')
+  })
+
+  it('keeps the root as the root', () => {
+    expect(normaliseRoute('/')).toBe('/')
   })
 })

@@ -16,7 +16,10 @@ const COLLAPSED_ROWS = 12
 
 export type ActivityRow = {
   id: string
-  surface: 'dashboard' | 'portfolio'
+  // 'site' rows are the platform's own traffic and never reach a DevRel's
+  // analytics — their queries are scoped to a workspace and these belong to
+  // none. Widened to match the schema rather than cast at the boundary.
+  surface: 'dashboard' | 'portfolio' | 'site'
   target: string
   path: string
   identity: 'manager' | 'anonymous'
