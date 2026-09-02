@@ -15,7 +15,7 @@ import {
   RevokeDialog,
   type AdminAccount,
 } from '@/components/admin/user-actions'
-import { ArrowLeft, ShieldCheck, Sparkles } from 'lucide-react'
+import { AlertTriangle, ArrowLeft, ShieldCheck, Sparkles } from 'lucide-react'
 
 // ── One account ───────────────────────────────────────────────────────────────
 //
@@ -183,16 +183,26 @@ export default function AdminUserPage() {
               value={
                 usage.planLimit === null
                   ? `${usage.clients} of unlimited`
-                  : `${usage.clients} of ${usage.planLimit}`
+                  : `${usage.clients} of ${usage.planLimit} per workspace`
               }
             />
             <Row label="Content entries" value={String(usage.entries)} />
             <Row label="Workspaces owned" value={String(usage.workspaces)} />
             <Row label="Workspaces joined" value={String(usage.memberships)} />
           </dl>
+          {/* The limit is per workspace, so a total cannot be compared to it
+              directly — the server checks each owned workspace and reports
+              whether any one of them is over. */}
+          {usage.overLimit && (
+            <p className="mt-3 flex items-start gap-1.5 text-xs text-amber-600 dark:text-amber-500">
+              <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+              At least one of their workspaces is over this plan. Writes there are
+              already blocked.
+            </p>
+          )}
           <p className="mt-3 text-xs text-muted-foreground">
-            Counts only. What is in them belongs to the customer, and reading it is
-            not what this console is for.
+            Totals across the workspaces they own — the ones their plan pays for.
+            Counts only: what is in them belongs to the customer.
           </p>
         </Card>
       </div>

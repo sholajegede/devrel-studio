@@ -25,6 +25,9 @@ const TABS: { href: string; label: string; exact?: boolean }[] = [
   { href: '/admin', label: 'Overview', exact: true },
   { href: '/admin/requests', label: 'Requests' },
   { href: '/admin/users', label: 'Accounts' },
+  { href: '/admin/workspaces', label: 'Workspaces' },
+  { href: '/admin/abuse', label: 'Lockouts' },
+  { href: '/admin/audit', label: 'Audit' },
 ]
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -67,7 +70,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             </Link>
           </div>
 
-          <nav className="mx-auto flex max-w-5xl gap-1 px-6">
+          <nav className="mx-auto flex max-w-5xl flex-wrap gap-1 px-6">
             {TABS.map((tab) => {
               const active = tab.exact
                 ? pathname === tab.href

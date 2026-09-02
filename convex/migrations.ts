@@ -351,25 +351,16 @@ export const grantWorkspaceAccess = internalMutation({
   },
 })
 
-/**
- * Lift an access-code lockout. A manager who mistypes their way into a 15-minute
- * wait has no way to clear it themselves, and neither does the DevRel from the
- * dashboard — this is the manual override.
- *
- * Run with:  npx convex run migrations:clearAccessAttempts '{"slug":"acme"}'
- */
-export const clearAccessAttempts = internalMutation({
-  args: { slug: v.string() },
-  handler: async (ctx, args) => {
-    const rows = await ctx.db
-      .query('managerAccessAttempts')
-      .withIndex('by_slug_and_bucket', (q) => q.eq('slug', args.slug))
-      .collect()
-
-    for (const row of rows) await ctx.db.delete(row._id)
-    return { cleared: rows.length }
-  },
-})
+// `clearAccessAttempts` used to live here: the manual override for a manager who
+// mistyped their way into a fifteen-minute wait. It is now
+// `adminWorkspaces:clearLockout`, reachable from /admin/abuse, which shows who is
+// actually locked out before anybody clears anything — the terminal version
+// required knowing the slug to type, and the support email says "the link doesn't
+// work", not "please clear the attempts row for acme".
+//
+// It also separates the two cases the old one bundled: clearing a caller's rows
+// helps the manager in front of you, while clearing the whole-dashboard counter
+// lifts the ceiling holding back somebody guessing from forty addresses.
 
 /**
  * First slug of the form `base`, `base-2`, `base-3`… not already taken. Slugs a
