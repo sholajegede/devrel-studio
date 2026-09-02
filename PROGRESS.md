@@ -4,9 +4,9 @@ A cold-start checkpoint. Read this first in a new Claude Code session, then
 verify against the code rather than trusting it: this file records intent and
 sequence, and only the repo records truth.
 
-**Branch:** `feat/admin-workspaces-and-audit`, stacked on
-`feat/admin-users-and-overview`, itself off `feat/report-writeup-and-redirect-fix`
-**Last updated:** 2026-09-02
+**Branch:** `feat/admin-revenue-and-impersonation`, top of a four-deep stack off
+`feat/report-writeup-and-redirect-fix`
+**Last updated:** 2026-09-03
 
 ---
 
@@ -25,11 +25,14 @@ three.
 Those three are pushed and open as **PR #1** into `main`
 (https://github.com/sholajegede/devrel-studio/pull/1), still unmerged.
 
-Phases 3 and 4 of the admin console then landed on branches stacked off that one:
+Phases 3, 4 and 5 of the admin console then landed on branches stacked off that
+one — **the console is finished**:
 
 - `6b2e369 feat: an account page for the work that never had a request behind it`
   — pushed, **PR #2** (https://github.com/sholajegede/devrel-studio/pull/2)
 - `35ec664 feat: workspaces measured the way the product measures them`
+  — pushed, **PR #3** (https://github.com/sholajegede/devrel-studio/pull/3)
+- `40b1f7c feat: see what a customer sees, without being able to touch it`
 
 What remains is a **production deploy** — everything above runs on dev only —
 plus the two production commands in §2 that were left for a human.
@@ -247,21 +250,49 @@ and its revoke, each landing in the history panel and the overview feed.
 
 Verified on dev with a genuine lockout driven through `redeemAccessCode`.
 
-### Phase 5 — not started
+### Phase 5 — Revenue and impersonation ✅ built + committed, needs prod deploy
 
-| # | Phase | Delivers | Depends on |
-| --- | --- | --- | --- |
-| 5 | Revenue + impersonation | grants ledger, renewals due, read-only impersonation | 1, 3, 4 |
+`convex/adminRevenue.ts`, `convex/adminImpersonate.ts`,
+`app/(main)/admin/revenue/`, `components/admin/impersonation-banner.tsx`.
 
-**Phase 5 is the last one**, and the only one with a real design decision left in
-it. **Invariant 9 is a test**: no Convex function may accept an `asUserId`
-argument, because a mutation that takes the account to act as attributes every
-audit row it writes to the wrong person. Impersonation has to be read-only, and
-the suite will say so.
+**The impersonation design is the thing to understand before touching
+`model/auth.ts` again.** The identity swap lives in `getCurrentUser` — the
+function every user-facing query already resolves through:
 
-The grants ledger is derived from `adminAuditLog` (`access.grant` rows carry the
-plan and the window in `after`), and renewals due is the `expiringSoon` figure the
-overview already computes, widened into a list.
+- The session is a **row keyed to the signed-in admin**, never an argument.
+  Nothing the browser sends decides whose data comes back.
+- `getCurrentUser` **refuses in a mutation context**, detected by whether
+  `ctx.db` carries a writer. Read-only is structural, so a mutation written next
+  year is covered without anybody remembering. Proven in the browser:
+  `users:updateUser` refused a save it knows nothing about.
+- **Admin checks use `getRealUser`**, so authority is never borrowed and ending a
+  session never needs the account you are wearing. `end` is support-level while
+  `start` is owner-only, deliberately.
+- Sessions last **30 minutes**, expire on read, one at a time.
+- **Non-admins short-circuit** before the new table is touched — the change is
+  inert for every account that cannot impersonate.
+- `sync:syncMyStats` is an **action** and resolves its own identity, so it checks
+  `adminImpersonate.activeForKindeId` separately. Any future action needs the
+  same check; the choke point cannot see it.
+
+**Revenue is deliberately modest.** `accessRequests.amount` is the only number
+anybody typed as money, so hand grants carry none and the page names that gap.
+Currencies are never converted.
+
+### The console is done
+
+Phases 1–5 are all built. What is left is not more phases:
+
+1. **Deploy the stack to production** — `npx convex deploy --prod`, then Vercel.
+2. **The two owner commands** in §2, still waiting on a human.
+3. **Merge the stack**: PRs #1 → #2 → #3 → #4.
+
+If a sixth phase is ever wanted, the obvious candidates are an admin-only view of
+a client dashboard (the analytics section already knows who read what), and
+moving the console to `admin.devrel.studio` — the subdomain is reserved in
+`lib/naming.ts`, but doing it properly means deciding whether admin gets its own
+Kinde login, because sharing the session cookie across hosts gives up the
+isolation that is the only reason to move.
 
 ---
 
