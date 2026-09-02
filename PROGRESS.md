@@ -4,15 +4,15 @@ A cold-start checkpoint. Read this first in a new Claude Code session, then
 verify against the code rather than trusting it: this file records intent and
 sequence, and only the repo records truth.
 
-**Branch:** `feat/report-writeup-and-redirect-fix`
-**Last updated:** 2026-09-01
+**Branch:** `feat/admin-users-and-overview`, off `feat/report-writeup-and-redirect-fix`
+**Last updated:** 2026-09-02
 
 ---
 
 ## 1. In flight right now
 
-The three pieces below are **committed** on this branch (2026-09-01), one commit
-each, in this order:
+Three pieces were committed on `feat/report-writeup-and-redirect-fix`
+(2026-09-01), one commit each, in this order:
 
 - `6c4b2fd feat: show who opened the work, and how long they stayed`
 - `b02deaa feat: bill a client at the rate they were actually charged`
@@ -21,9 +21,16 @@ each, in this order:
 Plus `c8ff78e chore: delete the stylesheet that never loaded`, unrelated to all
 three.
 
-Nothing is uncommitted. What remains is a **production deploy** — all three are
-running on dev only — plus the two production commands in §2 that were left for
-a human. Nothing here has been pushed or opened as a PR yet.
+Those three are pushed and open as **PR #1** into `main`
+(https://github.com/sholajegede/devrel-studio/pull/1), still unmerged.
+
+Phase 3 of the admin console then landed on a branch off that one, and is **not**
+pushed:
+
+- `6b2e369 feat: an account page for the work that never had a request behind it`
+
+What remains is a **production deploy** — everything above runs on dev only —
+plus the two production commands in §2 that were left for a human.
 
 ### A. Analytics — who reads your work  ✅ built + committed, needs prod deploy
 
@@ -193,17 +200,44 @@ npx convex run admin:migrateComped --prod   # dry run found: oluwanisholajegede@
 Both are already done on **dev** and verified (promote → audit row → idempotent
 second run).
 
-### Phases 3–5 — not started
+### Phase 3 — Users, access, overview ✅ built + committed, needs prod deploy
+
+`convex/adminUsers.ts`, `app/(main)/admin/users/`, `components/admin/user-actions.tsx`,
+`lib/admin-audit.ts`, and the overview now at `/admin` (it used to redirect to
+`/admin/requests`; the sidebar link points at `/admin`).
+
+- **Search** is a range read on `by_email` plus an exact `by_handle` lookup. No
+  search by name — it cannot use an index and the address is what a support
+  email arrives from.
+- **Grant** is support-level (the same act as approving a request, for a
+  purchase that skipped the form). **Revoke and comp are owner-only**, and
+  revoke demands a reason: that row is what gets read back in a dispute.
+- **`revokedPatch`** in `model/access.ts` is the one definition of revoked, used
+  by the console and by `migrations:revokeAccess`.
+- **The raw `accessUntil` column** is what the grant preview and the "removing
+  this comp locks them out" warning read. `accessOf` reports no expiry for every
+  comped account, so the effective date would fire that warning on all of them.
+- **Invariant 1 now discovers `convex/admin*.ts`** rather than reading a list, so
+  a new admin module is covered the moment it exists. Three failures were proven
+  by breaking the code, not assumed.
+
+Verified in the browser on dev, both themes: search, the account page, a grant
+and its revoke, each landing in the history panel and the overview feed.
+
+### Phases 4–5 — not started
 
 | # | Phase | Delivers | Depends on |
 | --- | --- | --- | --- |
-| 3 | Users, access, overview | search by email, grant, revoke, comp, `/admin/users` | 1, 2 |
 | 4 | Workspaces, abuse, audit | usage vs plan limits, lockout unlock, audit reader | 1, 3 |
 | 5 | Revenue + impersonation | grants ledger, renewals due, read-only impersonation | 1, 3, 4 |
 
-**Phase 3 is next.** Search by email, grant, revoke, comp, `/admin/users`. It
-needs nothing that Phase 2 did not already build: the guard, the audit writer,
-the shared window arithmetic and the console shell all exist.
+**Phase 4 is next.** Nothing in it needs new plumbing either: the guard, the
+audit writer and the console shell all exist, and the per-account usage counts
+Phase 3 added are most of what "usage vs plan limits" wants.
+
+**Invariant 9 is now a test.** No Convex function may accept an `asUserId`
+argument — worth knowing before starting Phase 5's impersonation, which has to be
+read-only for exactly that reason.
 
 ---
 

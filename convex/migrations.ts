@@ -4,7 +4,7 @@ import { Doc, Id } from './_generated/dataModel'
 import { normalizeSlug } from './clients'
 import { ensureMembership, ensurePersonalWorkspace } from './model/workspaces'
 import { accessOf } from './model/plans'
-import { checkMonths, extendAccessWindow } from './model/access'
+import { checkMonths, extendAccessWindow, revokedPatch } from './model/access'
 
 // ── One-off data repairs ──────────────────────────────────────────────────────
 //
@@ -464,22 +464,28 @@ export const grantAccess = internalMutation({
   },
 })
 
-/** Take access away — a refund, a chargeback, or a grant made in error. */
+/**
+ * Take access away — a refund, a chargeback, or a grant made in error.
+ *
+ * Superseded by `adminUsers:revokeAccess`, which does the same thing from the
+ * console, demands a reason and leaves an audit row behind it. This remains for
+ * the one case the console cannot serve: no admin can sign in.
+ *
+ * The fields it writes come from `revokedPatch`, so the two agree on what
+ * revoked *means*. They differ only in the lookup, and deliberately: a terminal
+ * command is handed an address, the console is handed the account.
+ */
 export const revokeAccess = internalMutation({
-  args: { email: v.string() },
+  args: { email: v.string(), reason: v.optional(v.string()) },
   handler: async (ctx, args) => {
     const user = await ctx.db
       .query('users')
-      .filter((q) => q.eq(q.field('email'), args.email.trim().toLowerCase()))
+      .withIndex('by_email', (q) => q.eq('email', args.email.trim().toLowerCase()))
       .first()
 
     if (!user) throw new ConvexError(`No account with the email ${args.email}`)
 
-    await ctx.db.patch(user._id, {
-      accessUntil: undefined,
-      planStatus: 'revoked',
-      accessNote: 'Access revoked',
-    })
+    await ctx.db.patch(user._id, revokedPatch(args.reason))
 
     return { email: user.email, revoked: true }
   },
