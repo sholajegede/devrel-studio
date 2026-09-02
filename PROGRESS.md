@@ -4,7 +4,8 @@ A cold-start checkpoint. Read this first in a new Claude Code session, then
 verify against the code rather than trusting it: this file records intent and
 sequence, and only the repo records truth.
 
-**Branch:** `feat/admin-users-and-overview`, off `feat/report-writeup-and-redirect-fix`
+**Branch:** `feat/admin-workspaces-and-audit`, stacked on
+`feat/admin-users-and-overview`, itself off `feat/report-writeup-and-redirect-fix`
 **Last updated:** 2026-09-02
 
 ---
@@ -24,10 +25,11 @@ three.
 Those three are pushed and open as **PR #1** into `main`
 (https://github.com/sholajegede/devrel-studio/pull/1), still unmerged.
 
-Phase 3 of the admin console then landed on a branch off that one, and is **not**
-pushed:
+Phases 3 and 4 of the admin console then landed on branches stacked off that one:
 
 - `6b2e369 feat: an account page for the work that never had a request behind it`
+  — pushed, **PR #2** (https://github.com/sholajegede/devrel-studio/pull/2)
+- `35ec664 feat: workspaces measured the way the product measures them`
 
 What remains is a **production deploy** — everything above runs on dev only —
 plus the two production commands in §2 that were left for a human.
@@ -224,20 +226,42 @@ second run).
 Verified in the browser on dev, both themes: search, the account page, a grant
 and its revoke, each landing in the history panel and the overview feed.
 
-### Phases 4–5 — not started
+### Phase 4 — Workspaces, abuse, audit ✅ built + committed, needs prod deploy
+
+`convex/adminWorkspaces.ts`, `app/(main)/admin/{workspaces,abuse,audit}/`.
+
+- **Usage is counted by workspace against the owner's plan**, which is how every
+  limit in the product is enforced (`clients:createClient`,
+  `content:createContent`). Counting `by_user` answers a different question and
+  disagrees with the customer's own gate. Phase 3's account page was doing that
+  and now matches — and compares **per workspace** rather than summing first.
+- **Over-limit is not abuse.** A Pro workspace whose access lapses to the trial
+  is instantly over; the product blocks writes and deletes nothing. Dev has two
+  real ones.
+- **`migrations:clearAccessAttempts` is retired** for
+  `adminWorkspaces:clearLockout`. The per-caller rows and the `*` whole-dashboard
+  ceiling are now separate decisions — the second needs an explicit checkbox, and
+  a lift that would only touch it refuses instead of reporting a no-op.
+- **The audit reader** is support-level, filters from what the table holds rather
+  than the `AuditAction` union, and pages by timestamp.
+
+Verified on dev with a genuine lockout driven through `redeemAccessCode`.
+
+### Phase 5 — not started
 
 | # | Phase | Delivers | Depends on |
 | --- | --- | --- | --- |
-| 4 | Workspaces, abuse, audit | usage vs plan limits, lockout unlock, audit reader | 1, 3 |
 | 5 | Revenue + impersonation | grants ledger, renewals due, read-only impersonation | 1, 3, 4 |
 
-**Phase 4 is next.** Nothing in it needs new plumbing either: the guard, the
-audit writer and the console shell all exist, and the per-account usage counts
-Phase 3 added are most of what "usage vs plan limits" wants.
+**Phase 5 is the last one**, and the only one with a real design decision left in
+it. **Invariant 9 is a test**: no Convex function may accept an `asUserId`
+argument, because a mutation that takes the account to act as attributes every
+audit row it writes to the wrong person. Impersonation has to be read-only, and
+the suite will say so.
 
-**Invariant 9 is now a test.** No Convex function may accept an `asUserId`
-argument — worth knowing before starting Phase 5's impersonation, which has to be
-read-only for exactly that reason.
+The grants ledger is derived from `adminAuditLog` (`access.grant` rows carry the
+plan and the window in `after`), and renewals due is the `expiringSoon` figure the
+overview already computes, widened into a list.
 
 ---
 
