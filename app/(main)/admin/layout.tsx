@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation'
 import { useQuery } from 'convex/react'
 import { api } from '@/convex/_generated/api'
 import { UserProvider } from '@/contexts/user-context'
+import { ImpersonationBanner } from '@/components/admin/impersonation-banner'
 import { ShieldCheck } from 'lucide-react'
 
 // ── The admin console ─────────────────────────────────────────────────────────
@@ -27,6 +28,7 @@ const TABS: { href: string; label: string; exact?: boolean }[] = [
   { href: '/admin/users', label: 'Accounts' },
   { href: '/admin/workspaces', label: 'Workspaces' },
   { href: '/admin/abuse', label: 'Lockouts' },
+  { href: '/admin/revenue', label: 'Revenue' },
   { href: '/admin/audit', label: 'Audit' },
 ]
 
@@ -52,6 +54,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   return (
     <UserProvider>
+      {/* Also here, not only on the dashboard. An admin who opens a session,
+          wanders into the console and comes back an hour later would otherwise
+          have nothing on screen telling them the dashboard they are looking at
+          is not their own. */}
+      <ImpersonationBanner />
       <div className="min-h-screen bg-background">
         <header className="border-b border-border">
           <div className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-6 py-4">

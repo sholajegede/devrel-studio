@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useMutation } from 'convex/react'
+import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { ConvexError } from 'convex/values'
 import { api } from '@/convex/_generated/api'
@@ -28,7 +29,7 @@ import {
 } from '@/components/ui/select'
 import { MAX_ACCESS_MONTHS, extendAccessWindow } from '@/convex/model/access'
 import { PLANS, PURCHASABLE_PLANS, type GrantablePlanId } from '@/convex/model/plans'
-import { AlertTriangle, Loader2 } from 'lucide-react'
+import { AlertTriangle, Eye, Loader2 } from 'lucide-react'
 
 // ── Acting on one account ─────────────────────────────────────────────────────
 //
@@ -431,6 +432,103 @@ export function CompDialog({
           >
             {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             {comping ? 'Comp' : 'Remove comp'}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+/**
+ * Open somebody's account read-only.
+ *
+ * The dialog spells out what it does and does not do, because "impersonate" is a
+ * word that means anything from a debug view to a full account takeover, and an
+ * admin should know which one they are about to get before they press it.
+ *
+ * A reason is required. This is the only action in the console that changes no
+ * data at all, which is exactly why the record of it has to be the strongest:
+ * nothing else in the system will ever show that it happened.
+ */
+export function ImpersonateDialog({
+  account,
+  open,
+  onOpenChange,
+}: {
+  account: AdminAccount
+  open: boolean
+  onOpenChange: (open: boolean) => void
+}) {
+  const start = useMutation(api.adminImpersonate.start)
+  const router = useRouter()
+  const [reason, setReason] = useState('')
+  const [saving, setSaving] = useState(false)
+
+  const valid = reason.trim().length > 0
+
+  async function submit() {
+    if (!valid) return
+    setSaving(true)
+    try {
+      const result = await start({ userId: account.id, reason: reason.trim() })
+      toast.success(`Viewing ${result.email} — read-only, for 30 minutes`)
+      onOpenChange(false)
+      // Straight to the dashboard, because that is the thing being looked at.
+      // Staying on the admin page would leave somebody wearing an account with
+      // nothing on screen to show it.
+      router.push('/dashboard')
+    } catch (error) {
+      toast.error(reasonFor(error))
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>View as {account.name ?? account.email}</DialogTitle>
+          <DialogDescription>
+            Opens the dashboard as they see it, for thirty minutes.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-4">
+          <ul className="space-y-1.5 text-sm text-muted-foreground">
+            <li className="flex gap-2">
+              <Eye className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+              You will see their clients, entries and reports.
+            </li>
+            <li className="flex gap-2">
+              <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+              Nothing can be changed — every write is refused while the session is
+              open, including your own.
+            </li>
+          </ul>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="impersonate-reason">Reason</Label>
+            <Textarea
+              id="impersonate-reason"
+              rows={2}
+              value={reason}
+              onChange={(event) => setReason(event.target.value)}
+              placeholder="Says their September report is empty — checking what they see"
+            />
+            <p className="text-xs text-muted-foreground">
+              Required, and kept permanently. This action leaves no other trace.
+            </p>
+          </div>
+        </div>
+
+        <DialogFooter>
+          <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={saving}>
+            Cancel
+          </Button>
+          <Button onClick={submit} disabled={!valid || saving}>
+            {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            View as them
           </Button>
         </DialogFooter>
       </DialogContent>

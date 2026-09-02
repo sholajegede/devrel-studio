@@ -12,6 +12,7 @@ import { Card } from '@/components/ui/card'
 import {
   CompDialog,
   GrantDialog,
+  ImpersonateDialog,
   RevokeDialog,
   type AdminAccount,
 } from '@/components/admin/user-actions'
@@ -38,6 +39,7 @@ export default function AdminUserPage() {
   const [granting, setGranting] = useState(false)
   const [revoking, setRevoking] = useState(false)
   const [comping, setComping] = useState(false)
+  const [viewing, setViewing] = useState(false)
 
   if (detail === undefined) {
     return (
@@ -136,6 +138,9 @@ export default function AdminUserPage() {
             <>
               <Button size="sm" variant="outline" onClick={() => setComping(true)}>
                 {account.comped ? 'Remove comp' : 'Comp'}
+              </Button>
+              <Button size="sm" variant="outline" onClick={() => setViewing(true)}>
+                View as
               </Button>
               <Button size="sm" variant="ghost" onClick={() => setRevoking(true)}>
                 Revoke
@@ -281,6 +286,13 @@ export default function AdminUserPage() {
           account={target}
           open
           onOpenChange={(open) => !open && setComping(false)}
+        />
+      )}
+      {viewing && (
+        <ImpersonateDialog
+          account={target}
+          open
+          onOpenChange={(open) => !open && setViewing(false)}
         />
       )}
     </>

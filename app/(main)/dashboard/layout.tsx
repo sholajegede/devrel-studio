@@ -4,6 +4,7 @@ import { UserProvider } from "@/contexts/user-context";
 import { DashboardSidebar } from "@/components/dashboard/sidebar";
 import { CommandPalette } from "@/components/dashboard/command-palette";
 import { ClientScopeProvider } from "@/contexts/client-scope";
+import { ImpersonationBanner } from "@/components/admin/impersonation-banner";
 
 export default function DashboardLayout({
   children,
@@ -13,6 +14,11 @@ export default function DashboardLayout({
   return (
     <UserProvider>
       <ClientScopeProvider>
+      {/* Renders nothing unless an admin is viewing this dashboard as somebody
+          else. It sits above everything because the mistake it prevents — an
+          admin reading a number here and acting on it as their own — is made by
+          somebody who has simply forgotten. */}
+      <ImpersonationBanner />
       <DashboardSidebar />
       {/* Mounted at the layout so ⌘K works on every dashboard page. It renders
           nothing until opened. */}

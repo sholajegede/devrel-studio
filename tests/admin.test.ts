@@ -97,14 +97,31 @@ describe('every admin function guards itself', () => {
       // any admin exists.
       const internal = fn.kind.startsWith('internal')
 
-      it(`${fn.name} ${internal ? 'is internal-only' : 'calls requireAdmin'}`, () => {
+      it(`${fn.name} ${internal ? 'is internal-only' : 'resolves its caller'}`, () => {
         if (internal) {
           expect(fn.kind.startsWith('internal')).toBe(true)
           return
         }
+
+        // Either it requires an admin, or it answers only about the caller —
+        // the second is what lets `myAdminRole`, `mySession` and `realMe` be
+        // callable by anyone: each resolves the signed-in account from the
+        // Kinde token and returns null for everybody else, so there is nothing
+        // to learn by calling it as a stranger.
+        //
+        // The list is explicit rather than a pattern. "Any function that
+        // mentions identity somewhere" would pass the moment somebody wrote a
+        // comment about it.
+        const CALLER_SCOPED = [
+          'requireAdmin(',
+          'getUserIdentity(',
+          'getRealUser(',
+          'currentImpersonation(',
+        ]
+
         expect(
-          fn.body.includes('requireAdmin(') || fn.body.includes('getUserIdentity('),
-          `${fn.name} is publicly callable but never resolves an admin`,
+          CALLER_SCOPED.some((marker) => fn.body.includes(marker)),
+          `${fn.name} is publicly callable but never resolves an admin or its own caller`,
         ).toBe(true)
       })
     }

@@ -602,6 +602,43 @@ export default defineSchema({
   // hashed caller IP or the literal "*" — the "*" row is the whole-slug counter,
   // which is what catches an attacker spread across many addresses. Raw IPs are
   // never stored; the hash is peppered in the Next.js layer.
+  // ── Read-only impersonation ─────────────────────────────────────────────────
+  //
+  // An admin looking at the product as one customer sees it, to answer "my
+  // dashboard is empty" without asking them for screenshots.
+  //
+  // The session lives here rather than in an argument on the way in. Nothing the
+  // browser sends decides whose data is returned: `model/auth.ts` resolves the
+  // signed-in admin from the Kinde token as it always has, then looks for a row
+  // in this table belonging to *them*. A client that forges an id gets nothing,
+  // because there is no id to forge.
+  //
+  // Read-only is structural, not a rule each function has to remember. The swap
+  // happens in `getCurrentUser`, and that function refuses outright when it is
+  // called from a mutation while a session is open — so every write in the
+  // product fails closed, including ones written after this table existed.
+  //
+  // Rows are kept after they end. Who looked at whose account, and when, is
+  // exactly the sort of thing that has to be answerable later; the audit log
+  // carries the same fact and this table carries the window.
+  impersonationSessions: defineTable({
+    /** The real signed-in admin. Never the subject. */
+    adminId: v.id("users"),
+    /** Whose data is being read. */
+    subjectId: v.id("users"),
+    reason: v.optional(v.string()),
+    startedAt: v.number(),
+    /**
+     * Short by design. An impersonation left open is an admin who forgets they
+     * are not themselves, and every reading they take afterwards is wrong.
+     */
+    expiresAt: v.number(),
+    /** Set when it is ended deliberately; absent means it ran out or is live. */
+    endedAt: v.optional(v.number()),
+  })
+    .index("by_admin", ["adminId"])
+    .index("by_subject", ["subjectId"]),
+
   managerAccessAttempts: defineTable({
     slug: v.string(),
     bucket: v.string(),

@@ -10,6 +10,8 @@
 
 import type * as accessRequests from "../accessRequests.js";
 import type * as admin from "../admin.js";
+import type * as adminImpersonate from "../adminImpersonate.js";
+import type * as adminRevenue from "../adminRevenue.js";
 import type * as adminUsers from "../adminUsers.js";
 import type * as adminWorkspaces from "../adminWorkspaces.js";
 import type * as analytics from "../analytics.js";
@@ -45,6 +47,8 @@ import type {
 declare const fullApi: ApiFromModules<{
   accessRequests: typeof accessRequests;
   admin: typeof admin;
+  adminImpersonate: typeof adminImpersonate;
+  adminRevenue: typeof adminRevenue;
   adminUsers: typeof adminUsers;
   adminWorkspaces: typeof adminWorkspaces;
   analytics: typeof analytics;
