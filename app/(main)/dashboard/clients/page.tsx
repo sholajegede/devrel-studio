@@ -35,6 +35,8 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { ClientAccessDialog } from '@/components/dashboard/client-access-dialog'
+import { RateChangeDialog } from '@/components/dashboard/rate-change-dialog'
+import { PauseDialog } from '@/components/dashboard/pause-dialog'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -58,6 +60,10 @@ import { RoleNotice } from '@/components/dashboard/role-notice'
 import {
   formatMoney,
   monthsBilled,
+  billingSegments,
+  monthsCharged,
+  monthsPaused,
+  openPause,
   tenureLabel,
   totalBilled,
   totalBilledAcross,
@@ -331,6 +337,8 @@ export default function ClientsPage() {
   const [deleteId,    setDeleteId]    = useState<Id<'clients'> | null>(null)
   const [editTarget,  setEditTarget]  = useState<Doc<'clients'> | null>(null)
   const [accessTarget, setAccessTarget] = useState<Doc<'clients'> | null>(null)
+  const [rateTarget,   setRateTarget]   = useState<Doc<'clients'> | null>(null)
+  const [pauseTarget,  setPauseTarget]  = useState<Doc<'clients'> | null>(null)
   const [isSaving,    setIsSaving]    = useState(false)
   const [tourControls, setTourControls] = useState<{ startTour: () => void } | null>(null)
 
@@ -533,9 +541,18 @@ export default function ClientsPage() {
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         {can.edit && (
-                          <DropdownMenuItem onClick={() => openEdit(client)}>
-                            <Edit3 className="h-3.5 w-3.5 mr-2" /> Edit
-                          </DropdownMenuItem>
+                          <>
+                            <DropdownMenuItem onClick={() => openEdit(client)}>
+                              <Edit3 className="h-3.5 w-3.5 mr-2" /> Edit
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => setRateTarget(client)}>
+                              <TrendingUp className="h-3.5 w-3.5 mr-2" /> Change retainer
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => setPauseTarget(client)}>
+                              <CalendarOff className="h-3.5 w-3.5 mr-2" />
+                              {openPause(client) ? 'Resume engagement' : 'Pause engagement'}
+                            </DropdownMenuItem>
+                          </>
                         )}
                         {can.manageAccess && (
                           <DropdownMenuItem onClick={() => setAccessTarget(client)}>
@@ -610,8 +627,15 @@ export default function ClientsPage() {
                   const billed = totalBilled(client)
                   if (billed === null) return null
 
-                  const months = monthsBilled(client.startDate, client.endDate)
-                  const isEstimate = client.status === 'Paused'
+                  const months = monthsCharged(client)
+                  const paused = monthsPaused(client)
+                  const onHold = openPause(client)
+
+                  // Only an estimate while a client is flagged Paused without
+                  // any dated pause behind it — a legacy row, or a status set by
+                  // hand on the edit form. Once the hold has dates the months are
+                  // genuinely excluded and the total is exact.
+                  const isEstimate = client.status === 'Paused' && !onHold
 
                   return (
                     <div className="rounded-lg border border-border bg-muted/30 p-3">
@@ -624,29 +648,69 @@ export default function ClientsPage() {
                         </span>
                       </div>
 
-                      <div className="mt-2 grid grid-cols-2 gap-2 border-t border-border pt-2">
-                        <div>
-                          <p className="text-sm font-medium text-foreground tabular-nums">
-                            {formatMoney(client.monthlyRetainer ?? 0, client.currency)}
-                          </p>
-                          <p className="text-[11px] text-muted-foreground">per month</p>
-                        </div>
-                        <div>
-                          <p className="text-sm font-medium text-foreground tabular-nums">
-                            {months}
-                          </p>
-                          <p className="text-[11px] text-muted-foreground">
-                            month{months === 1 ? '' : 's'} billed
-                          </p>
-                        </div>
-                      </div>
+                      {/* One line per rate the client has been on. A single
+                          "rate × months" pair cannot describe an engagement
+                          whose rate moved, and the total is far easier to trust
+                          when the arithmetic behind it is on screen. */}
+                      {(() => {
+                        const segments = billingSegments(client)
+                        if (segments.length > 1) {
+                          return (
+                            <ul className="mt-2 space-y-1 border-t border-border pt-2">
+                              {segments.map((segment, index) => (
+                                <li
+                                  key={index}
+                                  className="flex justify-between text-[11px] text-muted-foreground tabular-nums"
+                                >
+                                  <span>
+                                    {segment.months} × {formatMoney(segment.amount, client.currency)}
+                                    <span className="ml-1.5 opacity-70">
+                                      from {segment.from.d}/{segment.from.m}/{String(segment.from.y).slice(2)}
+                                    </span>
+                                  </span>
+                                  <span>{formatMoney(segment.subtotal, client.currency)}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          )
+                        }
+
+                        return (
+                          <div className="mt-2 grid grid-cols-2 gap-2 border-t border-border pt-2">
+                            <div>
+                              <p className="text-sm font-medium text-foreground tabular-nums">
+                                {formatMoney(client.monthlyRetainer ?? 0, client.currency)}
+                              </p>
+                              <p className="text-[11px] text-muted-foreground">per month</p>
+                            </div>
+                            <div>
+                              <p className="text-sm font-medium text-foreground tabular-nums">
+                                {months}
+                              </p>
+                              <p className="text-[11px] text-muted-foreground">
+                                month{months === 1 ? '' : 's'} billed
+                              </p>
+                            </div>
+                          </div>
+                        )
+                      })()}
 
                       {/* Paused engagements have no pause date recorded, so the
                           figure assumes continuous billing. Say so rather than
                           present an estimate as fact. */}
+                      {/* A dated hold is a fact about the total, not a caveat
+                          on it: say how many months were skipped rather than
+                          warning that the figure might be wrong. */}
+                      {paused > 0 && (
+                        <p className="mt-2 text-[11px] text-muted-foreground">
+                          {paused} month{paused === 1 ? '' : 's'} not billed
+                          {onHold ? ` — on hold since ${formatDate(onHold.from)}` : ' during pauses'}
+                        </p>
+                      )}
+
                       {isEstimate && (
                         <p className="mt-2 text-[11px] text-amber-700 dark:text-amber-300">
-                          Assumes continuous billing — pauses are not tracked.
+                          Marked paused with no dates — set a pause date to exclude those months.
                         </p>
                       )}
                     </div>
@@ -715,6 +779,24 @@ export default function ClientsPage() {
         open={!!accessTarget}
         onOpenChange={(open) => { if (!open) setAccessTarget(null) }}
       />
+
+      {/* Rate change. Read back off `clients` so the preview reflects the live
+          history rather than the snapshot taken when the menu was opened. */}
+      {rateTarget && (
+        <RateChangeDialog
+          client={clients?.find((c) => c._id === rateTarget._id) ?? rateTarget}
+          open={!!rateTarget}
+          onOpenChange={(open) => { if (!open) setRateTarget(null) }}
+        />
+      )}
+
+      {pauseTarget && (
+        <PauseDialog
+          client={clients?.find((c) => c._id === pauseTarget._id) ?? pauseTarget}
+          open={!!pauseTarget}
+          onOpenChange={(open) => { if (!open) setPauseTarget(null) }}
+        />
+      )}
 
       {/* Form dialog */}
       <ClientFormDialog

@@ -142,24 +142,49 @@ export function termMonthly(plan: PlanDefinition, term: Term): number {
 }
 
 /** Plans that can be bought, in upgrade order. */
-export const PURCHASABLE_PLANS: PlanId[] = ['starter', 'pro', 'agency']
+/**
+ * The plans that can actually be bought or granted.
+ *
+ * Typed as PlanId-minus-free rather than PlanId, so a grant argument that
+ * excludes 'free' can be filled straight from this list — narrowing it at each
+ * call site is how one of them ends up narrowing it wrongly.
+ */
+export type GrantablePlanId = Exclude<PlanId, 'free'>
+export const PURCHASABLE_PLANS: GrantablePlanId[] = ['starter', 'pro', 'agency']
+
+/** Narrows a plan id to one that can be bought, dropping 'free'. */
+export function isPurchasablePlan(plan: PlanId): plan is GrantablePlanId {
+  return (PURCHASABLE_PLANS as PlanId[]).includes(plan)
+}
 
 /**
- * Accounts granted the top plan without a purchase — owner and internal
- * accounts. Keyed on the `users` document id, which the browser cannot forge:
- * every gate resolves the caller's own document through `getCurrentUser`, so
- * listing an id here is the only way in.
+ * Accounts comped before `users.comped` existed.
+ *
+ * Retained only so a deployment that has not yet run `admin:migrateComped` does
+ * not silently drop the top plan from an account that has it. Once the column
+ * is populated everywhere this list can go; `isComped` already prefers the
+ * column, so emptying it is a no-op for any migrated account.
  */
 export const COMPED_USER_IDS: readonly string[] = [
   'jd767m6hpf3jqhdcs5rb9d6v8581r92k',
 ]
 
+/**
+ * Whether an account has the top plan without having paid for it.
+ *
+ * Reads the `comped` column first. It used to test membership of the array
+ * above, which meant comping an advisor required editing a source constant,
+ * opening a pull request and redeploying — and produced a grant that no query
+ * reporting on access could see.
+ */
 export function isComped(
-  user: { _id?: string; kindeId?: string } | null | undefined,
+  user: { _id?: string; kindeId?: string; comped?: boolean } | null | undefined,
 ): boolean {
   if (!user) return false
-  // Matched against either id so the list works whether an entry was copied
-  // from the Convex dashboard or from Kinde.
+  if (user.comped) return true
+
+  // Legacy fallback. Matched against either id so the list works whether an
+  // entry was copied from the Convex dashboard or from Kinde.
   return (
     (!!user._id && COMPED_USER_IDS.includes(user._id)) ||
     (!!user.kindeId && COMPED_USER_IDS.includes(user.kindeId))
@@ -216,6 +241,7 @@ export function accessOf(
         planStatus?: string
         trialEndsAt?: number
         accessUntil?: number
+        comped?: boolean
       }
     | null,
   now: number = Date.now(),

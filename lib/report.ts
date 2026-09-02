@@ -1,6 +1,7 @@
 import {
   aggregate,
   categoryOf,
+  getMetricValue,
   monthKey,
   previousMonth,
   type PeriodSource,
@@ -65,6 +66,20 @@ export function parsePeriod(
   return null
 }
 
+export interface Highlight {
+  entry: ReportEntry
+  /** The one number this piece is judged on — views, attendees, downloads or stars. */
+  metric: number
+}
+
+export interface TargetProgress {
+  target: number
+  actual: number
+  /** Rounded percentage of the target reached. 0 when the target is 0. */
+  percent: number
+  met: boolean
+}
+
 export interface ReportSummary {
   period: string
   label: string
@@ -80,6 +95,49 @@ export interface ReportSummary {
   previousReach: number
   reshareCount: number
   platforms: { platform: string; count: number }[]
+  /**
+   * The best-performing pieces, largest first.
+   *
+   * `published` is ordered by date, so its first row is whatever happened to
+   * ship last — which is rarely what mattered. A reader who gets no further
+   * than the first screen should still have seen the work worth seeing.
+   */
+  highlights: Highlight[]
+}
+
+/**
+ * Progress against a goal.
+ *
+ * Returns null when there is no target, and every caller renders nothing in
+ * that case — an absent goal should look absent, not like a goal of zero that
+ * was triumphantly exceeded.
+ */
+export function targetProgress(
+  actual: number,
+  target: number | undefined | null,
+): TargetProgress | null {
+  if (typeof target !== 'number' || !Number.isFinite(target) || target <= 0) {
+    return null
+  }
+
+  return {
+    target,
+    actual,
+    percent: Math.round((actual / target) * 100),
+    met: actual >= target,
+  }
+}
+
+/**
+ * The single number a piece is judged on.
+ *
+ * Deferred to `getMetricValue` so a category is only ever ranked on the metric
+ * it owns — a written post is judged on views, an event on attendees. Taking
+ * the largest of the four would let a stray star count outrank a real
+ * readership, and would disagree with the number the PDF already prints.
+ */
+function headlineMetric(entry: ReportEntry): number {
+  return getMetricValue(entry)
 }
 
 /**
@@ -144,6 +202,15 @@ export function buildReport(
     platformCounts.set(entry.platform, (platformCounts.get(entry.platform) ?? 0) + 1)
   }
 
+  // Only pieces that actually recorded a number can be ranked. A period whose
+  // figures have not been collected yet gets no highlights rather than three
+  // arbitrary rows tied at zero.
+  const highlights = published
+    .map((entry) => ({ entry, metric: headlineMetric(entry) }))
+    .filter((row) => row.metric > 0)
+    .sort((a, b) => b.metric - a.metric)
+    .slice(0, 3)
+
   return {
     period,
     label: periodLabel(period),
@@ -158,6 +225,7 @@ export function buildReport(
     platforms: [...platformCounts.entries()]
       .map(([platform, count]) => ({ platform, count }))
       .sort((a, b) => b.count - a.count),
+    highlights,
   }
 }
 

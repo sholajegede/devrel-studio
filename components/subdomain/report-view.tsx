@@ -7,6 +7,7 @@ import {
   buildReport,
   periodLabel,
   reachTrend,
+  targetProgress,
   type ReportEntry,
 } from '@/lib/report'
 import { formatCompact, previousMonth } from '@/lib/metrics'
@@ -32,17 +33,29 @@ import {
 // nothing interactive except the two things a reader genuinely wants — take it
 // away as a PDF, or reply.
 
+interface FeedbackItem {
+  id: string
+  rating?: number
+  comment: string
+  authorName?: string
+  createdAt: string
+}
+
 interface ReportData {
   client: { id: string; name: string; contact: string; website?: string; slug: string }
   period: string
   entries: ReportEntry[]
-  feedback: {
-    id: string
-    rating?: number
-    comment: string
-    authorName?: string
-    createdAt: string
-  }[]
+  feedback: FeedbackItem[]
+  /** The written half — null until somebody writes one. */
+  notes?: {
+    summary: string | null
+    performanceNote: string | null
+    responseToFeedback: string | null
+    quotes: { text: string; attribution?: string; link?: string }[]
+  } | null
+  targets?: { reach: number | null; published: number | null }
+  previousPeriod?: string
+  previousFeedback?: FeedbackItem[]
 }
 
 function Figure({
@@ -50,16 +63,20 @@ function Figure({
   value,
   previous,
   hint,
+  target,
 }: {
   label: string
   value: number
   previous?: number
   hint?: string
+  target?: number | null
 }) {
   const change =
     previous !== undefined && previous > 0
       ? Math.round(((value - previous) / previous) * 100)
       : null
+
+  const goal = targetProgress(value, target)
 
   return (
     <div>
@@ -67,6 +84,23 @@ function Figure({
       <p className="mt-2 text-4xl font-semibold tracking-[-0.03em] tabular-nums text-foreground">
         {value > 0 ? formatCompact(value) : '—'}
       </p>
+
+      {/* A number without a goal is activity; with one it is a result. Rendered
+          above the period-on-period delta because "did we hit it" is the first
+          question a manager forwarding this will be asked. */}
+      {goal && (
+        <div className="mt-2">
+          <div className="h-1 w-full overflow-hidden rounded-full bg-muted">
+            <div
+              className={`h-full rounded-full ${goal.met ? 'bg-accent' : 'bg-foreground/40'}`}
+              style={{ width: `${Math.min(goal.percent, 100)}%` }}
+            />
+          </div>
+          <p className="mt-1.5 text-xs tabular-nums text-muted-foreground">
+            {goal.percent}% of {formatCompact(goal.target)} target
+          </p>
+        </div>
+      )}
       {/* The hint describes the empty state. It must not appear beside a real
           number just because there was nothing to compare against — "In flight
           6" sat above "Nothing queued", which contradicted itself. */}
@@ -254,6 +288,7 @@ export function ReportView({ data }: { data: ReportData }) {
 
   const report = useMemo(() => buildReport(data.entries, data.period), [data])
   const trend = useMemo(() => reachTrend(data.entries, data.period, 6), [data])
+  const notes = data.notes
 
   const downloadPdf = async () => {
     setDownloading(true)
@@ -261,10 +296,20 @@ export function ReportView({ data }: { data: ReportData }) {
       const response = await fetch('/api/export-report', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        // Asking the route to rebuild from the slug would be a second source of
+        // truth for the same page. It already has everything on screen.
         body: JSON.stringify({
           client: data.client.name,
           period: report.label,
           content: report.published,
+          notes: data.notes ?? null,
+          targets: data.targets ?? null,
+          highlights: report.highlights.map(({ entry, metric }) => ({
+            title: entry.title,
+            platform: entry.platform,
+            category: entry.category,
+            metric,
+          })),
           stats: {
             published: report.totals.published,
             inProgress: report.upcoming.length,
@@ -337,6 +382,59 @@ export function ReportView({ data }: { data: ReportData }) {
       </header>
 
       <main className="mx-auto max-w-3xl px-6 pb-24">
+        {/* The opening paragraph.
+            Every other section on this page is generated from the data. This is
+            the one place the person who did the work speaks, and it goes first:
+            a reader who stops after one screen should have read the argument,
+            not the arithmetic. */}
+        {notes?.summary && (
+          <section className="border-b border-border py-12">
+            <h2 className="text-xs uppercase tracking-[0.12em] text-muted-foreground">
+              Summary
+            </h2>
+            <div className="mt-6 space-y-4">
+              {notes.summary.split(/\n{2,}/).map((paragraph, i) => (
+                <p key={i} className="text-[17px] leading-relaxed text-foreground">
+                  {paragraph}
+                </p>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* Answering what they said last time.
+            Feedback that is collected and never referred to again teaches a
+            client that leaving it was pointless. */}
+        {(notes?.responseToFeedback || (data.previousFeedback?.length ?? 0) > 0) && (
+          <section className="border-b border-border py-12">
+            <h2 className="text-xs uppercase tracking-[0.12em] text-muted-foreground">
+              Since {data.previousPeriod ? periodLabel(data.previousPeriod) : 'last period'}
+            </h2>
+
+            {(data.previousFeedback?.length ?? 0) > 0 && (
+              <ul className="mt-6 space-y-3">
+                {data.previousFeedback!.slice(0, 3).map((item) => (
+                  <li
+                    key={item.id}
+                    className="border-l-2 border-border pl-4 text-[15px] leading-relaxed text-muted-foreground"
+                  >
+                    &ldquo;{item.comment}&rdquo;
+                    <span className="mt-1 block text-xs">
+                      — {item.authorName ?? 'you'}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+
+            {notes?.responseToFeedback && (
+              <p className="mt-6 text-[15px] leading-relaxed text-foreground">
+                {notes.responseToFeedback}
+              </p>
+            )}
+          </section>
+        )}
+
         {/* Summary */}
         <section className="border-b border-border py-12">
           <div className="grid grid-cols-2 gap-8 sm:grid-cols-4">
@@ -345,16 +443,26 @@ export function ReportView({ data }: { data: ReportData }) {
               value={report.totals.published}
               previous={report.previous.published}
               hint="Nothing shipped this period"
+              target={data.targets?.published}
             />
             <Figure
               label="Total reach"
               value={report.reach}
               previous={report.previousReach}
               hint="No reach recorded yet"
+              target={data.targets?.reach}
             />
             <Figure label="Reshares" value={report.reshareCount} hint="Not amplified" />
             <Figure label="In flight" value={report.upcoming.length} hint="Nothing queued" />
           </div>
+
+          {/* Why the numbers moved. A delta with no explanation makes the reader
+              guess between a launch, a conference and an algorithm change. */}
+          {notes?.performanceNote && (
+            <p className="mt-8 max-w-xl border-l-2 border-accent pl-4 text-[15px] leading-relaxed text-foreground">
+              {notes.performanceNote}
+            </p>
+          )}
 
           {report.published.length > 0 && (
             <p className="mt-10 max-w-xl text-[15px] leading-relaxed text-muted-foreground">
@@ -422,6 +530,71 @@ export function ReportView({ data }: { data: ReportData }) {
                 )
               })}
             </div>
+          </section>
+        )}
+
+        {/* What actually mattered.
+            The list below is ordered by date, so its first row is whatever
+            shipped last. This says what performed, which is a different
+            question and the one worth answering first. */}
+        {report.highlights.length > 0 && (
+          <section className="border-b border-border py-12">
+            <h2 className="text-xs uppercase tracking-[0.12em] text-muted-foreground">
+              {report.highlights.length === 1 ? 'The standout' : `Top ${report.highlights.length}`}
+            </h2>
+
+            <ol className="mt-6 space-y-4">
+              {report.highlights.map(({ entry, metric }, index) => {
+                const category = CATEGORY_META[
+                  (entry.category as keyof typeof CATEGORY_META) ?? 'Written'
+                ] ?? CATEGORY_META.Written
+                const Icon = category.icon
+
+                return (
+                  <li
+                    key={entry.id ?? entry.title}
+                    className="flex items-start gap-5 rounded-xl border border-border p-5"
+                  >
+                    <span className="mt-0.5 shrink-0 text-2xl font-semibold tabular-nums text-muted-foreground/40">
+                      {index + 1}
+                    </span>
+
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[15px] font-medium leading-snug text-foreground">
+                        {entry.title}
+                      </p>
+                      <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                        <span className="inline-flex items-center gap-1.5">
+                          <Icon className="h-3 w-3" />
+                          {entry.category ?? 'Written'}
+                        </span>
+                        <span className="inline-flex items-center gap-1.5">
+                          <PlatformIcon platform={entry.platform} size={12} />
+                          {entry.platform}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="shrink-0 text-right">
+                      <p className="text-xl font-semibold tabular-nums text-foreground">
+                        {formatCompact(metric)}
+                      </p>
+                      {entry.link && (
+                        <a
+                          href={entry.link}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="mt-1 inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-accent"
+                        >
+                          View
+                          <ExternalLink className="h-3 w-3" />
+                        </a>
+                      )}
+                    </div>
+                  </li>
+                )
+              })}
+            </ol>
           </section>
         )}
 
@@ -524,6 +697,44 @@ export function ReportView({ data }: { data: ReportData }) {
                       month: 'short',
                     })}
                   </span>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+
+        {/* Evidence a number cannot carry.
+            A maintainer's reply or a conference-floor reaction routinely
+            matters more than the view count on the post that prompted it, and
+            a report made only of totals quietly leaves that out. */}
+        {(notes?.quotes.length ?? 0) > 0 && (
+          <section className="border-b border-border py-12">
+            <h2 className="text-xs uppercase tracking-[0.12em] text-muted-foreground">
+              In their words
+            </h2>
+
+            <ul className="mt-6 space-y-6">
+              {notes!.quotes.map((quote, i) => (
+                <li key={i} className="border-l-2 border-accent pl-5">
+                  <p className="text-[17px] leading-relaxed text-foreground">
+                    &ldquo;{quote.text}&rdquo;
+                  </p>
+                  {(quote.attribution || quote.link) && (
+                    <p className="mt-2 text-xs text-muted-foreground">
+                      {quote.attribution && <span>— {quote.attribution}</span>}
+                      {quote.link && (
+                        <a
+                          href={quote.link}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="ml-2 inline-flex items-center gap-1 hover:text-accent"
+                        >
+                          Source
+                          <ExternalLink className="h-3 w-3" />
+                        </a>
+                      )}
+                    </p>
+                  )}
                 </li>
               ))}
             </ul>

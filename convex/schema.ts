@@ -1,5 +1,6 @@
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
+import { requestStatusValidator } from "./model/access";
 
 export default defineSchema({
   users: defineTable({
@@ -52,10 +53,40 @@ export default defineSchema({
     // user created before workspaces existed has none until the migration runs;
     // `model/workspaces.ts` falls back to their own personal workspace.
     activeWorkspaceId: v.optional(v.id("workspaces")),
+
+    // ── Platform administration ───────────────────────────────────────────────
+    //
+    // Authority to run devrel.studio itself, which is orthogonal to workspace
+    // membership: an admin has no implicit access to anyone's client data, and
+    // a workspace owner is not an admin.
+    //
+    // Kept here rather than as a Kinde role so the check happens in the same
+    // place as the data it protects, works without a Kinde tenant in local
+    // development, and cannot be changed by editing IdP configuration. Kinde
+    // establishes identity; this establishes authority.
+    //
+    // 'support' can read everything and approve a purchase. 'owner' can also
+    // revoke access, comp an account, impersonate, and grant admin — the
+    // destructive and the routine deliberately separated.
+    adminRole: v.optional(v.union(v.literal("owner"), v.literal("support"))),
+
+    /**
+     * Top plan without a purchase — internal and advisor accounts.
+     *
+     * Was a hardcoded array of document ids in model/plans.ts, which meant
+     * comping somebody required a source edit and a deploy, and the resulting
+     * grant was invisible to every query reporting on access.
+     */
+    comped: v.optional(v.boolean()),
   })
     .index("by_kinde_id", ["kindeId"])
     .index("by_handle", ["handle"])
-    .index("by_stripe_customer", ["stripeCustomerId"]),
+    .index("by_stripe_customer", ["stripeCustomerId"])
+    // Six call sites looked accounts up by email with `.filter(...).first()`,
+    // which scans the table and — with no uniqueness constraint anywhere —
+    // picks arbitrarily between duplicates. A grant landing on whichever row
+    // the scan happened to reach first is not a performance problem.
+    .index("by_email", ["email"]),
 
   contentEntries: defineTable({
     // `userId` is retained as "who created this row"; `workspaceId` is what
@@ -153,7 +184,41 @@ export default defineSchema({
     company: v.string(),
     email: v.optional(v.string()),
     website: v.optional(v.string()),
+    /**
+     * The rate in effect right now.
+     *
+     * Kept as a plain number so the clients list, sorting and the "total monthly
+     * retainer" sum stay one field read. `rateHistory` below is what makes it
+     * correct over time; this is always the newest entry's amount.
+     */
     monthlyRetainer: v.optional(v.number()),
+
+    /**
+     * What the client has been charged, and from when.
+     *
+     * Without this a raise rewrites the past: `totalBilled` multiplies one rate
+     * by the whole engagement, so going from 1,500 to 3,000 retroactively claims
+     * every previous month was billed at 3,000. The earnings figure is the kind
+     * of number that ends up in an invoice or a year-end summary, so it has to
+     * reflect what was actually charged at the time.
+     *
+     * The array is the complete timeline, oldest first — including the opening
+     * rate, not just changes to it. A client with no history falls back to
+     * `monthlyRetainer` for the whole engagement, which is exactly the previous
+     * behaviour, so nothing recorded before this existed needs migrating.
+     *
+     * An array rather than its own table: rate changes number in the handful
+     * over years, and they are never read without the client.
+     */
+    rateHistory: v.optional(v.array(v.object({
+      amount: v.number(),
+      /** `YYYY-MM-DD`. The first billing date charged at this amount. */
+      effectiveFrom: v.string(),
+      /** Why it changed — "scope increase", "annual review". */
+      note: v.optional(v.string()),
+      /** When the change was entered, which is not when it took effect. */
+      recordedAt: v.optional(v.string()),
+    }))),
     currency: v.optional(v.string()),
     startDate: v.optional(v.string()),
     endDate: v.optional(v.string()),
@@ -163,8 +228,38 @@ export default defineSchema({
       v.literal("Project"),
       v.literal("Hourly"),
     )),
+    /**
+     * Stretches where the engagement was on hold and nothing was billed.
+     *
+     * `status: 'Paused'` records *that* a client is paused but not since when,
+     * so the earnings figure had to assume continuous billing and label itself
+     * an estimate. With dates the arithmetic can simply skip the months nobody
+     * paid for, and the number stops being a guess.
+     *
+     * An array because engagements stop and restart — a client paused over a
+     * quiet December and again in the summer has two gaps, and one pair of
+     * fields cannot hold both. An entry with no `to` is a pause still running,
+     * which is what makes `status` derivable rather than separately maintained.
+     */
+    pausePeriods: v.optional(v.array(v.object({
+      /** `YYYY-MM-DD`. First day on hold. */
+      from: v.string(),
+      /** `YYYY-MM-DD`. Absent while the pause is still open. */
+      to: v.optional(v.string()),
+      note: v.optional(v.string()),
+      recordedAt: v.optional(v.string()),
+    }))),
+
     notes: v.optional(v.string()),
     slug: v.optional(v.string()),
+
+    // ── Standing goals ────────────────────────────────────────────────────────
+    // The engagement's targets, used when a period has not set its own. Without
+    // a target a report states activity and calls it performance: "48K reach"
+    // is a number, "48K against 40K" is a result. A period may override these
+    // in `reportNotes` — a launch month is not held to a quiet month's goal.
+    reachTarget: v.optional(v.number()),
+    publishedTarget: v.optional(v.number()),
 
     // ── Client dashboard access ───────────────────────────────────────────────
     // Managers reach [slug].devrel.studio without a devrel.studio account. They
@@ -289,12 +384,6 @@ export default defineSchema({
     .index("by_workspace", ["workspaceId"])
     .index("by_enabled", ["enabled"]),
 
-  // Feedback a client leaves on a monthly report.
-  //
-  // Left by the manager reading the report, who has no account — so there is no
-  // userId here. Attribution is the client row plus whatever name they type.
-  // One row per submission rather than one per period: a client who sends a
-  // second thought a week later should not overwrite the first.
   /**
    * A request to buy or extend access.
    *
@@ -314,13 +403,79 @@ export default defineSchema({
     currency: v.string(),
     amount: v.number(),
     note: v.optional(v.string()),
-    /** 'open' until the owner grants access or turns it down. */
-    status: v.string(),
+    /**
+     * 'open' until the owner grants access or turns it down.
+     *
+     * A union rather than a string: a status nothing produces is a request no
+     * query matches, which reads as a customer who never asked. `v.string()`
+     * let one through silently, and finding it again needed a reconciliation
+     * pass over the whole table.
+     */
+    status: requestStatusValidator,
     createdAt: v.number(),
   })
     .index("by_user", ["userId"])
     .index("by_status", ["status"]),
 
+  // ── The written half of a report ────────────────────────────────────────────
+  //
+  // Everything in a report used to be generated from the data. That makes a
+  // competent activity log and a poor report: a reader sees "+40%" and cannot
+  // tell whether it was a launch, a conference or an algorithm change, and the
+  // person who actually knows had nowhere to say so.
+  //
+  // One row per client per period, holding the parts only a human can write.
+  // Separate from `clients` because it is per-period, and separate from
+  // `contentEntries` because it is about the period rather than any one piece.
+  //
+  // Every field is optional. A report with no write-up renders exactly as it
+  // did before, so this is additive for every period already sent.
+  reportNotes: defineTable({
+    clientId: v.id("clients"),
+    workspaceId: v.optional(v.id("workspaces")),
+    /** Denormalised so the public report can be read by slug in one query. */
+    slug: v.string(),
+    /** `YYYY-MM`. */
+    period: v.string(),
+
+    /** The opening paragraph, in the DevRel's voice. */
+    summary: v.optional(v.string()),
+    /** One line on why the numbers moved, shown beneath the figures. */
+    performanceNote: v.optional(v.string()),
+    /** Answers the feedback left on the previous period. */
+    responseToFeedback: v.optional(v.string()),
+
+    /**
+     * Quotes, reactions and mentions worth showing.
+     *
+     * DevRel value is disproportionately qualitative, and a numbers-only report
+     * systematically undersells it — a maintainer's reply can matter more than
+     * the view count on the post that prompted it.
+     */
+    quotes: v.optional(v.array(v.object({
+      text: v.string(),
+      attribution: v.optional(v.string()),
+      link: v.optional(v.string()),
+    }))),
+
+    /** Overrides the client's standing goal for this period only. */
+    reachTarget: v.optional(v.number()),
+    publishedTarget: v.optional(v.number()),
+
+    updatedAt: v.string(),
+    /** Who last wrote it, for a workspace with several people in it. */
+    updatedBy: v.optional(v.id("users")),
+  })
+    .index("by_client_and_period", ["clientId", "period"])
+    .index("by_slug_and_period", ["slug", "period"])
+    .index("by_workspace", ["workspaceId"]),
+
+  // Feedback a client leaves on a monthly report.
+  //
+  // Left by the manager reading the report, who has no account — so there is no
+  // userId here. Attribution is the client row plus whatever name they type.
+  // One row per submission rather than one per period: a client who sends a
+  // second thought a week later should not overwrite the first.
   reportFeedback: defineTable({
     clientId: v.id("clients"),
     slug: v.string(),
@@ -335,6 +490,113 @@ export default defineSchema({
   })
     .index("by_client", ["clientId"])
     .index("by_slug_and_period", ["slug", "period"]),
+
+  // ── Who looked at the work ──────────────────────────────────────────────────
+  //
+  // One row per view of a public surface: a client dashboard at
+  // [slug].devrel.studio, or a portfolio at /@handle. This is what the DevRel's
+  // own /dashboard/analytics section reads.
+  //
+  // The point of the table is not traffic measurement — the volumes here are
+  // tens to hundreds a month, not millions. It is evidence of attention: that
+  // the manager paying for the work actually opened the report, and how long
+  // they stayed. That fact is the hardest thing in DevRel to prove and the most
+  // valuable thing to be able to show.
+  //
+  // Rows are raw rather than pre-aggregated. At this volume a workspace's whole
+  // history is a few thousand documents, which is cheaper to query directly
+  // than to maintain rollups for — and it keeps the per-view detail the
+  // activity feed depends on.
+  pageViews: defineTable({
+    /** Which surface was viewed. */
+    surface: v.union(v.literal("dashboard"), v.literal("portfolio")),
+
+    // Whose analytics this belongs in. Resolved at write time by looking the
+    // slug or handle up, so the read path never has to join back through
+    // clients/users to scope a query to the signed-in workspace.
+    workspaceId: v.optional(v.id("workspaces")),
+    userId: v.optional(v.id("users")),
+    /** Set for dashboard views; absent for portfolio, which belongs to no client. */
+    clientId: v.optional(v.id("clients")),
+
+    /** The slug or handle, denormalised for display without a second read. */
+    target: v.string(),
+    /** Path within the surface — '/', '/report', '/reports'. */
+    path: v.string(),
+
+    // ── Who, to the extent it is knowable ─────────────────────────────────────
+    //
+    // 'manager' means the visitor held a valid access-code session for this
+    // client, so the view can honestly be attributed to the person the DevRel
+    // gave the code to. 'anonymous' is everyone else, including every portfolio
+    // visitor — a public page cannot identify its readers and should not claim
+    // to.
+    identity: v.union(v.literal("manager"), v.literal("anonymous")),
+
+    /**
+     * Daily-rotating hash of IP + user agent. Counts unique visitors within a
+     * day without being a durable identifier: the salt includes the date, so
+     * the same person tomorrow hashes differently and cannot be followed across
+     * days. Raw IPs never reach Convex — the hash is computed in the Next.js
+     * layer, the same rule `managerAccessAttempts` follows.
+     */
+    visitorHash: v.string(),
+
+    /** ISO-3166 alpha-2 from the CDN edge. Country granularity only. */
+    country: v.optional(v.string()),
+    /** Bare hostname of the referrer — 'linkedin.com', never the full URL. */
+    referrer: v.optional(v.string()),
+
+    /** Milliseconds on the page, when the surface reported it on unload. */
+    durationMs: v.optional(v.number()),
+
+    at: v.number(),
+  })
+    .index("by_workspace_and_time", ["workspaceId", "at"])
+    .index("by_client_and_time", ["clientId", "at"])
+    .index("by_target_and_visitor", ["target", "visitorHash"])
+    .index("by_time", ["at"]),
+
+  // ── Admin audit ─────────────────────────────────────────────────────────────
+  //
+  // Every privileged action, appended and never changed.
+  //
+  // Nothing recorded that a grant happened, who made it, or what it replaced.
+  // `users.accessNote` held a single overwritable string, so the second grant
+  // erased the first one's reason. With one operator that is uncomfortable; the
+  // moment a customer disputes a charge, or a second person can approve one,
+  // this table is the only thing that can answer the question.
+  //
+  // Append-only by construction: no mutation is written anywhere that patches
+  // or deletes a row here. An audit trail that can be edited is not one.
+  adminAuditLog: defineTable({
+    actorId: v.id("users"),
+    /**
+     * Denormalised on purpose. Ids dangle when an account is deleted, and the
+     * history of what somebody did must outlive their account.
+     */
+    actorEmail: v.string(),
+
+    /** Dotted verb: 'access.grant', 'access.revoke', 'admin.promote'. */
+    action: v.string(),
+
+    /** Who or what it was done to. A string rather than an id union so one
+     *  table can log actions against users, workspaces and requests alike. */
+    subjectId: v.optional(v.string()),
+    subjectEmail: v.optional(v.string()),
+
+    /** Serialised before/after for anything that changed a value. */
+    before: v.optional(v.string()),
+    after: v.optional(v.string()),
+
+    /** Why — typed by the admin at the time, not inferred later. */
+    reason: v.optional(v.string()),
+
+    at: v.number(),
+  })
+    .index("by_time", ["at"])
+    .index("by_subject", ["subjectId", "at"])
+    .index("by_actor", ["actorId", "at"]),
 
   // Failed access-code attempts, used to throttle guessing. `bucket` is either a
   // hashed caller IP or the literal "*" — the "*" row is the whole-slug counter,

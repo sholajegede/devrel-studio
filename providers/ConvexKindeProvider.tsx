@@ -39,11 +39,40 @@ function createConvexClient(): ConvexReactClient {
 
 const convex = createConvexClient();
 
+// Kinde's own endpoint for the current session. The browser client reads it on
+// mount; we re-read it directly when Convex asks for a *fresh* token, because
+// the hook's in-memory copy is only as new as its last render.
+const KINDE_SESSION_ENDPOINT = "/api/auth/setup";
+
+async function fetchFreshIdToken(): Promise<string | null> {
+  try {
+    const response = await fetch(KINDE_SESSION_ENDPOINT, {
+      credentials: "include",
+      cache: "no-store",
+    });
+    if (!response.ok) return null;
+
+    const state = await response.json();
+    return typeof state?.idTokenRaw === "string" ? state.idTokenRaw : null;
+  } catch (error) {
+    console.error("[convex] Could not refresh the Kinde session:", error);
+    return null;
+  }
+}
+
 function useAuthFromKinde() {
   const { getIdTokenRaw, isAuthenticated, isLoading } = useKindeBrowserClient();
 
   const fetchAccessToken = useCallback(
     async ({ forceRefreshToken }: { forceRefreshToken: boolean }) => {
+      // Convex sets this when the token it holds is at or near expiry. Handing
+      // back the same expired token — which is all `getIdTokenRaw` can do —
+      // drops the connection to unauthenticated for the rest of the session.
+      if (forceRefreshToken) {
+        const refreshed = await fetchFreshIdToken();
+        if (refreshed) return refreshed;
+      }
+
       const token = getIdTokenRaw();
       return token ?? null;
     },

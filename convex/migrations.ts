@@ -4,6 +4,7 @@ import { Doc, Id } from './_generated/dataModel'
 import { normalizeSlug } from './clients'
 import { ensureMembership, ensurePersonalWorkspace } from './model/workspaces'
 import { accessOf } from './model/plans'
+import { checkMonths, extendAccessWindow } from './model/access'
 
 // ── One-off data repairs ──────────────────────────────────────────────────────
 //
@@ -434,31 +435,31 @@ export const grantAccess = internalMutation({
       .first()
 
     if (!user) throw new ConvexError(`No account with the email ${email}`)
-    if (args.months <= 0 || args.months > 60) {
-      throw new ConvexError('Months must be between 1 and 60')
-    }
+    const problem = checkMonths(args.months)
+    if (problem) throw new ConvexError(problem)
 
     const now = Date.now()
-    const from = user.accessUntil && user.accessUntil > now ? user.accessUntil : now
 
-    // Calendar months, not 30-day blocks — someone who pays for three months
-    // starting on the 31st should not silently lose days.
-    const until = new Date(from)
-    until.setMonth(until.getMonth() + args.months)
+    // The same arithmetic the console's approve action uses. Shared rather than
+    // repeated: two implementations of "three more months" is two customers
+    // with the same purchase and different end dates.
+    const window = extendAccessWindow(user.accessUntil, args.months, now)
 
     await ctx.db.patch(user._id, {
       plan: args.plan,
       planStatus: 'active',
-      planPurchasedAt: new Date().toISOString(),
-      accessUntil: until.getTime(),
+      planPurchasedAt: new Date(now).toISOString(),
+      accessUntil: window.until,
       accessNote: args.note,
     })
 
     return {
       email: user.email,
       plan: args.plan,
-      until: until.toISOString().slice(0, 10),
-      extendedFrom: from === now ? 'today' : new Date(from).toISOString().slice(0, 10),
+      until: new Date(window.until).toISOString().slice(0, 10),
+      extendedFrom: window.extended
+        ? new Date(window.from).toISOString().slice(0, 10)
+        : 'today',
     }
   },
 })

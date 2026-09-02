@@ -137,7 +137,23 @@ export const updateClient = mutation({
     const slug = normalizeSlug(fields.slug || fields.company)
     if (slug) await assertSlugAvailable(ctx, slug, clientId)
 
-    await ctx.db.patch(clientId, { ...fields, slug: slug || undefined })
+    // Editing the retainer field means "the current rate is wrong", not "the
+    // rate changed today" — a change with a date goes through changeRetainerRate
+    // instead. Correcting the newest history entry keeps the two in step;
+    // leaving it would make the timeline disagree with the field it summarises.
+    const patch: Partial<Doc<'clients'>> = { ...fields, slug: slug || undefined }
+    if (
+      fields.monthlyRetainer !== before.monthlyRetainer &&
+      before.rateHistory?.length
+    ) {
+      const history = [...before.rateHistory]
+      const newest = history.reduce((latest, entry, index) =>
+        entry.effectiveFrom > history[latest].effectiveFrom ? index : latest, 0)
+      history[newest] = { ...history[newest], amount: fields.monthlyRetainer ?? 0 }
+      patch.rateHistory = history
+    }
+
+    await ctx.db.patch(clientId, patch)
 
     // Entries are tagged with the slug as a string, and the client dashboard
     // matches on it exactly. Renaming the slug without moving the entries would
@@ -148,6 +164,153 @@ export const updateClient = mutation({
     }
 
     return clientId
+  },
+})
+
+/**
+ * Record a new retainer rate taking effect on a given date.
+ *
+ * This is the path for a raise or a cut, as distinct from `updateClient`, which
+ * treats a changed retainer as a correction to the current figure.
+ *
+ * The important part is the seeding below. `rateHistory` is empty on every
+ * client created before it existed, and the calculation falls back to the
+ * earliest *recorded* rate for any month preceding it. So appending only the new
+ * amount would bill the entire back-history at the raised rate — the precise
+ * error the timeline exists to prevent. The rate being replaced is therefore
+ * written in first, effective from the engagement's start date.
+ */
+export const changeRetainerRate = mutation({
+  args: {
+    clientId: v.id('clients'),
+    amount: v.number(),
+    /** `YYYY-MM-DD`. The first billing date charged at the new amount. */
+    effectiveFrom: v.string(),
+    note: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const { doc: client } = await requireInWorkspace(ctx, args.clientId, 'editor')
+
+    if (args.amount < 0) {
+      throw new ConvexError('A retainer cannot be negative')
+    }
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(args.effectiveFrom)) {
+      throw new ConvexError('Effective date must be a calendar date (YYYY-MM-DD)')
+    }
+
+    const history = [...(client.rateHistory ?? [])]
+
+    if (history.length === 0) {
+      // Nothing recorded yet: preserve what the client has been paying so far.
+      // Without a start date there is no defensible date to attach it to, so the
+      // new rate simply becomes the opening one.
+      if (client.monthlyRetainer && client.startDate) {
+        history.push({
+          amount: client.monthlyRetainer,
+          effectiveFrom: client.startDate,
+          note: 'Opening rate',
+          recordedAt: new Date().toISOString(),
+        })
+      }
+    }
+
+    // Re-dating an existing entry rather than stacking two rates on one day,
+    // which would leave the timeline with an unreachable period.
+    const existing = history.findIndex(
+      (entry) => entry.effectiveFrom === args.effectiveFrom,
+    )
+    const entry = {
+      amount: args.amount,
+      effectiveFrom: args.effectiveFrom,
+      note: args.note,
+      recordedAt: new Date().toISOString(),
+    }
+    if (existing >= 0) history[existing] = entry
+    else history.push(entry)
+
+    history.sort((a, b) => a.effectiveFrom.localeCompare(b.effectiveFrom))
+
+    // `monthlyRetainer` mirrors whichever rate is in effect today, so a change
+    // dated in the future does not move it until that date arrives.
+    const today = new Date().toISOString().slice(0, 10)
+    const inEffect = history.filter((rate) => rate.effectiveFrom <= today)
+    const currentAmount = inEffect.length
+      ? inEffect[inEffect.length - 1].amount
+      : client.monthlyRetainer
+
+    await ctx.db.patch(args.clientId, {
+      rateHistory: history,
+      monthlyRetainer: currentAmount,
+    })
+
+    return { rateHistory: history, monthlyRetainer: currentAmount }
+  },
+})
+
+/**
+ * Put an engagement on hold, or bring it back.
+ *
+ * `status` is written here rather than left to the edit form, so the flag and
+ * the dated history cannot disagree — a client showing "Paused" with no open
+ * pause period would bill straight through the hold, which is the bug this
+ * whole timeline exists to remove.
+ *
+ * Resuming closes the open period rather than deleting it: the gap is what
+ * makes the earnings figure correct, and discarding it would silently restore
+ * the months to the total.
+ */
+export const setPauseState = mutation({
+  args: {
+    clientId: v.id('clients'),
+    /** True to pause, false to resume. */
+    paused: v.boolean(),
+    /** `YYYY-MM-DD` — when the hold starts, or when work resumed. */
+    date: v.string(),
+    note: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const { doc: client } = await requireInWorkspace(ctx, args.clientId, 'editor')
+
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(args.date)) {
+      throw new ConvexError('Date must be a calendar date (YYYY-MM-DD)')
+    }
+
+    const periods = [...(client.pausePeriods ?? [])]
+    const openIndex = periods.findIndex((period) => !period.to)
+
+    if (args.paused) {
+      if (openIndex >= 0) {
+        throw new ConvexError('This client is already paused')
+      }
+      periods.push({
+        from: args.date,
+        note: args.note,
+        recordedAt: new Date().toISOString(),
+      })
+    } else {
+      if (openIndex < 0) {
+        throw new ConvexError('This client is not currently paused')
+      }
+      if (args.date < periods[openIndex].from) {
+        throw new ConvexError('Work cannot resume before the pause began')
+      }
+      periods[openIndex] = { ...periods[openIndex], to: args.date }
+    }
+
+    periods.sort((a, b) => a.from.localeCompare(b.from))
+
+    await ctx.db.patch(args.clientId, {
+      pausePeriods: periods,
+      // An ended engagement stays ended — resuming a closed contract is a
+      // decision for the edit form, not a side effect of clearing a hold.
+      status: args.paused
+        ? 'Paused'
+        : client.status === 'Ended'
+          ? 'Ended'
+          : 'Active',
+    })
+
+    return { pausePeriods: periods }
   },
 })
 

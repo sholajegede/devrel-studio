@@ -9,6 +9,8 @@
  */
 
 import type * as accessRequests from "../accessRequests.js";
+import type * as admin from "../admin.js";
+import type * as analytics from "../analytics.js";
 import type * as billing from "../billing.js";
 import type * as clients from "../clients.js";
 import type * as content from "../content.js";
@@ -19,6 +21,8 @@ import type * as http from "../http.js";
 import type * as managerAccess from "../managerAccess.js";
 import type * as members from "../members.js";
 import type * as migrations from "../migrations.js";
+import type * as model_access from "../model/access.js";
+import type * as model_admin from "../model/admin.js";
 import type * as model_auth from "../model/auth.js";
 import type * as model_plans from "../model/plans.js";
 import type * as model_rateLimit from "../model/rateLimit.js";
@@ -38,6 +42,8 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   accessRequests: typeof accessRequests;
+  admin: typeof admin;
+  analytics: typeof analytics;
   billing: typeof billing;
   clients: typeof clients;
   content: typeof content;
@@ -48,6 +54,8 @@ declare const fullApi: ApiFromModules<{
   managerAccess: typeof managerAccess;
   members: typeof members;
   migrations: typeof migrations;
+  "model/access": typeof model_access;
+  "model/admin": typeof model_admin;
   "model/auth": typeof model_auth;
   "model/plans": typeof model_plans;
   "model/rateLimit": typeof model_rateLimit;

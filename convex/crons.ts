@@ -38,4 +38,14 @@ crons.daily(
   {},
 )
 
+// View rows are kept for a year and then dropped. The analytics section never
+// looks further back than that, and a table of individual visits is not
+// something to hold indefinitely just because the storage is cheap.
+crons.daily(
+  'prune old page views',
+  { hourUTC: 3, minuteUTC: 30 },
+  internal.analytics.pruneOldViews,
+  {},
+)
+
 export default crons

@@ -4,6 +4,7 @@ import {
   parsePeriod,
   periodLabel,
   reachTrend,
+  targetProgress,
   type ReportEntry,
 } from '@/lib/report'
 
@@ -156,5 +157,92 @@ describe('reachTrend', () => {
   it('walks back across a year boundary', () => {
     const trend = reachTrend([], '2026-01', 3)
     expect(trend.map((t) => t.period)).toEqual(['2025-11', '2025-12', '2026-01'])
+  })
+})
+
+describe('highlights', () => {
+  it('ranks by the metric each category owns, not by whichever number is largest', () => {
+    // A written post is judged on views and an event on attendees. Taking the
+    // largest of the four would let a stray star outrank a real readership.
+    const report = buildReport(
+      [
+        entry({ title: 'Post', category: 'Written', views: 500, stars: 90_000 }),
+        entry({ title: 'Talk', category: 'Event', attendees: 900, views: 10 }),
+      ],
+      '2026-07',
+    )
+
+    expect(report.highlights.map((h) => h.entry.title)).toEqual(['Talk', 'Post'])
+    expect(report.highlights[0].metric).toBe(900)
+    expect(report.highlights[1].metric).toBe(500)
+  })
+
+  it('takes at most three', () => {
+    const report = buildReport(
+      Array.from({ length: 8 }, (_, i) =>
+        entry({ title: `Post ${i}`, category: 'Written', views: i + 1 }),
+      ),
+      '2026-07',
+    )
+
+    expect(report.highlights).toHaveLength(3)
+    expect(report.highlights.map((h) => h.metric)).toEqual([8, 7, 6])
+  })
+
+  it('leaves out pieces with no recorded figure rather than tying them at zero', () => {
+    const report = buildReport(
+      [
+        entry({ title: 'Measured', category: 'Written', views: 40 }),
+        entry({ title: 'Not measured yet', category: 'Written' }),
+      ],
+      '2026-07',
+    )
+
+    expect(report.highlights).toHaveLength(1)
+    expect(report.highlights[0].entry.title).toBe('Measured')
+  })
+
+  it('is empty when the period recorded nothing at all', () => {
+    const report = buildReport([entry({ category: 'Written' })], '2026-07')
+    expect(report.highlights).toEqual([])
+  })
+
+  it('only considers published work', () => {
+    const report = buildReport(
+      [
+        entry({ title: 'Draft', category: 'Written', views: 9000, status: 'Draft' }),
+        entry({ title: 'Live', category: 'Written', views: 12 }),
+      ],
+      '2026-07',
+    )
+
+    expect(report.highlights.map((h) => h.entry.title)).toEqual(['Live'])
+  })
+})
+
+describe('targetProgress', () => {
+  it('reports the percentage reached and whether the goal was met', () => {
+    expect(targetProgress(20_000, 40_000)).toEqual({
+      target: 40_000,
+      actual: 20_000,
+      percent: 50,
+      met: false,
+    })
+    expect(targetProgress(40_000, 40_000)?.met).toBe(true)
+    expect(targetProgress(60_000, 40_000)).toMatchObject({ percent: 150, met: true })
+  })
+
+  it('returns null when there is no goal, so an absent goal renders as absent', () => {
+    // Treating a missing target as zero would render every report as having
+    // triumphantly exceeded a goal nobody set.
+    expect(targetProgress(500, undefined)).toBeNull()
+    expect(targetProgress(500, null)).toBeNull()
+    expect(targetProgress(500, 0)).toBeNull()
+    expect(targetProgress(500, -10)).toBeNull()
+    expect(targetProgress(500, Number.NaN)).toBeNull()
+  })
+
+  it('reports zero progress rather than failing when nothing was achieved', () => {
+    expect(targetProgress(0, 40_000)).toMatchObject({ percent: 0, met: false })
   })
 })

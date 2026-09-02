@@ -160,7 +160,7 @@ function Hero({ signedIn }: { signedIn: boolean }) {
                 <span className="h-2.5 w-2.5 rounded-full bg-foreground/15" />
               </div>
               <div className="mx-auto rounded-md border border-border bg-background px-3 py-0.5 text-[11px] text-muted-foreground">
-                kinde.devrel.studio
+                client.devrel.studio
               </div>
               <div className="w-12" />
             </div>
