@@ -143,21 +143,13 @@ export const userDetail = query({
     // Counted rather than listed. An admin deciding whether to grant needs to
     // know an account is real and in use; the contents are the customer's, and
     // reading them is not what this console is for.
-    const [workspaces, memberships, clients, entries, requests, audit] = await Promise.all([
+    const [workspaces, memberships, requests, audit] = await Promise.all([
       ctx.db
         .query('workspaces')
         .withIndex('by_owner', (q) => q.eq('ownerId', user._id))
         .collect(),
       ctx.db
         .query('memberships')
-        .withIndex('by_user', (q) => q.eq('userId', user._id))
-        .collect(),
-      ctx.db
-        .query('clients')
-        .withIndex('by_user', (q) => q.eq('userId', user._id))
-        .collect(),
-      ctx.db
-        .query('contentEntries')
         .withIndex('by_user', (q) => q.eq('userId', user._id))
         .collect(),
       ctx.db
@@ -170,6 +162,47 @@ export const userDetail = query({
         .order('desc')
         .take(50),
     ])
+
+    // Counted by workspace, across the workspaces this account owns — which is
+    // how every limit in the product is actually enforced, and against this
+    // account's plan because the owner is the billing subject.
+    //
+    // It was `by_user` before, meaning "rows this person created". That answers
+    // a different question and disagrees with the gate the customer hits in both
+    // directions: it misses work a member did inside their workspace, and counts
+    // work they did inside somebody else's. A console reporting a number the
+    // product does not enforce is worse than one reporting nothing.
+    let clients = 0
+    let entries = 0
+    let overLimit = false
+
+    for (const workspace of workspaces) {
+      const [ownedClients, ownedEntries] = await Promise.all([
+        ctx.db
+          .query('clients')
+          .withIndex('by_workspace', (q) => q.eq('workspaceId', workspace._id))
+          .collect(),
+        ctx.db
+          .query('contentEntries')
+          .withIndex('by_workspace', (q) => q.eq('workspaceId', workspace._id))
+          .collect(),
+      ])
+
+      clients += ownedClients.length
+      entries += ownedEntries.length
+
+      // Per workspace, because the limit is. Two workspaces of three clients
+      // each are not one workspace of six, and summing before comparing would
+      // report an account over a limit it is nowhere near.
+      const maxClients = access.plan.maxClients
+      const maxEntries = access.plan.maxEntries
+      if (
+        (maxClients !== null && ownedClients.length > maxClients) ||
+        (maxEntries !== null && ownedEntries.length > maxEntries)
+      ) {
+        overLimit = true
+      }
+    }
 
     return {
       account: {
@@ -195,9 +228,11 @@ export const userDetail = query({
       usage: {
         workspaces: workspaces.length,
         memberships: memberships.length,
-        clients: clients.length,
-        entries: entries.length,
+        clients,
+        entries,
         planLimit: access.plan.maxClients,
+        /** True when any single owned workspace is over what this plan allows. */
+        overLimit,
       },
       requests: requests
         .sort((a, b) => b.createdAt - a.createdAt)
