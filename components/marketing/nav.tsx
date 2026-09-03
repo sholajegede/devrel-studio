@@ -24,7 +24,17 @@ export async function MarketingNav() {
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6">
         <Link href="/" className="flex items-center gap-2.5">
           <Image src="/images/devrel-logo.png" alt="DevRel Studio" width={30} height={30} className="rounded" />
-          <span className="text-base font-semibold text-foreground">
+          {/* The wordmark is what gives way on a narrow screen, not a control.
+              A phone header cannot hold the mark, the name, the theme toggle
+              and both buttons, and of those the name is the only one nobody
+              needs — the mark beside it says the same thing.
+
+              440px rather than a stock breakpoint because that is where it
+              stops being cramped when measured: at 400 the name and the theme
+              toggle sit against each other with no gap, and the widest phone in
+              portrait is 430. So every phone shows the mark alone and the name
+              returns on anything larger. */}
+          <span className="hidden min-[440px]:inline text-base font-semibold text-foreground">
             devrel<span className="text-muted-foreground">.studio</span>
           </span>
         </Link>
@@ -47,7 +57,17 @@ export async function MarketingNav() {
             </Link>
           ) : (
             <>
-              <Link href="/sign-in" className="hidden sm:block">
+              {/*
+                Visible at every width.
+
+                This was `hidden sm:block`, which took the only way back into
+                the product off the header on every phone: there is no menu
+                behind a hamburger here to hold it instead, so below 640px the
+                site offered a returning customer nothing but "Start free".
+                Signing up again is not a workaround — it is the same email
+                address arriving at an account that already exists.
+              */}
+              <Link href="/sign-in">
                 <Button variant="ghost" size="sm">Sign in</Button>
               </Link>
               <Link href="/sign-up">
