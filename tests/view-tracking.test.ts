@@ -6,6 +6,7 @@ import {
   dayStamp,
   hashSessionTokenEdge,
   isBot,
+  isPrefetch,
   isTrackablePath,
   referrerHost,
   normaliseRoute,
@@ -113,6 +114,43 @@ describe('trackable paths', () => {
 
   it.each(['/', '/@ada', '/report', '/reports'])('includes %s', (path) => {
     expect(isTrackablePath(path)).toBe(true)
+  })
+})
+
+describe('prefetches', () => {
+  // The reason this test exists: a prefetch is indistinguishable from a real
+  // visit once it has been written down. Both of the things that go wrong when
+  // one is counted are invisible afterwards — a breakdown lists pages nobody
+  // opened, and a burst of six simultaneous writes for one visitor contends on
+  // the same rows until Convex gives up on one of them.
+
+  it.each([
+    ['next-router-prefetch', '1'],
+    ['purpose', 'prefetch'],
+    ['Purpose', 'Prefetch'],
+    ['x-purpose', 'prefetch'],
+    ['sec-purpose', 'prefetch'],
+    ['sec-purpose', 'prefetch;prerender'],
+    ['sec-purpose', 'prerender'],
+  ])('recognises %s: %s', (name, value) => {
+    expect(isPrefetch(new Headers({ [name]: value }))).toBe(true)
+  })
+
+  // RSC marks every App Router navigation, a real click included. Treating it
+  // as speculative would stop counting client-side navigation altogether, which
+  // is most of how anybody moves around a dashboard once it has loaded.
+  it('does not treat an RSC navigation as a prefetch', () => {
+    expect(isPrefetch(new Headers({ RSC: '1' }))).toBe(false)
+  })
+
+  it('does not treat a plain document request as a prefetch', () => {
+    expect(isPrefetch(new Headers({ accept: 'text/html' }))).toBe(false)
+  })
+
+  // 'purpose: preview' is a link unfurler, already excluded by user agent, and
+  // not something this predicate should start claiming.
+  it('only matches purpose when it actually says prefetch', () => {
+    expect(isPrefetch(new Headers({ purpose: 'preview' }))).toBe(false)
   })
 })
 

@@ -81,22 +81,31 @@ export const record = mutation({
     // hitting invented subdomains.
     if (!owner) return null
 
-    const recent = await ctx.db
+    const now = Date.now()
+
+    // Asked as one indexed range rather than "the newest row for this visitor,
+    // is it the same path, and was it recent enough".
+    //
+    // The old form was wrong twice over. It only ever saw the *latest* row, so
+    // a visitor who opened two pages in the same second was deduplicated
+    // against whichever landed last — hover three links and the middle one
+    // matched nothing. And it read the visitor's entire history on this target,
+    // so every concurrent write for that visitor conflicted with every other
+    // one regardless of page. Bounding the read to this path and this window is
+    // both the question dedupe means to ask and a range narrow enough that two
+    // pages loading at once no longer collide.
+    const duplicate = await ctx.db
       .query('pageViews')
-      .withIndex('by_target_and_visitor', (q) =>
-        q.eq('target', target).eq('visitorHash', args.visitorHash),
+      .withIndex('by_target_visitor_path_and_time', (q) =>
+        q
+          .eq('target', target)
+          .eq('visitorHash', args.visitorHash)
+          .eq('path', args.path)
+          .gt('at', now - DEDUPE_WINDOW_MS),
       )
-      .order('desc')
       .first()
 
-    const now = Date.now()
-    if (
-      recent &&
-      recent.path === args.path &&
-      now - recent.at < DEDUPE_WINDOW_MS
-    ) {
-      return recent._id
-    }
+    if (duplicate) return duplicate._id
 
     // A session cookie only proves manager access for the client it was issued
     // to. Checking the clientId matches stops a code for one dashboard being

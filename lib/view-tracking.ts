@@ -89,6 +89,44 @@ export function isTrackablePath(pathname: string): boolean {
 }
 
 /**
+ * Whether the browser asked for this page speculatively rather than because
+ * somebody is looking at it.
+ *
+ * Next's App Router prefetches every link it can see, so a dashboard with a
+ * sidebar sends a burst of requests for pages nobody opened the moment one page
+ * renders. Each of those reached the proxy, and each was counted.
+ *
+ * That was wrong in two separate ways. The numbers were inflated by routes the
+ * visitor never visited — the "portfolio pages" breakdown listed pages that had
+ * only ever been hovered near. And the burst arrived as a handful of writes for
+ * one visitor in the same instant, which is what filled the deployment's
+ * conflict log and lost the occasional real view to a write that ran out of
+ * retries.
+ *
+ * Three headers, because three things do the prefetching: Next sets
+ * `Next-Router-Prefetch` on its own, Chrome's speculation rules set
+ * `Sec-Purpose`, and `Purpose: prefetch` is the older convention still sent by
+ * Safari and by link-prefetching extensions.
+ *
+ * Note that `RSC: 1` is deliberately *not* here. It marks every App Router
+ * navigation, prefetch and real click alike, so filtering on it would stop
+ * counting client-side navigation altogether — which is most of how anybody
+ * moves around a dashboard.
+ */
+export function isPrefetch(headers: Headers): boolean {
+  if (headers.get('next-router-prefetch')) return true;
+
+  const purpose = headers.get('purpose') ?? headers.get('x-purpose');
+  if (purpose?.toLowerCase().trim() === 'prefetch') return true;
+
+  // 'prefetch', 'prefetch;prerender', 'prerender' — a speculative load either way.
+  const secPurpose = headers.get('sec-purpose')?.toLowerCase() ?? '';
+  if (secPurpose.includes('prefetch') || secPurpose.includes('prerender')) return true;
+
+  return false;
+}
+
+/**
  * Referrer reduced to a bare hostname.
  *
  * The full URL is both more than is needed to answer "where did they come

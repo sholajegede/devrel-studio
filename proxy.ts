@@ -6,6 +6,7 @@ import {
   callerIp,
   hashSessionTokenEdge,
   isBot,
+  isPrefetch,
   isTrackablePath,
   normaliseRoute,
   referrerHost,
@@ -328,6 +329,11 @@ function trackView(req: NextRequest, event: NextFetchEvent, subdomain: string | 
 
   const userAgent = req.headers.get('user-agent');
   if (isBot(userAgent)) return;
+
+  // A prefetched page is not a page anybody looked at, and a browser prefetches
+  // several at once — so this drops both a wrong number and the burst of
+  // simultaneous writes that came with it. See `isPrefetch`.
+  if (isPrefetch(req.headers)) return;
 
   const found = trackingTarget(req, subdomain);
   if (!found) return;
