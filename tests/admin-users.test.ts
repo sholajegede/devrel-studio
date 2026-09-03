@@ -240,3 +240,37 @@ describe('a comp hides the window rather than replacing it', () => {
     expect(source).toMatch(/accessOf\(\{ \.\.\.user, comped: false \}/)
   })
 })
+
+// ── Housekeeping never refuses a save ─────────────────────────────────────────
+//
+// A client row pointing at a logo file that no longer existed could not be saved
+// at all: `ctx.storage.delete` throws on an id it cannot find, and the cleanup
+// ran before the patch, so every attempt died on the same dead id before
+// reaching the write. Found in production logs, and self-perpetuating — the
+// first half-finished save created the state that broke every one after it.
+
+describe('deleting a replaced logo cannot fail the save', () => {
+  const source = readConvex('convex/clients.ts')
+  const update = functionsIn('convex/clients.ts').get('updateClient')!
+
+  it('goes through the tolerant helper, never the raw call', () => {
+    // One place knows that a missing file is the outcome we wanted.
+    const raw = source.match(/ctx\.storage\.delete\(/g) ?? []
+    expect(raw.length).toBe(1)
+    expect(source).toMatch(/async function discardFile/)
+  })
+
+  it('swallows a file that is already gone', () => {
+    expect(source).toMatch(/try \{\s*await ctx\.storage\.delete\(storageId\)\s*\} catch/)
+  })
+
+  it('deletes only after the row that pointed at the file is written', () => {
+    // Deleting first meant anything throwing in between — a slug collision, a
+    // validation refusal — left the file gone and the client still pointing at
+    // it, which is precisely the unsaveable state.
+    const patched = update.body.indexOf('ctx.db.patch(clientId, patch)')
+    const discarded = update.body.indexOf('discardFile(ctx, before.logoStorageId)')
+    expect(patched).toBeGreaterThan(-1)
+    expect(discarded).toBeGreaterThan(patched)
+  })
+})
