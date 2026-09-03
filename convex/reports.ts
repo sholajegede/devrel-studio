@@ -886,6 +886,33 @@ export const sendReportsNow = action({
     // Authorisation lives in the mutation, which can read the workspace.
     await ctx.runMutation(api.reports.assertCanSend, { clientId: args.clientId })
 
+    return await ctx.runAction(internal.reports.deliverReports, args)
+  },
+})
+
+/**
+ * The send itself, with no opinion about who asked for it.
+ *
+ * Split from `sendReportsNow` because the caller is not always a person. The
+ * hourly cron reached the send through the public action, which begins by
+ * demanding a workspace admin — and a cron is signed in as nobody, so every
+ * scheduled report threw `Not authenticated` before it sent anything. The throw
+ * was caught and logged, the run returned "checked 1, sent 0", and a failure
+ * looked exactly like a quiet hour.
+ *
+ * Internal, so the only ways in are the public action above, which checks the
+ * caller, and the cron, which is authorised by being the cron.
+ */
+export const deliverReports = internalAction({
+  args: {
+    clientId: v.id('clients'),
+    periods: v.array(v.string()),
+    to: v.optional(v.array(v.string())),
+  },
+  handler: async (
+    ctx,
+    args,
+  ): Promise<{ sent: number; failed: number; skipped: string[] }> => {
     let sent = 0
     let failed = 0
     const skipped: string[] = []
@@ -960,23 +987,41 @@ export const assertCanSend = mutation({
  */
 export const runScheduledReports = internalAction({
   args: {},
-  handler: async (ctx): Promise<{ checked: number; sent: number }> => {
+  handler: async (ctx): Promise<{ checked: number; sent: number; failed: number }> => {
     const schedules = await ctx.runQuery(internal.reports.dueSchedules, {})
 
     let sent = 0
+    let failed = 0
+
     for (const item of schedules) {
-      const result = await ctx.runAction(api.reports.sendReportsNow, {
-        clientId: item.clientId,
-        periods: [item.period],
-      }).catch((error) => {
-        console.error(`[reports] scheduled send failed for ${item.clientId}:`, error)
-        return null
-      })
+      // The internal action, not the public one. The public one starts by
+      // demanding a workspace admin, and this caller is a cron.
+      const result = await ctx
+        .runAction(internal.reports.deliverReports, {
+          clientId: item.clientId,
+          periods: [item.period],
+        })
+        .catch((error) => {
+          console.error(
+            `[reports] scheduled send FAILED for client ${item.clientId}, period ${item.period}:`,
+            error,
+          )
+          return null
+        })
 
       if (result) sent += result.sent
+      else failed += 1
     }
 
-    return { checked: schedules.length, sent }
+    // `failed` is returned rather than only logged. Without it a run that sent
+    // nothing because everything threw was indistinguishable from a quiet hour
+    // with nothing due — which is how a broken schedule went unnoticed until
+    // somebody wondered why they were sending reports by hand.
+    if (failed > 0) {
+      console.error(`[reports] ${failed} of ${schedules.length} scheduled sends failed`)
+    }
+
+    return { checked: schedules.length, sent, failed }
   },
 })
 

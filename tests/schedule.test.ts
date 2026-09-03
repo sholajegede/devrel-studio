@@ -1,4 +1,6 @@
 import { describe, expect, it } from 'vitest'
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
 import {
   dueNow,
   localMoment,
@@ -172,5 +174,47 @@ describe('nextRun', () => {
     const at = new Date('2026-09-03T09:30:00Z')
     expect(dueNow(base, at).due).toBe(true)
     expect(nextRun(base, at)).toEqual({ year: 2026, month: 10, day: 3 })
+  })
+})
+
+// ── The cron can actually send ────────────────────────────────────────────────
+//
+// The timing was never the problem. `dueSchedules` correctly reported a schedule
+// as due, and then the send went through the *public* action, which begins by
+// demanding a workspace admin — and a cron is signed in as nobody. Every
+// scheduled report threw `Not authenticated` before sending, the throw was
+// caught and logged, and the run returned "checked 1, sent 0". A broken schedule
+// looked exactly like a quiet hour.
+
+describe('the scheduled sender is reachable without a user', () => {
+  const source = readFileSync(join(process.cwd(), 'convex/reports.ts'), 'utf8')
+  const run = source.slice(source.indexOf('export const runScheduledReports'))
+
+  it('the cron calls the internal action, not the guarded public one', () => {
+    expect(run).toMatch(/internal\.reports\.deliverReports/)
+    expect(run).not.toMatch(/api\.reports\.sendReportsNow/)
+  })
+
+  it('the work itself asks nobody for permission', () => {
+    const deliver = source.slice(
+      source.indexOf('export const deliverReports'),
+      source.indexOf('export const assertCanSend'),
+    )
+    expect(deliver).not.toMatch(/assertCanSend|requireInWorkspace|requireCurrentUser/)
+  })
+
+  it('but the public entrance still does', () => {
+    const publicSend = source.slice(
+      source.indexOf('export const sendReportsNow'),
+      source.indexOf('export const deliverReports'),
+    )
+    expect(publicSend).toMatch(/assertCanSend/)
+  })
+
+  it('a failed run is distinguishable from a quiet one', () => {
+    // Returning only `sent` meant "everything threw" and "nothing was due" were
+    // the same answer.
+    expect(run).toMatch(/failed \+= 1/)
+    expect(run).toMatch(/return \{ checked: schedules\.length, sent, failed \}/)
   })
 })
