@@ -6,6 +6,7 @@ import { useQuery, useMutation } from 'convex/react'
 import { api } from '@/convex/_generated/api'
 import { Id, Doc } from '@/convex/_generated/dataModel'
 import { nextRun } from '@/lib/schedule'
+import { LogoField } from '@/components/dashboard/logo-field'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -82,7 +83,7 @@ interface ClientFormData {
   email: string
   website: string
   monthlyRetainer: string
-  logoUrl: string
+  logoStorageId: string
   brandColor: string
   customDomain: string
   currency: Currency
@@ -99,7 +100,7 @@ const EMPTY_FORM: ClientFormData = {
   monthlyRetainer: '', currency: 'USD',
   startDate: '', endDate: '',
   status: 'Active', contractType: '', notes: '', slug: '',
-  logoUrl: '', brandColor: '', customDomain: '',
+  logoStorageId: '', brandColor: '', customDomain: '',
 }
 
 const STATUS_STYLES: Record<ClientStatus, string> = {
@@ -362,19 +363,17 @@ function ClientFormDialog({
               The page at that address is opened by somebody the client pays,
               and it carried this product's identity and none of theirs. */}
           <div className="space-y-1.5">
-            <Label htmlFor="logoUrl">
+            <Label htmlFor="logo">
               Client logo <span className="text-muted-foreground text-xs">(optional)</span>
             </Label>
-            <Input
-              id="logoUrl"
-              value={form.logoUrl}
-              onChange={(e) => set('logoUrl', e.target.value)}
-              placeholder="https://acme.com/logo.svg"
-              className="text-sm"
+            <LogoField
+              storageId={form.logoStorageId}
+              onChange={(id) => set('logoStorageId', id)}
             />
             <p className="text-xs text-muted-foreground">
-              Shown at the top of their dashboard and on the exported PDF. Must be an
-              https address.
+              Shown at the top of their dashboard and on the exported PDF. Held here
+              rather than linked, so it cannot break when somebody else&apos;s site
+              changes. PNG, JPG, WebP or SVG, under 2 MB.
             </p>
           </div>
 
@@ -541,7 +540,7 @@ export default function ClientsPage() {
           contractType: (data.contractType || undefined) as ContractType | undefined,
           notes: data.notes || undefined,
           slug: data.slug || undefined,
-          logoUrl: data.logoUrl || undefined,
+          logoStorageId: (data.logoStorageId || undefined) as Id<'_storage'> | undefined,
           brandColor: data.brandColor || undefined,
           customDomain: data.customDomain || undefined,
         })
@@ -560,7 +559,7 @@ export default function ClientsPage() {
           contractType: (data.contractType || undefined) as ContractType | undefined,
           notes: data.notes || undefined,
           slug: data.slug || undefined,
-          logoUrl: data.logoUrl || undefined,
+          logoStorageId: (data.logoStorageId || undefined) as Id<'_storage'> | undefined,
           brandColor: data.brandColor || undefined,
           customDomain: data.customDomain || undefined,
         })
@@ -600,7 +599,7 @@ export default function ClientsPage() {
         contractType: (editTarget.contractType ?? '') as ContractType | '',
         notes: editTarget.notes ?? '',
         slug: editTarget.slug ?? '',
-        logoUrl: editTarget.logoUrl ?? '',
+        logoStorageId: editTarget.logoStorageId ?? '',
         brandColor: editTarget.brandColor ?? '',
         customDomain: editTarget.customDomain ?? '',
       }
