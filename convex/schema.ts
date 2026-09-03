@@ -71,6 +71,23 @@ export default defineSchema({
     adminRole: v.optional(v.union(v.literal("owner"), v.literal("support"))),
 
     /**
+     * When this account was paused, if it is.
+     *
+     * Deliberately not a delete. Removing an account takes a customer's work
+     * with it and cannot be undone by anybody, whereas almost every reason to
+     * reach for one — abuse, a billing dispute, a compromised login, somebody
+     * asking for a break — is temporary and wants exactly this: they cannot get
+     * in, and everything is still there when the reason passes.
+     *
+     * Enforced in `getCurrentUser`, the function every query and mutation in the
+     * product already resolves through, so a paused account reads nothing and
+     * writes nothing without forty call sites having to remember.
+     */
+    pausedAt: v.optional(v.number()),
+    /** Why. Shown to nobody but an admin; recorded in the audit log as well. */
+    pausedReason: v.optional(v.string()),
+
+    /**
      * Top plan without a purchase — internal and advisor accounts.
      *
      * Was a hardcoded array of document ids in model/plans.ts, which meant

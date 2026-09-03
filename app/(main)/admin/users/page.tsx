@@ -6,7 +6,7 @@ import { useQuery } from 'convex/react'
 import { api } from '@/convex/_generated/api'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
-import { Search, ShieldCheck } from 'lucide-react'
+import { PauseCircle, Search, ShieldCheck } from 'lucide-react'
 
 // ── Finding an account ────────────────────────────────────────────────────────
 //
@@ -84,6 +84,12 @@ export default function AdminUsersPage() {
                     <span className="font-medium text-foreground">
                       {row.name ?? row.email}
                     </span>
+                    {row.paused && (
+                      <span className="inline-flex items-center gap-1 rounded-full border border-destructive/40 px-2 py-0.5 text-[11px] font-medium text-destructive">
+                        <PauseCircle className="h-3 w-3" />
+                        paused
+                      </span>
+                    )}
                     {row.adminRole && (
                       <span className="inline-flex items-center gap-1 rounded-full border border-border px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
                         <ShieldCheck className="h-3 w-3" />

@@ -29,7 +29,7 @@ import {
 } from '@/components/ui/select'
 import { MAX_ACCESS_MONTHS, extendAccessWindow } from '@/convex/model/access'
 import { PLANS, PURCHASABLE_PLANS, type GrantablePlanId } from '@/convex/model/plans'
-import { AlertTriangle, Eye, Loader2 } from 'lucide-react'
+import { AlertTriangle, Eye, Loader2, PauseCircle } from 'lucide-react'
 
 // ── Acting on one account ─────────────────────────────────────────────────────
 //
@@ -59,6 +59,7 @@ export interface AdminAccount {
    */
   accessUntil: number | null
   comped: boolean
+  paused: boolean
 }
 
 const formatDate = (ms: number) =>
@@ -529,6 +530,128 @@ export function ImpersonateDialog({
           <Button onClick={submit} disabled={!valid || saving}>
             {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             View as them
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+/**
+ * Stop an account signing in, or let it back.
+ *
+ * The console's answer to everything a delete button would have been reached
+ * for. Every reason to remove an account — abuse, a chargeback, a login somebody
+ * else is using, a customer asking for a break — is temporary, and all of them
+ * are served better by a door that locks than by a bonfire.
+ *
+ * The dialog is explicit that nothing is destroyed, because the operator
+ * reaching for this is usually angry and wants to be sure it is enough.
+ */
+export function PauseDialog({
+  account,
+  open,
+  onOpenChange,
+}: {
+  account: AdminAccount
+  open: boolean
+  onOpenChange: (open: boolean) => void
+}) {
+  const setPaused = useMutation(api.adminUsers.setPaused)
+  const [reason, setReason] = useState('')
+  const [saving, setSaving] = useState(false)
+
+  const pausing = !account.paused
+  const valid = reason.trim().length > 0
+
+  async function submit() {
+    if (!valid) return
+    setSaving(true)
+    try {
+      const result = await setPaused({
+        userId: account.id,
+        paused: pausing,
+        reason: reason.trim(),
+      })
+      toast.success(
+        result.paused
+          ? `${result.email} can no longer sign in`
+          : `${result.email} can sign in again`,
+      )
+      onOpenChange(false)
+    } catch (error) {
+      toast.error(reasonFor(error))
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>
+            {pausing ? 'Pause this account' : 'Let this account back in'}
+          </DialogTitle>
+          <DialogDescription>
+            {pausing ? (
+              <>
+                {account.name ?? account.email} will not be able to sign in. Nothing
+                is deleted.
+              </>
+            ) : (
+              <>{account.name ?? account.email} will be able to sign in again.</>
+            )}
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-4">
+          {pausing && (
+            <ul className="space-y-1.5 text-sm text-muted-foreground">
+              <li className="flex gap-2">
+                <PauseCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                They see an explanation rather than a broken app, with whatever you
+                write below.
+              </li>
+              <li className="flex gap-2">
+                <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                Their clients&apos; dashboards stay up. A manager reading last
+                month&apos;s report has done nothing wrong.
+              </li>
+            </ul>
+          )}
+
+          <div className="space-y-1.5">
+            <Label htmlFor="pause-reason">Reason</Label>
+            <Textarea
+              id="pause-reason"
+              rows={2}
+              value={reason}
+              onChange={(event) => setReason(event.target.value)}
+              placeholder={
+                pausing
+                  ? 'Chargeback opened on the August payment'
+                  : 'Dispute settled'
+              }
+            />
+            <p className="text-xs text-muted-foreground">
+              Required. Shown to them if you are pausing, and kept in the audit
+              trail either way.
+            </p>
+          </div>
+        </div>
+
+        <DialogFooter>
+          <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={saving}>
+            Cancel
+          </Button>
+          <Button
+            variant={pausing ? 'destructive' : 'default'}
+            onClick={submit}
+            disabled={!valid || saving}
+          >
+            {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {pausing ? 'Pause' : 'Let them back in'}
           </Button>
         </DialogFooter>
       </DialogContent>

@@ -44,10 +44,15 @@ export function AttentionLog({
   rows,
   liveCount,
   liveCountries,
+  onLoadMore,
+  canLoadMore = false,
 }: {
   rows: ActivityRow[]
   liveCount: number
   liveCountries: string[]
+  /** Fetch further back. Absent when the caller has everything already. */
+  onLoadMore?: () => void
+  canLoadMore?: boolean
 }) {
   // Relative timestamps have to be recomputed on a timer or "26s ago" stays
   // "26s ago" until something else re-renders the tree.
@@ -111,7 +116,7 @@ export function AttentionLog({
               ))}
             </ul>
             {(hidden > 0 || expanded) && (
-              <div className="pt-3">
+              <div className="flex flex-wrap gap-2 pt-3">
                 <Button
                   variant="ghost"
                   size="sm"
@@ -120,6 +125,21 @@ export function AttentionLog({
                 >
                   {expanded ? 'Show less' : `Show ${hidden} more`}
                 </Button>
+
+                {/* Expanding shows what has been fetched; this fetches further
+                    back. Without it the list ends wherever the first page
+                    happened to stop, which on a busy dashboard is a few days —
+                    and nothing on screen says the history continues. */}
+                {expanded && canLoadMore && onLoadMore && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 px-2 text-xs text-muted-foreground"
+                    onClick={onLoadMore}
+                  >
+                    Load earlier
+                  </Button>
+                )}
               </div>
             )}
           </>

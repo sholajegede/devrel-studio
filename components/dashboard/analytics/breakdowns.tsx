@@ -6,8 +6,41 @@ import { BarRow, EmptyRow, Label, Panel, countryFlag } from './primitives'
 export type Tally = { label: string; count: number }
 
 /**
- * One ranked list. Capped at `limit` with a count of what is left, so a long
- * tail is acknowledged without turning the panel into a scroll.
+ * "+ 4 more", but you can press it.
+ *
+ * It used to be a line of muted text. Everything about it — the position under a
+ * truncated list, the wording, the count — said "control", so people clicked it
+ * and nothing happened. A label that describes an action has to perform one or
+ * stop claiming to.
+ */
+function ShowRest({
+  hidden,
+  expanded,
+  onToggle,
+  className = '',
+}: {
+  hidden: number
+  expanded: boolean
+  onToggle: () => void
+  className?: string
+}) {
+  if (hidden <= 0 && !expanded) return null
+
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      aria-expanded={expanded}
+      className={`rounded-md text-xs text-muted-foreground underline-offset-4 transition-colors hover:text-foreground hover:underline ${className}`}
+    >
+      {expanded ? 'Show fewer' : `+ ${hidden} more`}
+    </button>
+  )
+}
+
+/**
+ * One ranked list. Capped at `limit` with the rest one press away, so a long
+ * tail is reachable without the panel opening as a scroll.
  */
 export function BreakdownList({
   title,
@@ -22,9 +55,13 @@ export function BreakdownList({
   limit?: number
   format?: (label: string) => string
 }) {
-  const shown = rows.slice(0, limit)
-  const max = shown[0]?.count ?? 0
-  const remaining = rows.length - shown.length
+  const [expanded, setExpanded] = React.useState(false)
+
+  const shown = expanded ? rows : rows.slice(0, limit)
+  // Scaled against the largest value in the whole list rather than the visible
+  // slice, so the bars do not resize when the rest are revealed.
+  const max = rows[0]?.count ?? 0
+  const hidden = rows.length - Math.min(rows.length, limit)
 
   return (
     <Panel>
@@ -43,9 +80,13 @@ export function BreakdownList({
             />
           ))
         )}
-        {remaining > 0 && (
-          <div className="pt-2 text-xs text-muted-foreground">
-            + {remaining} more
+        {hidden > 0 && (
+          <div className="pt-2">
+            <ShowRest
+              hidden={hidden}
+              expanded={expanded}
+              onToggle={() => setExpanded(!expanded)}
+            />
           </div>
         )}
       </div>
@@ -61,17 +102,19 @@ export function BreakdownList({
  * in the same area, and the flag carries the identification so the code beside
  * it can stay small.
  */
-export function CountryChips({ rows }: { rows: Tally[] }) {
-  const shown = rows.slice(0, 12)
-  const remaining = rows.length - shown.length
+export function CountryChips({ rows, days = 7 }: { rows: Tally[]; days?: number }) {
+  const [expanded, setExpanded] = React.useState(false)
+
+  const shown = expanded ? rows : rows.slice(0, 12)
+  const hidden = rows.length - Math.min(rows.length, 12)
 
   return (
     <Panel>
-      <Label>Visitors · 7d · by country</Label>
-      {shown.length === 0 ? (
-        <EmptyRow>No visits in the last seven days.</EmptyRow>
+      <Label>Visitors · {days}d · by country</Label>
+      {rows.length === 0 ? (
+        <EmptyRow>No visits in the last {days} days.</EmptyRow>
       ) : (
-        <div className="mt-3 flex flex-wrap gap-2">
+        <div className="mt-3 flex flex-wrap items-center gap-2">
           {shown.map((row) => (
             <span
               key={row.label}
@@ -84,10 +127,13 @@ export function CountryChips({ rows }: { rows: Tally[] }) {
               </span>
             </span>
           ))}
-          {remaining > 0 && (
-            <span className="inline-flex items-center px-1 text-sm text-muted-foreground">
-              + {remaining} more
-            </span>
+          {hidden > 0 && (
+            <ShowRest
+              hidden={hidden}
+              expanded={expanded}
+              onToggle={() => setExpanded(!expanded)}
+              className="px-1"
+            />
           )}
         </div>
       )}

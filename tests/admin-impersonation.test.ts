@@ -209,3 +209,63 @@ describe('the new modules inherit the standing invariants', () => {
     }
   })
 })
+
+// ── Pausing an account ────────────────────────────────────────────────────────
+//
+// The console has no delete, deliberately: every reason to remove an account is
+// temporary, and a door that locks serves all of them without destroying a
+// customer's work. What matters is that the lock is total and reversible.
+
+describe('a paused account is allowed nowhere', () => {
+  const fns = functionsIn('convex/adminUsers.ts')
+
+  it('is enforced in the function every query and mutation resolves through', () => {
+    // One branch covers the whole product, including mutations written later by
+    // somebody who never read this file — the same argument as impersonation.
+    expect(auth).toMatch(/if \(real\.pausedAt\) \{/)
+  })
+
+  it('refuses writes and returns nothing to reads', () => {
+    const paused = auth.slice(auth.indexOf('if (real.pausedAt) {'))
+    expect(paused).toMatch(/throw new ConvexError/)
+    expect(paused).toMatch(/return null/)
+  })
+
+  it('is checked on the real account, not an impersonated one', () => {
+    // An admin looking at a paused customer's dashboard is how you find out
+    // what they are complaining about.
+    expect(auth).toMatch(/if \(real\.pausedAt\)/)
+    expect(auth).not.toMatch(/session\.pausedAt/)
+  })
+
+  it('pausing is owner work and demands a reason', () => {
+    const pause = fns.get('setPaused')!
+    expect(pause.body).toMatch(/requireAdmin\(ctx, 'owner'\)/)
+    expect(pause.body).toMatch(/if \(!reason\)/)
+  })
+
+  it('refuses to pause the account doing the pausing', () => {
+    // Otherwise the only way back is a terminal.
+    expect(fns.get('setPaused')!.body).toMatch(/user\._id === admin\._id/)
+  })
+
+  it('destroys nothing', () => {
+    // The whole point of choosing this over a delete.
+    const pause = fns.get('setPaused')!.body
+    expect(pause).not.toMatch(/ctx\.db\.delete\(/)
+    expect(pause).toMatch(/pausedAt: args\.paused \? now : undefined/)
+  })
+
+  it('is reversible by the same call', () => {
+    expect(fns.get('setPaused')!.body).toMatch(/args\.paused \? 'access\.pause' : 'access\.unpause'/)
+  })
+
+  it('leaves the account something it can still read about itself', () => {
+    // `getCurrentUser` returns nothing for a paused account, so without a query
+    // that resolves the account directly the UI cannot tell "paused" from
+    // "signed up a moment ago" — and those need opposite messages.
+    const users = readConvex('convex/users.ts')
+    expect(users).toMatch(/export const accountStatus = query/)
+    expect(users).toMatch(/getRealUser\(ctx\)/)
+  })
+})

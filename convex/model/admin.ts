@@ -79,6 +79,8 @@ export type AuditAction =
   | 'access.revoke'
   | 'access.comp'
   | 'access.uncomp'
+  | 'access.pause'
+  | 'access.unpause'
   | 'request.approve'
   | 'request.decline'
   | 'admin.promote'

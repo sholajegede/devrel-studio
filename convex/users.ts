@@ -1,6 +1,6 @@
 import { ConvexError, v } from "convex/values";
 import { internalMutation, internalQuery, mutation, query } from "./_generated/server";
-import { getCurrentUser, requireCurrentUser } from "./model/auth";
+import { getCurrentUser, requireCurrentUser , getRealUser } from "./model/auth";
 import { ensurePersonalWorkspace } from "./model/workspaces";
 import { TRIAL_DAYS } from "./model/plans";
 
@@ -147,6 +147,32 @@ export const getCurrentUserProfile = query({
   args: {},
   handler: async (ctx) => {
     return await getCurrentUser(ctx);
+  },
+});
+
+/**
+ * Whether this account may use the product, and why not.
+ *
+ * `getCurrentUser` returns nothing for a paused account, which is what stops it
+ * reading anything — but a UI with no profile cannot tell "paused" from "signed
+ * up thirty seconds ago and the webhook has not landed". Those need opposite
+ * messages, so this resolves the account directly and answers the narrow
+ * question.
+ *
+ * It says only that the account is paused and what the operator wrote. There is
+ * nothing here worth guarding: the caller is the account in question.
+ */
+export const accountStatus = query({
+  args: {},
+  handler: async (ctx) => {
+    const user = await getRealUser(ctx);
+    if (!user) return null;
+
+    return {
+      paused: Boolean(user.pausedAt),
+      pausedReason: user.pausedReason ?? null,
+      email: user.email,
+    };
   },
 });
 
