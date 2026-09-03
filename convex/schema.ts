@@ -662,6 +662,28 @@ export default defineSchema({
     .index("by_workspace_and_time", ["workspaceId", "at"])
     .index("by_client_and_time", ["clientId", "at"])
     .index("by_target_and_visitor", ["target", "visitorHash"])
+    /**
+     * The deduplication lookup on the write path, and the reason it is this
+     * wide.
+     *
+     * `by_target_and_visitor` answers "the newest thing this visitor did here",
+     * which is a different question from the one dedupe is asking and a much
+     * larger read. Every write for a visitor overlapped every other write for
+     * that visitor, whatever page each was for, so a browser opening six pages
+     * at once produced six mutations all conflicting on one range — retried,
+     * and occasionally dropped outright.
+     *
+     * With `path` in the key each of those reads a range of its own and none of
+     * them touch. `at` last makes the window a bound on the index rather than a
+     * filter after the fact, so the read is the ten seconds it cares about
+     * instead of the visitor's whole history here.
+     */
+    .index("by_target_visitor_path_and_time", [
+      "target",
+      "visitorHash",
+      "path",
+      "at",
+    ])
     .index("by_time", ["at"]),
 
   // ── Admin audit ─────────────────────────────────────────────────────────────
