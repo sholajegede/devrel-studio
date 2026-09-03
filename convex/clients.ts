@@ -203,11 +203,18 @@ export const pruneOrphanedLogos = internalMutation({
   },
 })
 
-/** A stored logo's address, so the form can show what is currently set. */
+/**
+ * A stored logo's address, so the form can show what is currently set.
+ *
+ * Returns null rather than throwing when the caller has no workspace — a token
+ * rotating mid-session must not take the client form down. The form already
+ * renders a null as "no logo yet", and the value arrives on the next tick.
+ */
 export const logoUrlFor = query({
   args: { storageId: v.id('_storage') },
   handler: async (ctx, args) => {
-    await requireWorkspace(ctx)
+    const context = await getCurrentWorkspace(ctx)
+    if (!context) return null
     return await ctx.storage.getUrl(args.storageId)
   },
 })

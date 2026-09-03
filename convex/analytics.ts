@@ -3,7 +3,8 @@ import { internal } from './_generated/api'
 import { internalAction, internalMutation, internalQuery, mutation, query } from './_generated/server'
 import type { Doc, Id } from './_generated/dataModel'
 import type { MutationCtx, QueryCtx } from './_generated/server'
-import { requireWorkspace } from './model/workspaces'
+import { getCurrentWorkspace, requireWorkspace } from './model/workspaces'
+import type { WorkspaceContext } from './model/workspaces'
 import { enforceRateLimit } from './model/rateLimit'
 
 // ── Reading the room ──────────────────────────────────────────────────────────
@@ -225,6 +226,96 @@ async function viewsInWindow(
     .collect()
 }
 
+/**
+ * The workspace whose numbers the caller may read — or why there isn't one.
+ *
+ * The read side of this file deliberately does not go through `requireWorkspace`.
+ * These queries back panels on a page, and a panel has no business taking the
+ * page down.
+ *
+ * Convex authentication is not a latch. The ID token rotates, the socket
+ * reconnects when a laptop wakes, and Kinde rebuilds its client state on its own
+ * schedule — each of those leaves the socket briefly without a verified
+ * identity, and every mounted query re-runs inside that window. A query that
+ * throws there throws during render, which unmounts the route: the reader sees
+ * the dashboard break, reloads, and it works. That is what made this look
+ * random rather than reproducible.
+ *
+ * The two ways of having no workspace want opposite answers, so they are
+ * distinguished rather than collapsed:
+ *
+ *   'pending'  no verified identity on this socket *yet* — transient. Callers
+ *              return null, and the page holds its loading state.
+ *   'none'     a real account belonging to no workspace — stable until somebody
+ *              invites them. Callers return an empty result, so the page renders
+ *              its zero state instead of a skeleton that never resolves.
+ */
+type Viewer =
+  | { state: 'ok'; context: WorkspaceContext }
+  | { state: 'pending' }
+  | { state: 'none' }
+
+async function viewer(ctx: QueryCtx): Promise<Viewer> {
+  const context = await getCurrentWorkspace(ctx)
+  if (context) return { state: 'ok', context }
+
+  // Only reached when there is nothing to read anyway, so telling the two
+  // empty cases apart costs an extra call on the path that returns nothing.
+  const identity = await ctx.auth.getUserIdentity()
+  return { state: identity ? 'none' : 'pending' }
+}
+
+/** One empty bucket per day in the window, oldest first. */
+function emptyDays(now: number, days: number) {
+  const byDay = new Map<string, { views: number; visitors: Set<string> }>()
+  for (let i = days - 1; i >= 0; i--) {
+    const key = new Date(now - i * DAY_MS).toISOString().slice(0, 10)
+    byDay.set(key, { views: 0, visitors: new Set<string>() })
+  }
+  return byDay
+}
+
+/**
+ * `overview` with nothing in it.
+ *
+ * Every field the page reads is present and zeroed, including a full-width
+ * series, so the chart keeps its axis and the tiles read "0" rather than the
+ * layout collapsing to a different shape while there is no data.
+ */
+function emptyOverview(days: number) {
+  const now = Date.now()
+  const empty: { label: string; count: number }[] = []
+
+  return {
+    days,
+    tiles: {
+      viewsToday: 0,
+      visitors7d: 0,
+      views7d: 0,
+      dashboardViews7d: 0,
+      portfolioViews7d: 0,
+      managerViews7d: 0,
+      medianDwellMs: null as number | null,
+      peakDay: null as { date: string; views: number } | null,
+      allTimeViews: 0,
+      allTimeVisitors: 0,
+      reportsRead: 0,
+      since: null as number | null,
+    },
+    series: [...emptyDays(now, days).keys()].map((date) => ({
+      date,
+      views: 0,
+      visitors: 0,
+    })),
+    breakdowns: {
+      byClient: empty,
+      byReferrer: empty,
+      byCountry: empty,
+      byPath: empty,
+    },
+  }
+}
+
 function uniqueBy<T>(rows: T[], key: (row: T) => string): number {
   return new Set(rows.map(key)).size
 }
@@ -249,8 +340,13 @@ function tally<T>(rows: T[], key: (row: T) => string | undefined) {
 export const overview = query({
   args: { days: v.optional(v.number()) },
   handler: async (ctx, args) => {
-    const context = await requireWorkspace(ctx)
     const days = args.days ?? 14
+
+    const seen = await viewer(ctx)
+    if (seen.state !== 'ok') {
+      return seen.state === 'pending' ? null : emptyOverview(days)
+    }
+    const context = seen.context
 
     // The window is fetched twice: once for the chart, once for all-time
     // totals. All-time is capped at a year so a long-lived workspace does not
@@ -264,11 +360,7 @@ export const overview = query({
     // Days are bucketed in UTC, which is what "views today · since midnight
     // UTC" in the tile means. Local-day bucketing would make the number move
     // when the DevRel travels.
-    const byDay = new Map<string, { views: number; visitors: Set<string> }>()
-    for (let i = days - 1; i >= 0; i--) {
-      const key = new Date(now - i * DAY_MS).toISOString().slice(0, 10)
-      byDay.set(key, { views: 0, visitors: new Set() })
-    }
+    const byDay = emptyDays(now, days)
     for (const view of windowed) {
       const key = new Date(view.at).toISOString().slice(0, 10)
       const bucket = byDay.get(key)
@@ -384,7 +476,11 @@ function median(values: number[]): number | null {
 export const recentActivity = query({
   args: { limit: v.optional(v.number()) },
   handler: async (ctx, args) => {
-    const context = await requireWorkspace(ctx)
+    const seen = await viewer(ctx)
+    // An empty log, not a thrown error: see `viewer`.
+    if (seen.state !== 'ok') return []
+    const context = seen.context
+
     // Raised from 100. A busy client dashboard produces a hundred views in a
     // few days, so the old ceiling meant "everything" reached back less than a
     // week however far the reader scrolled — a log that quietly stopped rather
@@ -541,7 +637,13 @@ export const weeklyDigestRecipients = internalQuery({
 export const sinceLastVisit = query({
   args: {},
   handler: async (ctx) => {
-    const context = await requireWorkspace(ctx)
+    // The query Sentry kept reporting. It runs on /dashboard, the first page of
+    // the app, which is precisely where an identity is most likely to still be
+    // in flight — see `viewer`.
+    const seen = await viewer(ctx)
+    if (seen.state !== 'ok') return null
+    const context = seen.context
+
     const since = context.user.lastSeenAt
     if (!since) return null
 
@@ -648,7 +750,11 @@ export const sendWeeklyDigests = internalAction({
 export const liveNow = query({
   args: {},
   handler: async (ctx) => {
-    const context = await requireWorkspace(ctx)
+    const seen = await viewer(ctx)
+    // Nobody is reading, as far as this socket can currently tell.
+    if (seen.state !== 'ok') return { count: 0, countries: [] as string[] }
+    const context = seen.context
+
     const since = Date.now() - LIVE_WINDOW_MS
 
     const views = await ctx.db

@@ -82,7 +82,24 @@ export function UserProvider({ children }: { children: ReactNode }) {
   const [error, setError] = useState<string | undefined>(undefined);
 
   useEffect(() => {
-    if (fetchedProfile === null && convexAuthenticated && userId) {
+    // Let go of the profile the moment Convex stops being authenticated.
+    //
+    // `profile` is React state, so without this it stayed truthy across an auth
+    // gap — a token rotating, a socket reconnecting after the laptop woke — and
+    // every page in the app gates its queries on `profile?._id`. Those gates
+    // stayed open onto an unauthenticated socket, which is how a transient
+    // handshake became a page that renders nothing until it is reloaded.
+    //
+    // Dropping it closes the gates instead: the queries go back to "skip", the
+    // pages show their loading state, and both come back on their own when the
+    // handshake completes. Nothing is refetched that would not have been.
+    if (!convexAuthenticated) {
+      setProfile(undefined);
+      setError(undefined);
+      return;
+    }
+
+    if (fetchedProfile === null && userId) {
       setError("Profile not found.");
     } else if (fetchedProfile) {
       setProfile(fetchedProfile as UserData);
