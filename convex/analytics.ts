@@ -297,6 +297,17 @@ export const overview = query({
     const dashboardViews = last7.filter((view) => view.surface === 'dashboard')
     const portfolioViews = last7.filter((view) => view.surface === 'portfolio')
 
+    // The breakdowns follow the range selector; the tiles above them do not.
+    //
+    // They used to be computed from `last7` whatever the selector said, so
+    // choosing 90 days changed the chart and left every list beneath it showing
+    // one week — a range control that silently governed half the page. The
+    // tiles keep their fixed seven-day window because each one names it
+    // ("visitors · 7d"), which is a promise about a number rather than a
+    // filter somebody set.
+    const windowedDashboard = windowed.filter((view) => view.surface === 'dashboard')
+    const windowedPortfolio = windowed.filter((view) => view.surface === 'portfolio')
+
     // Only views that reported a duration can contribute — a visitor who
     // closed the tab abruptly sent no beacon, and averaging their visit in as
     // zero would understate every other one.
@@ -333,10 +344,10 @@ export const overview = query({
       },
       series,
       breakdowns: {
-        byClient: tally(dashboardViews, (view) => view.target),
-        byReferrer: tally(last7, (view) => view.referrer ?? 'direct'),
-        byCountry: tally(last7, (view) => view.country),
-        byPath: tally(portfolioViews, (view) => view.path),
+        byClient: tally(windowedDashboard, (view) => view.target),
+        byReferrer: tally(windowed, (view) => view.referrer ?? 'direct'),
+        byCountry: tally(windowed, (view) => view.country),
+        byPath: tally(windowedPortfolio, (view) => view.path),
       },
     }
   },
@@ -373,7 +384,11 @@ export const recentActivity = query({
   args: { limit: v.optional(v.number()) },
   handler: async (ctx, args) => {
     const context = await requireWorkspace(ctx)
-    const limit = Math.min(args.limit ?? 40, 100)
+    // Raised from 100. A busy client dashboard produces a hundred views in a
+    // few days, so the old ceiling meant "everything" reached back less than a
+    // week however far the reader scrolled — a log that quietly stopped rather
+    // than saying it had ended.
+    const limit = Math.min(args.limit ?? 40, 400)
 
     const views = await ctx.db
       .query('pageViews')

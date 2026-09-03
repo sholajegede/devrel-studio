@@ -49,6 +49,7 @@ function summarise(user: Doc<'users'>, now: number) {
     until: access.until,
     comped: user.comped === true,
     adminRole: user.adminRole ?? null,
+    paused: Boolean(user.pausedAt),
     createdAt: user._creationTime,
   }
 }
@@ -222,6 +223,8 @@ export const userDetail = query({
         planPurchasedAt: user.planPurchasedAt ?? null,
         trialEndsAt: user.trialEndsAt ?? null,
         accessNote: user.accessNote ?? null,
+        pausedAt: user.pausedAt ?? null,
+        pausedReason: user.pausedReason ?? null,
         canWrite: access.canWrite,
         daysLeft: access.daysLeft,
       },
@@ -511,5 +514,65 @@ export const setComped = mutation({
       leavesWithoutAccess:
         !args.comped && accessOf({ ...user, comped: false }, Date.now()).state === 'expired',
     }
+  },
+})
+
+/**
+ * Stop an account signing in, or let it back.
+ *
+ * Owner-only, and the console's answer to everything a delete button would have
+ * been reached for. Abuse, a chargeback, a login somebody else is using, a
+ * customer asking for a break — all of them are temporary, and all of them are
+ * served by an account that cannot get in and still has everything in it when
+ * the reason passes.
+ *
+ * Nothing is removed. Their content, clients and client dashboards stay exactly
+ * where they are, and the dashboards keep answering: a manager reading last
+ * month's report has done nothing wrong and should not lose the page because
+ * the DevRel is in a dispute.
+ *
+ * A reason is required, for the same reason revoke demands one — this is the row
+ * that gets read back when somebody asks why they were locked out.
+ */
+export const setPaused = mutation({
+  args: { userId: v.id('users'), paused: v.boolean(), reason: v.string() },
+  handler: async (ctx, args) => {
+    const admin = await requireAdmin(ctx, 'owner')
+
+    const reason = args.reason.trim()
+    if (!reason) throw new ConvexError('Say why — this is the row read back later')
+
+    const user = await ctx.db.get(args.userId)
+    if (!user) throw new ConvexError('No such account')
+
+    // Pausing yourself locks you out of the console that would unpause you, and
+    // the only way back is a terminal. Refusing is kinder than the alternative.
+    if (user._id === admin._id) {
+      throw new ConvexError('You cannot pause your own account')
+    }
+
+    if (Boolean(user.pausedAt) === args.paused) {
+      return { email: user.email, paused: args.paused, changed: false }
+    }
+
+    const now = Date.now()
+    await ctx.db.patch(user._id, {
+      pausedAt: args.paused ? now : undefined,
+      pausedReason: args.paused ? reason : undefined,
+    })
+
+    await writeAudit(
+      ctx,
+      admin,
+      args.paused ? 'access.pause' : 'access.unpause',
+      { id: user._id, email: user.email },
+      {
+        before: { paused: Boolean(user.pausedAt) },
+        after: { paused: args.paused },
+        reason,
+      },
+    )
+
+    return { email: user.email, paused: args.paused, changed: true }
   },
 })

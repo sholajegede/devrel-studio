@@ -15,6 +15,8 @@ const LABELS: Record<AuditAction, string> = {
   'access.revoke': 'Access revoked',
   'access.comp': 'Comped',
   'access.uncomp': 'Comp removed',
+  'access.pause': 'Account paused',
+  'access.unpause': 'Account unpaused',
   'request.approve': 'Request approved',
   'request.decline': 'Request declined',
   'admin.promote': 'Made an admin',

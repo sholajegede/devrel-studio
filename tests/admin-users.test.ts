@@ -123,10 +123,14 @@ describe('every write is audited', () => {
   )
 
   it('there are writes to check', () => {
+    // Listed rather than counted, so a new write has to be acknowledged here
+    // before its "exactly one audit row" check below starts running. A test
+    // that adapts silently to whatever it finds is not checking anything.
     expect(writers.map((fn) => fn.name).sort()).toEqual([
       'grantAccess',
       'revokeAccess',
       'setComped',
+      'setPaused',
     ])
   })
 

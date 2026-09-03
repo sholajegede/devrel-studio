@@ -68,6 +68,16 @@ export function UserProvider({ children }: { children: ReactNode }) {
     convexAuthenticated && userId ? {} : "skip"
   );
 
+  // Answered even when the profile query returns nothing, because a paused
+  // account is exactly the case where it does. Without this the screen below
+  // would tell somebody who has been locked out that their profile "is not ready
+  // yet" and invite them to sign in again — the two states need opposite
+  // messages and produce the same null.
+  const status = useQuery(
+    api.users.accountStatus,
+    convexAuthenticated && userId ? {} : "skip"
+  );
+
   const [profile, setProfile] = useState<UserData | undefined>(undefined);
   const [error, setError] = useState<string | undefined>(undefined);
 
@@ -82,6 +92,46 @@ export function UserProvider({ children }: { children: ReactNode }) {
 
   if (isLoading) {
     return <PageLoader />;
+  }
+
+  // Paused. Said plainly, with the reason the operator wrote and one way to
+  // answer it — an account somebody has stopped is not a bug for them to retry
+  // their way out of.
+  if (status?.paused) {
+    return (
+      <div className="flex min-h-screen items-center justify-center px-6">
+        <div className="max-w-md text-center">
+          <h1 className="text-lg font-medium text-foreground">
+            This account is paused
+          </h1>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Nothing has been deleted — your content, clients and their dashboards
+            are all still here, and everything comes back when the account is
+            reopened.
+          </p>
+          {status.pausedReason && (
+            <p className="mt-4 border-l-2 border-border pl-3 text-left text-sm text-muted-foreground">
+              {status.pausedReason}
+            </p>
+          )}
+
+          <div className="mt-6 flex items-center justify-center gap-2">
+            <a
+              href="mailto:support@devrel.studio"
+              className="inline-flex h-10 items-center rounded-lg bg-foreground px-5 text-sm font-medium text-background transition-opacity hover:opacity-90"
+            >
+              Contact support
+            </a>
+            <a
+              href="/api/auth/logout"
+              className="inline-flex h-10 items-center rounded-lg border border-border px-5 text-sm font-medium text-foreground transition-colors hover:bg-muted"
+            >
+              Sign out
+            </a>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   // A signed-in account with no profile row. Rare, and almost always a signup

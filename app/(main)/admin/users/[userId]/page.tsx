@@ -13,10 +13,11 @@ import {
   CompDialog,
   GrantDialog,
   ImpersonateDialog,
+  PauseDialog,
   RevokeDialog,
   type AdminAccount,
 } from '@/components/admin/user-actions'
-import { AlertTriangle, ArrowLeft, ShieldCheck, Sparkles } from 'lucide-react'
+import { AlertTriangle, ArrowLeft, PauseCircle, ShieldCheck, Sparkles } from 'lucide-react'
 
 // ── One account ───────────────────────────────────────────────────────────────
 //
@@ -40,6 +41,7 @@ export default function AdminUserPage() {
   const [revoking, setRevoking] = useState(false)
   const [comping, setComping] = useState(false)
   const [viewing, setViewing] = useState(false)
+  const [pausing, setPausing] = useState(false)
 
   if (detail === undefined) {
     return (
@@ -81,6 +83,7 @@ export default function AdminUserPage() {
     planName: account.planName,
     accessUntil: account.accessUntil,
     comped: account.comped,
+    paused: Boolean(account.pausedAt),
   }
 
   return (
@@ -109,6 +112,12 @@ export default function AdminUserPage() {
               <span className="inline-flex items-center gap-1 rounded-full border border-border px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
                 <ShieldCheck className="h-3 w-3" />
                 {account.adminRole}
+              </span>
+            )}
+            {account.pausedAt && (
+              <span className="inline-flex items-center gap-1 rounded-full border border-destructive/40 px-2 py-0.5 text-[11px] font-medium text-destructive">
+                <PauseCircle className="h-3 w-3" />
+                Paused
               </span>
             )}
           </div>
@@ -142,6 +151,13 @@ export default function AdminUserPage() {
               <Button size="sm" variant="outline" onClick={() => setViewing(true)}>
                 View as
               </Button>
+              <Button
+                size="sm"
+                variant={account.pausedAt ? 'outline' : 'ghost'}
+                onClick={() => setPausing(true)}
+              >
+                {account.pausedAt ? 'Let back in' : 'Pause'}
+              </Button>
               <Button size="sm" variant="ghost" onClick={() => setRevoking(true)}>
                 Revoke
               </Button>
@@ -171,6 +187,10 @@ export default function AdminUserPage() {
               value={account.trialEndsAt ? formatDate(account.trialEndsAt) : '—'}
             />
             <Row label="Can write" value={account.canWrite ? 'Yes' : 'No'} />
+            <Row
+              label="Can sign in"
+              value={account.pausedAt ? `No — paused ${formatDate(account.pausedAt)}` : 'Yes'}
+            />
           </dl>
           {account.accessNote && (
             <p className="mt-3 border-l-2 border-border pl-3 text-sm text-muted-foreground">
@@ -293,6 +313,13 @@ export default function AdminUserPage() {
           account={target}
           open
           onOpenChange={(open) => !open && setViewing(false)}
+        />
+      )}
+      {pausing && (
+        <PauseDialog
+          account={target}
+          open
+          onOpenChange={(open) => !open && setPausing(false)}
         />
       )}
     </>

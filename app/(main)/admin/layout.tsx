@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useQuery } from 'convex/react'
 import { api } from '@/convex/_generated/api'
+import { LogoutLink } from '@kinde-oss/kinde-auth-nextjs/components'
 import { UserProvider } from '@/contexts/user-context'
 import { ImpersonationBanner } from '@/components/admin/impersonation-banner'
 import {
@@ -12,6 +13,7 @@ import {
   FileText,
   Inbox,
   LayoutDashboard,
+  LogOut,
   ScrollText,
   ShieldAlert,
   ShieldCheck,
@@ -110,7 +112,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
       <div className="min-h-screen bg-background">
         <div className="mx-auto flex max-w-[1400px] flex-col lg:flex-row">
-          <aside className="shrink-0 border-b border-border lg:sticky lg:top-0 lg:h-screen lg:w-56 lg:border-b-0 lg:border-r">
+          <aside className="relative shrink-0 border-b border-border lg:sticky lg:top-0 lg:h-screen lg:w-56 lg:border-b-0 lg:border-r">
             <div className="flex items-center gap-2.5 px-5 py-4">
               <ShieldCheck className="h-4 w-4 text-muted-foreground" />
               <span className="text-sm font-semibold text-foreground">Admin</span>
@@ -159,6 +161,17 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 </div>
               ))}
             </nav>
+
+            {/* Signing out was only possible from the product's dashboard,
+                which meant leaving the console to leave the console — on a host
+                whose whole point is that it is not that one. It sits at the
+                foot of the navigation, the same place the dashboard puts it. */}
+            <div className="mt-4 px-5 pb-4 lg:absolute lg:bottom-0 lg:px-3">
+              <LogoutLink className="flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground">
+                <LogOut className="h-4 w-4 shrink-0" />
+                Sign out
+              </LogoutLink>
+            </div>
           </aside>
 
           <main className="min-w-0 flex-1 px-6 py-8 lg:px-10">{children}</main>

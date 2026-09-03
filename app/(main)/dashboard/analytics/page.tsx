@@ -26,7 +26,14 @@ export default function AnalyticsPage() {
 
   const ready = Boolean(profile?._id)
   const overview = useQuery(api.analytics.overview, ready ? { days } : 'skip')
-  const activity = useQuery(api.analytics.recentActivity, ready ? { limit: 40 } : 'skip')
+  // How far back the log reaches, raised by "Load earlier". The first page is
+  // deliberately small — most visits here are answered by the newest few rows —
+  // and the ceiling matches the server's.
+  const [activityLimit, setActivityLimit] = useState(40)
+  const activity = useQuery(
+    api.analytics.recentActivity,
+    ready ? { limit: activityLimit } : 'skip',
+  )
   const live = useQuery(api.analytics.liveNow, ready ? {} : 'skip')
 
   const loading = overview === undefined
@@ -154,28 +161,36 @@ export default function AnalyticsPage() {
           {/* ── The attention log ──────────────────────────────────────────── */}
           <AttentionLog
             rows={activity ?? []}
+            onLoadMore={() => setActivityLimit((limit) => Math.min(limit + 100, 400))}
+            // Only when the last page came back full: a short page is the end
+            // of the history, and offering to fetch more of nothing is how a
+            // button becomes a thing people stop believing.
+            canLoadMore={(activity?.length ?? 0) >= activityLimit && activityLimit < 400}
             liveCount={live?.count ?? 0}
             liveCountries={live?.countries ?? []}
           />
 
           {/* ── Breakdowns ─────────────────────────────────────────────────── */}
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+            {/* The titles name the selected range rather than a fixed week.
+                They said "7d" while the selector above governed the chart, so
+                choosing 90 days left four panels quietly showing one. */}
             <BreakdownList
-              title="Client dashboards · 7d"
+              title={`Client dashboards · ${days}d`}
               rows={overview.breakdowns.byClient}
-              empty="No client dashboard was opened this week."
+              empty={`No client dashboard was opened in the last ${days} days.`}
             />
             <BreakdownList
-              title="Where they came from · 7d"
+              title={`Where they came from · ${days}d`}
               rows={overview.breakdowns.byReferrer}
-              empty="No visits this week."
+              empty={`No visits in the last ${days} days.`}
             />
             <BreakdownList
-              title="Portfolio pages · 7d"
+              title={`Portfolio pages · ${days}d`}
               rows={overview.breakdowns.byPath}
-              empty="Your portfolio had no visits this week."
+              empty={`Your portfolio had no visits in the last ${days} days.`}
             />
-            <CountryChips rows={overview.breakdowns.byCountry} />
+            <CountryChips rows={overview.breakdowns.byCountry} days={days} />
           </div>
         </div>
       )}

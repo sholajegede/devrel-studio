@@ -74,6 +74,26 @@ export async function getCurrentUser(ctx: AnyCtx): Promise<Doc<'users'> | null> 
   const real = await getRealUser(ctx)
   if (!real) return null
 
+  // A paused account is signed in and allowed nowhere.
+  //
+  // Checked on the real account rather than an impersonated one: an admin
+  // looking at a paused customer's dashboard is exactly how you find out what
+  // they are complaining about, and an admin is not the account being paused.
+  //
+  // It refuses writes and returns nothing to reads, for the same reason
+  // impersonation does both — one branch here covers every mutation in the
+  // product, including the ones written after this and by somebody who never
+  // read this file. `users.accountStatus` is what the UI reads to explain
+  // itself, and it resolves the account directly so it still answers.
+  if (real.pausedAt) {
+    if (canWrite(ctx)) {
+      throw new ConvexError(
+        'This account is paused. Get in touch with support@devrel.studio.',
+      )
+    }
+    return null
+  }
+
   // Only an admin can have a session, so for everybody else this function does
   // exactly what it did before impersonation existed — same reads, same result.
   // That is worth a line: this is the function every query in the product
