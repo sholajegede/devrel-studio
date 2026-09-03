@@ -157,6 +157,73 @@ export const listPublishedHandles = query({
   },
 })
 
+/**
+ * ⚠ PUBLIC — unauthenticated. Powers the site-level llms.txt index.
+ *
+ * `listPublishedHandles` already enumerates every claimed handle for the
+ * sitemap; this returns the same set with the few fields an index entry needs,
+ * so the route does not have to fetch each portfolio in turn to describe it.
+ *
+ * Every field here is already rendered on the /@handle page itself. Nothing is
+ * added to the public surface by listing it — the point is to save an agent
+ * thirty requests to learn what thirty pages are about.
+ */
+export const listPortfolioIndex = query({
+  args: {},
+  handler: async (ctx) => {
+    const users = await ctx.db.query('users').withIndex('by_handle').collect()
+
+    const listed: {
+      handle: string
+      name: string
+      bio: string | null
+      published: number
+      categories: { category: string; count: number }[]
+      lastModified: string
+    }[] = []
+
+    for (const user of users) {
+      if (!user.handle) continue
+
+      const entries = await ctx.db
+        .query('contentEntries')
+        .withIndex('by_user', (q) => q.eq('userId', user._id))
+        .collect()
+
+      const published = entries.filter((entry) => entry.status === 'Published')
+      // Same rule as the sitemap: an index entry for an empty page is noise.
+      if (published.length === 0) continue
+
+      const counts = new Map<string, number>()
+      for (const entry of published) {
+        // Entries predating categories are Written, matching lib/metrics.
+        const category = entry.category ?? 'Written'
+        counts.set(category, (counts.get(category) ?? 0) + 1)
+      }
+
+      const lastModified = published.reduce(
+        (latest, entry) => (entry.updatedAt > latest ? entry.updatedAt : latest),
+        published[0].updatedAt,
+      )
+
+      listed.push({
+        handle: user.handle,
+        name: `${user.firstName ?? ''} ${user.lastName ?? ''}`.trim(),
+        bio: user.bio ?? null,
+        published: published.length,
+        categories: [...counts.entries()]
+          .map(([category, count]) => ({ category, count }))
+          .sort((a, b) => b.count - a.count),
+        lastModified,
+      })
+    }
+
+    // Busiest portfolios first: an agent reading top-down should meet the
+    // substantial ones before the two-entry ones.
+    return listed.sort((a, b) => b.published - a.published)
+  },
+})
+
 // ── Owner writes ──────────────────────────────────────────────────────────────
 
 /** Whether a handle can be claimed by the signed-in user. Drives the settings UI. */

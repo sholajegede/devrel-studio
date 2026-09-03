@@ -42,6 +42,10 @@ const publicRoutes = [
   // for the sitemap gets bounced to the Kinde sign-in page.
   '/robots.txt',
   '/sitemap.xml',
+  // The site-level llms.txt. The per-portfolio and per-dashboard ones are
+  // already covered — '/@(.*)' matches /@handle/llms.txt, and a client
+  // dashboard is on its own host, which returns above before auth is consulted.
+  '/llms.txt',
 ];
 
 const createRouteMatcher = (routes: string[]) => {
