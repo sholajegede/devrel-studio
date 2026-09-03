@@ -14,7 +14,25 @@ import { field, isoDay, lines, llmsResponse, oneLine } from '@/lib/llms-txt'
 // never publishes anywhere else. A public one is still reachable and still
 // serves its own llms.txt; it is just not advertised from here.
 
-export const revalidate = 3600
+/**
+ * Computed per request, cached at the edge — not prerendered.
+ *
+ * The obvious `export const revalidate = 3600` was wrong here, and wrong in a
+ * way that only shows up on deploy day. It makes this route static, so Vercel
+ * builds it once at build time — and Convex deploys are a separate manual step
+ * in this repo, which always lands *after* the Vercel build. A build that runs
+ * before `listPortfolioIndex` exists takes the catch below and bakes the
+ * header-only fallback into a static file for an hour, on every deploy that
+ * introduces a query.
+ *
+ * Dynamic at the origin with an `s-maxage` on the response gets the same
+ * caching from the CDN, and a miss recomputes against whatever Convex is
+ * actually serving rather than replaying a failure from build time.
+ */
+export const dynamic = 'force-dynamic'
+
+/** How long the CDN may hold this. Not a Next revalidate — see above. */
+const CACHE_SECONDS = 3600
 
 export async function GET() {
   const origin = siteOrigin()
@@ -32,7 +50,7 @@ export async function GET() {
   )
 
   const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL
-  if (!convexUrl) return llmsResponse(header, revalidate)
+  if (!convexUrl) return llmsResponse(header, CACHE_SECONDS)
 
   let portfolios: Awaited<ReturnType<typeof loadIndex>> = []
   try {
@@ -42,6 +60,7 @@ export async function GET() {
     // whole request because Convex blinked would take the description of the
     // site down with the list of pages on it.
     console.error('[llms.txt] could not list portfolios:', error)
+    // Short, so a transient Convex failure heals in a minute rather than an hour.
     return llmsResponse(header, 60)
   }
 
@@ -74,7 +93,7 @@ export async function GET() {
       '',
       body || '_No published portfolios yet._',
     ),
-    revalidate,
+    CACHE_SECONDS,
   )
 }
 
