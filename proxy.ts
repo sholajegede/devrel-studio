@@ -87,6 +87,64 @@ const isDeadSubdomain = (hostname: string): boolean => {
 };
 
 // ─────────────────────────────────────────────
+// Client-owned domains
+// ─────────────────────────────────────────────
+//
+// reports.acme.com, pointed here by the client, serving that client's dashboard.
+//
+// The proxy has no database, so an unrecognised host costs one lookup against a
+// Convex HTTP endpoint. That only ever happens for a host which is neither the
+// apex, nor a subdomain of it, nor the console — which is to say, only for hosts
+// that are custom domains or nothing at all.
+//
+// Answers are held in module scope. A middleware isolate serves many requests,
+// so the first request on a domain pays for the lookup and the rest do not; a
+// negative answer is cached too, and for less time, so a domain being set up
+// starts working within the minute without letting a typo cost a lookup on
+// every request forever.
+
+const DOMAIN_TTL_MS = 5 * 60 * 1000;
+const DOMAIN_MISS_TTL_MS = 60 * 1000;
+
+const domainCache = new Map<string, { slug: string | null; at: number }>();
+
+const resolveCustomDomain = async (hostname: string): Promise<string | null> => {
+  const cached = domainCache.get(hostname);
+  const ttl = cached?.slug ? DOMAIN_TTL_MS : DOMAIN_MISS_TTL_MS;
+  if (cached && Date.now() - cached.at < ttl) return cached.slug;
+
+  const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL;
+  if (!convexUrl) return null;
+
+  try {
+    // Convex HTTP actions answer on .convex.site, not the .convex.cloud origin
+    // the browser client uses.
+    const endpoint = `${convexUrl.replace('.convex.cloud', '.convex.site')}/resolve-domain?host=${encodeURIComponent(hostname)}`;
+    const response = await fetch(endpoint, { signal: AbortSignal.timeout(2000) });
+    const slug = response.ok ? ((await response.json())?.slug ?? null) : null;
+
+    domainCache.set(hostname, { slug, at: Date.now() });
+    return slug;
+  } catch {
+    // A lookup that fails must not take the request with it. The host falls
+    // through to the 404 it would have got before custom domains existed.
+    domainCache.set(hostname, { slug: null, at: Date.now() });
+    return null;
+  }
+};
+
+/** Whether this host is one the product already knows how to route. */
+const isKnownHost = (hostname: string): boolean => {
+  const bare = hostname.split(':')[0];
+  return (
+    bare === 'localhost' ||
+    bare.endsWith('.localhost') ||
+    bare.endsWith('devrel.studio') ||
+    bare.endsWith('.vercel.app')
+  );
+};
+
+// ─────────────────────────────────────────────
 // The admin host
 // ─────────────────────────────────────────────
 //
@@ -319,7 +377,7 @@ function trackView(req: NextRequest, event: NextFetchEvent, subdomain: string | 
 // Proxy
 // ─────────────────────────────────────────────
 
-export default function proxy(req: NextRequest, event: NextFetchEvent) {
+export default async function proxy(req: NextRequest, event: NextFetchEvent) {
   const hostname = req.headers.get('host') || '';
   const subdomain = getSubdomain(hostname);
   const pathname = req.nextUrl.pathname;
@@ -327,6 +385,21 @@ export default function proxy(req: NextRequest, event: NextFetchEvent) {
   // API routes (other than Kinde's own) bypass everything
   if (pathname.startsWith('/api') && !pathname.startsWith('/api/auth')) {
     return NextResponse.next();
+  }
+
+  // A domain the product does not recognise is either a client's own or
+  // nothing. Checked before anything else host-related, because every branch
+  // below assumes the host is one of ours.
+  if (!isKnownHost(hostname)) {
+    const domainSlug = await resolveCustomDomain(hostname.split(':')[0]);
+    if (domainSlug) {
+      trackView(req, event, domainSlug);
+      return handleSubdomainRewrite(domainSlug, req);
+    }
+    return new NextResponse('Not found', {
+      status: 404,
+      headers: { 'content-type': 'text/plain' },
+    });
   }
 
   // The console has its own origin. Checked before the reserved-subdomain 404

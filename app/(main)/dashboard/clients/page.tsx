@@ -82,6 +82,9 @@ interface ClientFormData {
   email: string
   website: string
   monthlyRetainer: string
+  logoUrl: string
+  brandColor: string
+  customDomain: string
   currency: Currency
   startDate: string
   endDate: string
@@ -96,6 +99,7 @@ const EMPTY_FORM: ClientFormData = {
   monthlyRetainer: '', currency: 'USD',
   startDate: '', endDate: '',
   status: 'Active', contractType: '', notes: '', slug: '',
+  logoUrl: '', brandColor: '', customDomain: '',
 }
 
 const STATUS_STYLES: Record<ClientStatus, string> = {
@@ -296,6 +300,80 @@ function ClientFormDialog({
             <p className="text-xs text-muted-foreground">This becomes the client&apos;s live dashboard URL and the identifier used in content entries.</p>
           </div>
 
+          {/* How their dashboard looks.
+              The page at that address is opened by somebody the client pays,
+              and it carried this product's identity and none of theirs. */}
+          <div className="space-y-1.5">
+            <Label htmlFor="logoUrl">
+              Client logo <span className="text-muted-foreground text-xs">(optional)</span>
+            </Label>
+            <Input
+              id="logoUrl"
+              value={form.logoUrl}
+              onChange={(e) => set('logoUrl', e.target.value)}
+              placeholder="https://acme.com/logo.svg"
+              className="text-sm"
+            />
+            <p className="text-xs text-muted-foreground">
+              Shown at the top of their dashboard and on the exported PDF. Must be an
+              https address.
+            </p>
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="brandColor">
+              Brand colour <span className="text-muted-foreground text-xs">(optional)</span>
+            </Label>
+            <div className="flex items-center gap-2">
+              <input
+                id="brandColor"
+                type="color"
+                value={form.brandColor || '#38b2ac'}
+                onChange={(e) => set('brandColor', e.target.value)}
+                className="h-9 w-12 cursor-pointer rounded-md border border-border bg-transparent p-1"
+                aria-label="Brand colour"
+              />
+              <Input
+                value={form.brandColor}
+                onChange={(e) => set('brandColor', e.target.value)}
+                placeholder="#38b2ac"
+                className="font-mono text-sm"
+              />
+              {form.brandColor && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => set('brandColor', '')}
+                  className="shrink-0 text-xs"
+                >
+                  Clear
+                </Button>
+              )}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Used for accents on their dashboard only — never in your own workspace.
+            </p>
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="customDomain">
+              Their own domain <span className="text-muted-foreground text-xs">(optional)</span>
+            </Label>
+            <Input
+              id="customDomain"
+              value={form.customDomain}
+              onChange={(e) => set('customDomain', e.target.value)}
+              placeholder="reports.acme.com"
+              className="font-mono text-sm"
+            />
+            <p className="text-xs text-muted-foreground">
+              The client points this at <code className="font-mono">cname.vercel-dns.com</code>,
+              and it serves the same dashboard. The address has to be added to the
+              project in Vercel once before it will answer.
+            </p>
+          </div>
+
           {/* Notes */}
           <div className="space-y-1.5">
             <Label htmlFor="notes">Notes <span className="text-muted-foreground text-xs">(optional)</span></Label>
@@ -393,6 +471,9 @@ export default function ClientsPage() {
           contractType: (data.contractType || undefined) as ContractType | undefined,
           notes: data.notes || undefined,
           slug: data.slug || undefined,
+          logoUrl: data.logoUrl || undefined,
+          brandColor: data.brandColor || undefined,
+          customDomain: data.customDomain || undefined,
         })
         toast.success('Client updated')
       } else {
@@ -409,6 +490,9 @@ export default function ClientsPage() {
           contractType: (data.contractType || undefined) as ContractType | undefined,
           notes: data.notes || undefined,
           slug: data.slug || undefined,
+          logoUrl: data.logoUrl || undefined,
+          brandColor: data.brandColor || undefined,
+          customDomain: data.customDomain || undefined,
         })
         toast.success('Client added')
       }
@@ -446,6 +530,9 @@ export default function ClientsPage() {
         contractType: (editTarget.contractType ?? '') as ContractType | '',
         notes: editTarget.notes ?? '',
         slug: editTarget.slug ?? '',
+        logoUrl: editTarget.logoUrl ?? '',
+        brandColor: editTarget.brandColor ?? '',
+        customDomain: editTarget.customDomain ?? '',
       }
     : EMPTY_FORM
 

@@ -42,13 +42,28 @@ export const getGateInfo = query({
       .withIndex('by_slug', (q) => q.eq('slug', args.slug))
       .first()
 
-    if (!client) return { exists: false, clientName: null, isPublic: false, hasCode: false }
+    if (!client) {
+      return {
+        exists: false,
+        clientName: null,
+        isPublic: false,
+        hasCode: false,
+        logoUrl: null,
+        brandColor: null,
+      }
+    }
 
     return {
       exists: true,
       clientName: client.company || client.name,
       isPublic: client.isPublic === true,
       hasCode: !!client.accessCodeHash,
+
+      // How this client's own dashboard should look. Public on purpose: it is
+      // read by the page every manager opens, before any code is entered, and a
+      // logo is not a secret. Nothing else about the client is exposed here.
+      logoUrl: client.logoUrl ?? null,
+      brandColor: client.brandColor ?? null,
     }
   },
 })

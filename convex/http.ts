@@ -232,6 +232,45 @@ http.route({
   handler: handleStripeWebhook,
 });
 
+// ===== Custom domain resolution =====
+//
+// A request arriving on reports.acme.com has to become a request for that
+// client's dashboard before anything renders. The proxy runs at the edge with no
+// database of its own, so it asks here.
+//
+// Deliberately tiny and deliberately public: it maps a hostname somebody has
+// already pointed at this product to the slug it stands for, which is a fact
+// that host announces by existing. It answers nothing about a host it does not
+// recognise, and reveals nothing about the client beyond the slug the URL would
+// have carried anyway.
+//
+// Cached hard. This is on the critical path of every request to a custom domain,
+// and the mapping changes about once per customer per year.
+
+const handleResolveDomain = httpAction(async (ctx, request) => {
+  const host = new URL(request.url).searchParams.get("host")?.toLowerCase().trim();
+
+  const headers = {
+    "content-type": "application/json",
+    "access-control-allow-origin": "*",
+    // A minute at the edge, a day while revalidating. A domain that has just
+    // been pointed here starts working within the minute; one that has worked
+    // for a year costs nothing.
+    "cache-control": "public, max-age=60, stale-while-revalidate=86400",
+  };
+
+  if (!host) return new Response(JSON.stringify({ slug: null }), { status: 200, headers });
+
+  const slug = await ctx.runQuery(api.clients.slugForDomain, { host });
+  return new Response(JSON.stringify({ slug }), { status: 200, headers });
+});
+
+http.route({
+  path: "/resolve-domain",
+  method: "GET",
+  handler: handleResolveDomain,
+});
+
 // ===== View tracking =====
 //
 // Called by proxy.ts on every view of a client dashboard or a portfolio.
