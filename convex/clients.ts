@@ -36,7 +36,7 @@ const clientFields = {
   contractType: contractTypeValidator,
   notes: v.optional(v.string()),
   slug: v.optional(v.string()),
-  logoUrl: v.optional(v.string()),
+  logoStorageId: v.optional(v.id('_storage')),
   brandColor: v.optional(v.string()),
   customDomain: v.optional(v.string()),
 }
@@ -84,15 +84,59 @@ function cleanCustomDomain(value: string | undefined): string | undefined {
   return bare
 }
 
-function cleanLogoUrl(value: string | undefined): string | undefined {
-  if (!value?.trim()) return undefined
-  try {
-    const url = new URL(value.trim())
-    return url.protocol === 'https:' ? url.toString() : undefined
-  } catch {
-    return undefined
+/** What a logo may be. Anything else is rejected and the orphan deleted. */
+const LOGO_MAX_BYTES = 2 * 1024 * 1024
+const LOGO_TYPES = ['image/png', 'image/jpeg', 'image/webp', 'image/svg+xml', 'image/gif']
+
+/**
+ * Check an uploaded file is actually a small image, or refuse it.
+ *
+ * The upload address is handed out before anything is known about what will be
+ * sent through it, so this is the first moment the file can be inspected — and a
+ * rejected file is deleted here rather than left in storage costing money and
+ * belonging to nobody.
+ *
+ * SVG is allowed because most logos are one. It is rendered in an `img`, which
+ * does not run script inside an SVG, and is never inlined into the page.
+ */
+async function assertUsableLogo(ctx: MutationCtx, storageId: Id<'_storage'>) {
+  const meta = await ctx.db.system.get(storageId)
+  if (!meta) throw new ConvexError('That upload did not arrive — try again')
+
+  if (meta.size > LOGO_MAX_BYTES) {
+    await ctx.storage.delete(storageId)
+    throw new ConvexError('That image is over 2 MB — a logo should be well under it')
+  }
+
+  if (!meta.contentType || !LOGO_TYPES.includes(meta.contentType)) {
+    await ctx.storage.delete(storageId)
+    throw new ConvexError('That is not an image file')
   }
 }
+
+/**
+ * A one-time address to upload a logo to.
+ *
+ * Not tied to a client, because a logo can be chosen while creating one that
+ * does not exist yet. Being able to upload at all is a workspace permission;
+ * what the file turns out to be is checked when it is attached.
+ */
+export const generateLogoUploadUrl = mutation({
+  args: {},
+  handler: async (ctx) => {
+    await requireWorkspace(ctx, 'editor')
+    return await ctx.storage.generateUploadUrl()
+  },
+})
+
+/** A stored logo's address, so the form can show what is currently set. */
+export const logoUrlFor = query({
+  args: { storageId: v.id('_storage') },
+  handler: async (ctx, args) => {
+    await requireWorkspace(ctx)
+    return await ctx.storage.getUrl(args.storageId)
+  },
+})
 
 // ── Slugs ─────────────────────────────────────────────────────────────────────
 //
@@ -195,10 +239,11 @@ export const createClient = mutation({
     const slug = normalizeSlug(args.slug || args.company)
     if (slug) await assertSlugAvailable(ctx, slug)
 
+    if (args.logoStorageId) await assertUsableLogo(ctx, args.logoStorageId)
+
     return await ctx.db.insert('clients', {
       ...args,
       brandColor: cleanBrandColor(args.brandColor),
-      logoUrl: cleanLogoUrl(args.logoUrl),
       customDomain: cleanCustomDomain(args.customDomain),
       userId: user._id,
       workspaceId,
@@ -217,10 +262,20 @@ export const updateClient = mutation({
     const fields = {
       ...rest,
       brandColor: cleanBrandColor(rest.brandColor),
-      logoUrl: cleanLogoUrl(rest.logoUrl),
       customDomain: cleanCustomDomain(rest.customDomain),
     }
     const { doc: before } = await requireInWorkspace(ctx, clientId, 'editor')
+
+    if (fields.logoStorageId && fields.logoStorageId !== before.logoStorageId) {
+      await assertUsableLogo(ctx, fields.logoStorageId)
+    }
+
+    // The file being replaced, or cleared, is deleted rather than orphaned.
+    // Nothing else can reach it once the client stops pointing at it, so leaving
+    // it behind is storage that is paid for and can never be found again.
+    if (before.logoStorageId && before.logoStorageId !== fields.logoStorageId) {
+      await ctx.storage.delete(before.logoStorageId)
+    }
 
     const slug = normalizeSlug(fields.slug || fields.company)
     if (slug) await assertSlugAvailable(ctx, slug, clientId)
@@ -442,7 +497,11 @@ export const deleteClient = mutation({
   handler: async (ctx, args) => {
     // Deleting a client takes its dashboard offline for the manager using it,
     // so it sits above the editor role.
-    await requireInWorkspace(ctx, args.clientId, 'admin')
+    const { doc: client } = await requireInWorkspace(ctx, args.clientId, 'admin')
+
+    // Their logo goes with them. Nothing else refers to the file, so keeping it
+    // is storage that is paid for and can never be found again.
+    if (client.logoStorageId) await ctx.storage.delete(client.logoStorageId)
 
     // Drop manager sessions too. They are only checked by slug and expiry, so
     // leaving them behind would let an old manager into whichever client next

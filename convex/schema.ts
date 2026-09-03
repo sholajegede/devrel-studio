@@ -223,13 +223,21 @@ export default defineSchema({
     // no logo should not get a hole where one would go.
 
     /**
-     * A URL to the client's logo, shown in their dashboard header.
+     * The client's logo, held in Convex storage.
      *
-     * A link rather than an upload because this app has never had an upload
-     * pipeline — avatars come from Kinde — and inventing one for a logo would be
-     * a great deal more than the change is worth. Every company that has a logo
-     * has it at an address; the field takes that address and validates it is
-     * https on write.
+     * Uploaded rather than linked. A hotlinked logo is a dependency on somebody
+     * else's server staying up and their path staying put, and the first time it
+     * fails is on the dashboard a customer is showing their manager. Holding the
+     * file means the page cannot be broken from outside.
+     */
+    logoStorageId: v.optional(v.id("_storage")),
+
+    /**
+     * A logo address, from before uploads existed.
+     *
+     * Read as a fallback when there is no stored file, so a client configured
+     * with a link keeps their logo rather than losing it to an upgrade. Nothing
+     * writes this any more.
      */
     logoUrl: v.optional(v.string()),
 

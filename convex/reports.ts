@@ -222,7 +222,9 @@ export const getReport = query({
         // Carried so the exported PDF looks like a document prepared for this
         // client rather than a printout from somebody's tool. Both optional and
         // both fall back to the product's own look.
-        logoUrl: client.logoUrl ?? null,
+        logoUrl: client.logoStorageId
+          ? await ctx.storage.getUrl(client.logoStorageId)
+          : (client.logoUrl ?? null),
         brandColor: client.brandColor ?? null,
       },
       period: args.period,
