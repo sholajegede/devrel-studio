@@ -1,428 +1,503 @@
 # DevRel Studio
 
-**The command centre for developer advocates who manage content for clients.**
+**Developer-relations work, logged once and shown to the people paying for it.**
 
-DevRel Studio is a full-stack SaaS platform that lets developer advocates log every piece of content they produce, track live performance metrics across all channels, and share a beautiful, read-only performance dashboard with each client — no exports, no slide decks, no chasing data.
+A developer advocate logs each piece of work they ship — a post, a talk, a package, a demo. DevRel Studio turns that log into three things at once: a private workspace for the advocate, a live branded dashboard for every client, and a public portfolio of everything they have ever published. No exports, no slide decks, no month-end scramble.
 
-## Table of Contents
+Live at **[devrel.studio](https://devrel.studio)**. See a real client dashboard at **[devrel.studio/demo](https://devrel.studio/demo)**.
 
-- [Overview](#overview)
+---
+
+## Contents
+
+- [The four surfaces](#the-four-surfaces)
 - [Features](#features)
-- [Tech Stack](#tech-stack)
-- [Project Structure](#project-structure)
+- [How the hosts work](#how-the-hosts-work)
+- [Tech stack](#tech-stack)
+- [Project structure](#project-structure)
 - [Routes](#routes)
-- [Data Model](#data-model)
-- [Getting Started](#getting-started)
-- [Environment Variables](#environment-variables)
-- [Convex Backend](#convex-backend)
-- [Authentication](#authentication)
-- [Content Categories](#content-categories)
-- [Pricing Model](#pricing-model)
+- [Data model](#data-model)
+- [Content categories](#content-categories)
+- [Access and authentication](#access-and-authentication)
+- [Background jobs](#background-jobs)
+- [Machine-readable surfaces](#machine-readable-surfaces)
+- [Plans and access](#plans-and-access)
+- [Getting started](#getting-started)
+- [Environment variables](#environment-variables)
+- [Testing](#testing)
 - [Deployment](#deployment)
+- [Scripts](#scripts)
 
-## Overview
+---
 
-Developer advocates who work as freelancers or consultants face a recurring problem: their clients rarely have visibility into the work being done on their behalf. Monthly PDFs and shared spreadsheets are slow, hard to maintain, and easy to ignore.
+## The four surfaces
 
-DevRel Studio solves this with a two-sided dashboard:
+The single most useful thing to understand about this codebase is that it serves **four different audiences on three different hosts**, from one Next.js app. `proxy.ts` is what decides which.
 
-- **Admin dashboard** — the advocate logs content, updates metrics, and manages clients from a private workspace.
-- **Client dashboard** — a live, read-only performance page at a unique URL (e.g. `devrel.studio/kinde`) that the client can check any time without logging in.
+| Surface | Address | Who opens it | Auth |
+|---|---|---|---|
+| **Advocate workspace** | `devrel.studio/dashboard` | The DevRel who owns the account | Kinde session |
+| **Client dashboard** | `<slug>.devrel.studio`, or the client's own domain | The client being reported to — no account | Access code, or public |
+| **Public portfolio** | `devrel.studio/@handle` | Anyone; search engines; agents | None |
+| **Admin console** | `admin.devrel.studio` | Whoever operates the platform | Kinde session **+** admin role |
 
-Everything updates in real time via Convex's reactive backend. No polling, no manual refreshes.
+These are genuinely separate. An admin has no implicit access to anyone's client data. A client manager has no account at all. A portfolio is world-readable and deliberately excludes anything a client commissioned.
+
+---
 
 ## Features
 
-### Admin Dashboard
-- **Overview** — live stat counters (Published, In Progress, Views, Downloads, Attendees), a monthly bar chart (published vs in-progress over the last 6 months), and a month-by-month content list with category and status filters
-- **All Content** — searchable, filterable table of every content entry across all clients and time periods; supports keyword search, category, status, platform, and client filters; CSV export
-- **Add / Edit Entries** — full-featured form that adapts to the selected category; supports reshares (cross-platform promotion log), tags, UTM tracking links, and category-specific metrics
-- **Client Management** — full CRUD for client engagements: contact details, retainer amount and currency, contract type, start/end dates, status (Active/Paused/Ended), notes, and an auto-generated dashboard slug
-- **Members** — invite team members by email and assign roles (Admin, Editor, Viewer)
-- **Billing** — plan overview, one-time fee upgrade paths (Starter/Pro/Agency), license and receipt storage, FAQ accordion
-- **Settings** — profile management wired to Convex; account deletion; preferences
+### Advocate workspace — `devrel.studio/dashboard`
 
-### Client Dashboard
-- Publicly accessible at `/{slug}` — no login required
-- Live stat cards: Published, In Progress, Views, Downloads, Attendees
-- Content table with category badges, platform, status, metrics, and direct links
+| Page | What it does |
+|---|---|
+| **Overview** | Live counters (published, in progress, views, downloads, attendees), a six-month published-vs-in-progress chart, month-by-month content with category and status filters, and a getting-started checklist |
+| **All Content** | Every entry across every client: keyword search, category / status / platform / client filters, saved views, bulk actions, CSV import and export, keyboard shortcuts |
+| **Pipeline** | The forward-looking view — what is in flight, due, or slipped, as lanes over the existing `status` values |
+| **Analytics** | Who actually opened the work: views and dwell time across client dashboards and the public portfolio, referrers, countries, and per-page depth |
+| **Clients** | Full CRUD for engagements — retainer rate with full rate history, contract type, pause/resume, access codes, logo upload (light *and* dark), brand colour, and a custom domain |
+| **Reports** | Monthly client reports: written notes and targets, PDF export, per-client recipients, and a schedule (day, hour, timezone) that sends them automatically |
+| **Members** | Invite teammates into a workspace by email with a role (Admin, Editor, Viewer); seat limits enforced by plan |
+| **Billing** | Plan, access window, term pricing, and upgrade paths |
+| **Settings** | Profile, portfolio handle and bio, social links, account pause |
+
+### Client dashboard — `<slug>.devrel.studio`
+
+- Opened by a manager who has **no account**, behind an access code the advocate sets
+- Live stats and a content table with category badges, platforms, metrics and direct links
 - Expandable reshare history per entry
 - Month and category filters
-- UTM tracking link display per entry
+- Monthly reports with the advocate's written summary, plus a feedback box that emails back
+- PDF download carrying the client's own logo and brand colour
+- White-labelled: the client's logo (per theme), their colour, optionally their own domain
 
-### Marketing Site
-- Landing page with hero, Before/After, features, content categories, how-it-works, testimonials, FAQ accordion, CTA
-- Continuous-scroll social proof marquee (11 brand logos)
-- Dedicated pricing page with plan comparison table and FAQ
-- Sign-in and sign-up pages with Kinde auth integration
-- Waitlist page backed by Convex
+### Public portfolio — `devrel.studio/@handle`
 
-### Onboarding
-- Context-aware guided tour on every dashboard page (Overview, All Content, Clients, Members, Billing, Settings, Add Entry)
-- Each tour is stored in `localStorage` and auto-starts once per page; restartable via the Tour button
-- Keyboard navigation (← → arrow keys, Esc to close)
-- Spotlight highlight on targeted elements
+- Server-rendered and indexable, with a generated link-preview card
+- Only `Published` work. Drafts, scheduled work, notes, tracking links and **which client commissioned what** never appear
+- Grouped by category with the metric each category is measured by
+- Setting a handle is what publishes it — there is no separate on/off switch
 
-## Tech Stack
+### Admin console — `admin.devrel.studio`
+
+Its own origin, so cookies, storage and any future edge rule stop at the boundary. Overview, accounts, workspaces, revenue and access windows, traffic, content, access requests, abuse signals, an audit log, and read-only impersonation for support.
+
+The host is **not** the security boundary — every query behind these pages resolves the caller through `requireAdmin` server-side.
+
+---
+
+## How the hosts work
+
+All routing decisions live in `proxy.ts`:
+
+```
+admin.devrel.studio/*     → rewrite to /admin/*        (Kinde session required)
+<slug>.devrel.studio/*    → rewrite to /<slug>/*       (no Kinde; access-code gate in the layout)
+reports.acme.com/*        → same, resolved via a cached Convex lookup
+devrel.studio/@handle     → rewrite to /portfolio/handle
+devrel.studio/demo        → the public demo client dashboard, served on the apex
+devrel.studio/*           → marketing and the advocate workspace
+```
+
+Worth knowing:
+
+- **Reserved subdomains** (`www`, `api`, `admin`, `docs`, `demo`, …) live in `lib/naming.ts`, shared with the Convex mutation that decides whether a slug can be claimed — so the two namespaces cannot drift apart. A reserved name 404s rather than quietly serving the marketing site.
+- **Custom domains** cost one Convex HTTP lookup on first request, cached in module scope with a shorter TTL for misses so a domain being set up starts working within the minute.
+- **View tracking** happens in the proxy because it is the only chokepoint in front of both the client dashboard and the portfolio, and it runs *before* the ISR cache — so a portfolio served from cache is still counted. Bots and prefetches are excluded.
+
+---
+
+## Tech stack
 
 | Layer | Technology |
 |---|---|
-| Framework | [Next.js 16](https://nextjs.org) — App Router |
+| Framework | [Next.js 16](https://nextjs.org) — App Router, Turbopack |
+| UI runtime | React 19 |
 | Language | TypeScript 5 |
-| Styling | [Tailwind CSS v4](https://tailwindcss.com) |
-| UI Components | [shadcn/ui](https://ui.shadcn.com) (Radix UI primitives) |
-| Charts | [Recharts](https://recharts.org) v2 via shadcn `ChartContainer` |
-| Backend / Database | [Convex](https://convex.dev) v1.31 — real-time reactive queries and mutations |
-| Authentication | [Kinde](https://kinde.com) (`@kinde-oss/kinde-auth-nextjs` v2) |
-| Notifications | [Sonner](https://sonner.emilkowal.ski) |
-| Icons | [Lucide React](https://lucide.dev) |
-| Analytics | [Vercel Analytics](https://vercel.com/analytics) |
-| Runtime | Node.js / Vercel Edge |
+| Styling | [Tailwind CSS v4](https://tailwindcss.com) with light/dark themes via `next-themes` |
+| Components | [shadcn/ui](https://ui.shadcn.com) on Radix primitives |
+| Charts | [Recharts](https://recharts.org) 2 |
+| Backend / DB | [Convex](https://convex.dev) 1.44 — reactive queries, mutations, actions, crons, file storage |
+| Auth | [Kinde](https://kinde.com) (`@kinde-oss/kinde-auth-nextjs` 2) |
+| Payments | [Stripe](https://stripe.com) — optional; the app runs fully without keys |
+| Email | [Resend](https://resend.com), via Convex actions |
+| PDF | [`@react-pdf/renderer`](https://react-pdf.org) + `pdf-lib` |
+| Errors | [Sentry](https://sentry.io) |
+| Tests | [Vitest](https://vitest.dev) + Testing Library + jsdom |
+| Hosting | Vercel (frontend) + Convex Cloud (backend) |
 
-## Project Structure
+---
+
+## Project structure
 
 ```
-devrelstudio/
+devrel_studio/
 ├── app/
 │   ├── (main)/
-│   │   └── dashboard/          # Protected admin workspace
-│   │       ├── layout.tsx       # Wraps all dashboard pages in UserProvider + sidebar
-│   │       ├── page.tsx         # Overview (stats, chart, monthly content)
-│   │       ├── add/             # Add content entry
-│   │       ├── edit/[id]/       # Edit content entry
-│   │       ├── content/         # All Content table
-│   │       ├── clients/         # Client management CRUD
-│   │       ├── members/         # Team members & invites
-│   │       ├── billing/         # Plan, receipts, FAQ
-│   │       └── settings/        # Profile, preferences, danger zone
+│   │   ├── dashboard/           # Advocate workspace (Kinde-protected)
+│   │   │   ├── page.tsx           overview · add/ · edit/[id]/ · content/
+│   │   │   ├── pipeline/          analytics/ · clients/ · reports/
+│   │   │   └── members/           billing/ · settings/
+│   │   ├── admin/               # Platform console, served on admin.devrel.studio
+│   │   └── login/               # The console's own front door
 │   ├── (subdomain)/
-│   │   └── [subdomain]/         # Public client performance dashboard
-│   ├── api/
-│   │   └── auth/[kindeAuth]/    # Kinde auth handler (GET = handleAuth)
-│   ├── sign-in/                 # Custom branded sign-in page
-│   ├── sign-up/                 # Custom branded sign-up page
-│   ├── pricing/                 # Dedicated pricing page
-│   ├── waitlist/                # Waitlist signup (Convex-backed)
-│   ├── page.tsx                 # Landing page
-│   ├── layout.tsx               # Root layout (ConvexProvider, fonts)
-│   └── globals.css              # Tailwind v4 imports + custom animations
+│   │   └── [subdomain]/         # Client dashboard — layout.tsx holds the access gate
+│   │       ├── page.tsx           report/ · reports/ · llms.txt/
+│   │       └── opengraph-image.tsx
+│   ├── portfolio/[handle]/      # Public portfolio (rewrite target for /@handle)
+│   ├── api/                     # auth · billing/checkout · export-report
+│   │                            # manager-access · members · portfolio/revalidate · track
+│   ├── llms.txt/                # Site-level agent index
+│   ├── sitemap.ts robots.ts     # Crawler-facing, generated
+│   └── page.tsx                 # Landing page
 │
 ├── components/
-│   ├── dashboard/
-│   │   ├── sidebar.tsx          # Fixed desktop sidebar + mobile drawer
-│   │   ├── content-form.tsx     # Add/edit form (category-adaptive)
-│   │   └── header.tsx           # Legacy dashboard header
-│   ├── marketing/
-│   │   ├── nav.tsx              # Shared sticky nav (all marketing pages)
-│   │   └── footer.tsx           # Shared dark footer
-│   ├── admin-onboarding-tour/
-│   │   └── index.tsx            # Guided tour engine (all 7 variants)
-│   ├── onboarding-tour/         # Client dashboard tour
-│   └── ui/                      # shadcn/ui component library
+│   ├── brand/                   # Logo mark + the loader built from it
+│   ├── dashboard/ admin/        # Workspace and console UI
+│   ├── subdomain/               # Access gate, report view
+│   ├── analytics/               # Dwell-time beacon
+│   ├── marketing/ invite/       # Nav, footer, invitation flow
+│   └── ui/                      # shadcn/ui library
 │
 ├── convex/
-│   ├── schema.ts                # Database schema (users, contentEntries, clients, waitlist)
-│   ├── users.ts                 # User CRUD (Kinde webhook handlers + public queries)
-│   ├── content.ts               # Content entry queries, mutations, seeder
-│   ├── clients.ts               # Client management queries and mutations
-│   ├── waitlist.ts              # Waitlist mutations
-│   ├── http.ts                  # HTTP action endpoints (Kinde webhooks)
-│   └── auth.config.ts           # Convex ↔ Kinde JWKS configuration
+│   ├── schema.ts                # 16 tables
+│   ├── model/                   # Shared server logic: auth, workspaces, plans,
+│   │                            # access windows, rate limiting, admin guards
+│   ├── content.ts clients.ts    # Core domain
+│   ├── reports.ts analytics.ts  # Reporting and view data
+│   ├── members.ts users.ts      # Workspaces, invites, profiles
+│   ├── admin*.ts                # Console queries, split by section
+│   ├── managerAccess.ts         # Client access codes and sessions
+│   ├── portfolio.ts             # Public reads + the llms.txt index
+│   ├── billing.ts trials.ts     # Plans, access windows, trial notices
+│   ├── sync.ts email.ts         # npm/GitHub stat refresh; Resend actions
+│   ├── crons.ts http.ts         # Scheduled jobs; webhooks and ingest
+│   └── migrations.ts
 │
-├── contexts/
-│   └── user-context.tsx         # UserProvider — Kinde + Convex profile bridge
+├── lib/                         # Framework-free helpers, shared by app and convex
+│   ├── metrics.ts               # Which number belongs to which category
+│   ├── naming.ts                # Slug/handle rules and the reserved lists
+│   ├── llms-txt.ts report.ts    # Generated text surfaces
+│   ├── view-tracking.ts         # Edge-safe hashing, bot and prefetch rules
+│   └── manager-auth.ts stripe.ts retainer.ts schedule.ts …
 │
-├── lib/
-│   ├── types.ts                 # Categories, platforms, subtypes, shared types
-│   └── utils.ts                 # cn() and other helpers
-│
-└── public/
-    ├── images/                  # Dashboard screenshot, logo
-    └── assets/logos/            # Social proof brand logos (SVG + PNG)
+├── tests/                       # Vitest suites (21 files)
+└── proxy.ts                     # Host routing, auth gate, view tracking
 ```
+
+---
 
 ## Routes
 
-### Public
-| Route | Description |
-|---|---|
-| `/` | Landing page |
-| `/pricing` | Dedicated pricing page with plan comparison table |
-| `/sign-in` | Branded sign-in page → Kinde auth |
-| `/sign-up` | Branded sign-up page → Kinde registration |
-| `/waitlist` | Waitlist form (stored in Convex) |
-| `/{slug}` | Client-facing performance dashboard (no login required) |
+### Apex — `devrel.studio`
 
-### Protected (requires Kinde session)
-| Route | Description |
-|---|---|
-| `/dashboard` | Overview — stats, bar chart, monthly content view |
-| `/dashboard/content` | All Content — search, filter, CSV export |
-| `/dashboard/add` | Add a new content entry |
-| `/dashboard/edit/[id]` | Edit an existing entry |
-| `/dashboard/clients` | Client management — CRUD with retainer tracking |
-| `/dashboard/members` | Team members and invitations |
-| `/dashboard/billing` | Plan, upgrade, receipts |
-| `/dashboard/settings` | Profile (Convex-wired), preferences, account deletion |
+| Route | Access | Description |
+|---|---|---|
+| `/` | Public | Landing page |
+| `/pricing` `/contact` `/privacy` `/terms` | Public | Marketing and legal |
+| `/sign-in` `/sign-up` | Public | Branded entry to Kinde's hosted flow |
+| `/demo` | Public | A real, seeded client dashboard |
+| `/@handle` | Public | Portfolio (rewrites to `/portfolio/handle`) |
+| `/invite/[token]` | Public | Workspace invitation |
+| `/dashboard/**` | Kinde | The advocate workspace |
+
+### Client host — `<slug>.devrel.studio` or a custom domain
+
+| Route | Access | Description |
+|---|---|---|
+| `/` | Gate | Live performance dashboard |
+| `/reports` `/report` | Gate | Monthly reports, feedback, PDF download |
+
+### Console — `admin.devrel.studio`
+
+| Route | Access | Description |
+|---|---|---|
+| `/login` | Public | The only unauthenticated page on this host |
+| `/` `/users` `/workspaces` `/revenue` `/traffic` `/content` `/requests` `/abuse` `/audit` | Admin | Console sections |
 
 ### API
+
 | Route | Description |
 |---|---|
-| `/api/auth/[kindeAuth]` | Kinde auth handler — login, logout, register, callback |
+| `/api/auth/[kindeAuth]` | Kinde login, logout, register, callback |
+| `/api/manager-access`, `/api/manager-access/code` | Redeem and request a client access code |
+| `/api/members/invite`, `/api/members/accept` | Workspace invitations |
+| `/api/billing/checkout` | Stripe checkout session (when configured) |
+| `/api/export-report` | Server-rendered PDF |
+| `/api/track/duration` | Dwell-time beacon |
+| `/api/portfolio/revalidate` | Refresh the caller's own portfolio (Kinde-gated `revalidatePath`) |
 
-## Data Model
+### Convex HTTP — `<deployment>.convex.site`
 
-### `users`
-Synced from Kinde via webhook on every login/register event.
+`/kinde` (user sync webhook) · `/stripe` (payment webhook) · `/resolve-domain` (custom-domain lookup) · `/track` (view ingest)
 
-| Field | Type | Notes |
-|---|---|---|
-| `kindeId` | `string` | Kinde user identifier |
-| `email` | `string` | |
-| `firstName` | `string?` | |
-| `lastName` | `string?` | |
-| `imageUrl` | `string?` | Profile photo URL |
-| `imageStorageId` | `Id<"_storage">?` | Convex file storage reference |
+---
+
+## Data model
+
+Sixteen tables in `convex/schema.ts`.
+
+| Table | Purpose |
+|---|---|
+| `users` | Profile, portfolio fields, plan and access window, admin role |
+| `contentEntries` | The core record — one row per piece of work |
+| `clients` | Engagements: retainer and rate history, branding, slug, custom domain |
+| `workspaces` · `memberships` · `workspaceInvites` | Team accounts and roles |
+| `managerSessions` · `managerAccessAttempts` | Client dashboard sessions and rate limiting |
+| `reportSchedules` · `reportNotes` · `reportFeedback` | Report delivery, written summaries, client replies |
+| `pageViews` | Analytics, pruned after a year |
+| `accessRequests` | Requests to view a gated dashboard |
+| `adminAuditLog` · `impersonationSessions` | Console accountability |
+| `publicWriteAttempts` | Abuse signal on unauthenticated surfaces |
 
 ### `contentEntries`
-The core of the platform. One row per piece of content.
 
 | Field | Type | Notes |
 |---|---|---|
-| `userId` | `Id<"users">` | Owner |
-| `client` | `string` | Matches a client slug |
-| `category` | `Written \| Video \| Event \| Podcast \| Package` | |
-| `title` | `string` | |
-| `link` | `string` | Live URL of the content |
-| `trackingLink` | `string` | UTM or bit.ly link |
-| `platform` | `string` | e.g. Dev.to, YouTube, npm |
-| `publicationDate` | `string` | ISO date |
+| `userId` / `workspaceId` | ids | Creator; the workspace that authorises reads |
+| `client` | `string` | Slug, name or company — resolved within one client's owner |
+| `category` | `Written \| Video \| Event \| Podcast \| Package \| Demo` | Absent reads as `Written` |
+| `title` · `link` · `platform` · `publicationDate` | | |
+| `trackingLink` · `notes` | `string` | **Internal.** Never leaves through a public read |
 | `status` | `Published \| Draft \| Waiting Approval \| Scheduled` | |
-| `views` | `number?` | Written / Video |
-| `downloads` | `number?` | Package / Podcast |
-| `weeklyDownloads` | `number?` | npm weekly |
-| `attendees` | `number?` | Event |
-| `packageName` | `string?` | e.g. `@convex-dev/rate-limiter` |
-| `eventName` | `string?` | Conference / meetup name |
-| `eventLocation` | `string?` | City or venue |
-| `podcastName` | `string?` | Show name |
-| `reshares` | `Array<{platform, link, date}>?` | Cross-platform promotion log |
-| `tags` | `string[]` | |
-| `contentType` | `string` | Sub-type (Tutorial, Demo, etc.) |
-| `notes` | `string` | Internal notes |
-| `updatedAt` | `string` | ISO timestamp |
+| `views` · `downloads` · `weeklyDownloads` · `attendees` · `stars` | `number?` | Only the metric its category owns is ever counted |
+| `packageName` · `eventName` · `eventLocation` · `podcastName` · `repoUrl` · `stack` | `string?` | Category-specific |
+| `reshares` | `{platform, link, date}[]?` | Cross-promotion log |
+| `tags` · `contentType` · `updatedAt` | | |
 
-Indexes: `by_publication_date`, `by_client`, `by_status`, `by_category`
+`lib/metrics.ts` is the single source of truth for which number belongs to which category — an Event's stray `views` is never added to a views total.
 
-### `clients`
-Client engagements owned by a user.
+---
 
-| Field | Type | Notes |
+## Content categories
+
+Six, each with its own platforms, sub-types and headline metric:
+
+| Category | Metric | Platforms | Sub-types |
+|---|---|---|---|
+| **Written** | Views | Dev.to, freeCodeCamp, Medium, Hashnode, LinkedIn, Newsletter, Blog, GitHub, Docs, X | Tutorial, Guide, Reference Doc, Blog Post, Case Study, Opinion |
+| **Video** | Views | YouTube, Loom, Vimeo, TikTok | Tutorial, Demo, Conference Talk, Interview |
+| **Event** | Attendees | Free text — conference names vary too much for a dropdown | Conference Talk, Workshop, Meetup, Panel, Keynote |
+| **Podcast** | Listeners | Spotify, Apple Podcasts, YouTube Podcasts | Guest Appearance, Host, Solo Episode |
+| **Package** | Downloads + weekly | npm, GitHub | Convex Component, Library, CLI Tool |
+| **Demo** | Stars | Vercel, Netlify, Cloudflare Pages, GitHub | Full App, Starter Kit, Sample |
+
+**Package** and **Demo** metrics refresh themselves — a daily cron reads npm's download API and GitHub's star count, with a "Refresh now" button for the impatient. `GITHUB_TOKEN` is optional and only raises the rate limit.
+
+---
+
+## Access and authentication
+
+Three independent models. Confusing them is the easiest way to introduce a hole.
+
+**1. Advocate — Kinde.** Sign-in and sign-up redirect to Kinde's hosted flow; `/api/auth/kinde_callback` completes it. A Kinde webhook to `<deployment>.convex.site/kinde` creates or updates the `users` row. `contexts/user-context.tsx` bridges the Kinde session and the Convex profile for every dashboard page. Authorisation resolves through the **workspace**, not the user.
+
+**2. Client manager — access code.** Managers have no account. `app/(subdomain)/[subdomain]/layout.tsx` checks, server-side on every request, whether the visitor holds a valid session cookie or the dashboard is marked public. The dashboard is never sent to the browser otherwise. Codes are hashed with `MANAGER_CODE_SECRET`; attempts are rate-limited.
+
+> **Adding a route under `(subdomain)/[subdomain]/`?** A layout wraps *pages*, not route handlers. Anything you add as a `route.ts` there inherits the address of a private dashboard and **none of its protection** — it must run the gate itself. See `llms.txt/route.ts` for the pattern.
+
+**3. Platform admin — role, not host.** Authority lives in an `adminRole` column on `users`, never in an environment variable at request time. `admin.devrel.studio` is its own origin for isolation, but every console query calls `requireAdmin` server-side. An account without the role gets the same "not found" as any unknown URL. Impersonation is read-only and logged.
+
+The first administrator is a chicken-and-egg problem — every mutation that grants the role requires the role. It is broken by an `internalMutation`, unreachable from the browser and runnable only with deploy credentials:
+
+```bash
+npx convex env set ADMIN_EMAILS "you@example.com"   # on the Convex deployment
+npx convex run admin:bootstrap --prod
+```
+
+Idempotent: a second run is silent rather than filling the audit trail.
+
+---
+
+## Background jobs
+
+Six crons in `convex/crons.ts`:
+
+| Job | Cadence | Purpose |
 |---|---|---|
-| `userId` | `Id<"users">` | Owner |
-| `name` | `string` | Contact person name |
-| `company` | `string` | Company name |
-| `email` | `string?` | |
-| `website` | `string?` | |
-| `monthlyRetainer` | `number?` | |
-| `currency` | `string?` | USD, EUR, GBP, NGN, CAD, AUD |
-| `startDate` | `string?` | ISO date |
-| `endDate` | `string?` | ISO date |
-| `status` | `Active \| Paused \| Ended` | |
-| `contractType` | `Retainer \| Project \| Hourly?` | |
-| `notes` | `string?` | |
-| `slug` | `string?` | Auto-generated from company name; used in dashboard URL and content entries |
+| Refresh package and demo stats | Daily 04:00 UTC | npm downloads, GitHub stars |
+| Send scheduled client reports | **Hourly** :05 | Each schedule carries its own day, hour and timezone — hourly is the only way to honour that |
+| Send trial notices | Daily 08:00 UTC | Idempotent; a retry mails nobody twice |
+| Prune old page views | Daily 03:30 UTC | Views are kept one year |
+| Send weekly digests | Mondays 08:00 UTC | Skipped entirely for a quiet week |
+| Prune orphaned uploads | Daily 04:15 UTC | Logos uploaded but never saved |
 
-Indexes: `by_user`, `by_status`
+---
 
-### `waitlist`
-| Field | Type |
+## Machine-readable surfaces
+
+Alongside `sitemap.xml`, `robots.txt` and generated OpenGraph cards, the app publishes `llms.txt` files for agents:
+
+| URL | Contents |
 |---|---|
-| `email` | `string` |
-| `name` | `string?` |
-| `company` | `string?` |
-| `role` | `string?` |
-| `useCase` | `string?` |
+| `/llms.txt` | Directory of every published portfolio |
+| `/@handle/llms.txt` | One advocate's published work, grouped by category |
+| `<slug>.devrel.studio/llms.txt` | A client dashboard — only when the advocate marked it public; otherwise a stub |
 
-## Getting Started
+The rule they obey: **an llms.txt says exactly what the HTML page at the same URL already says, and nothing more.** Entries are projected field by field, never spread, so `notes` and `trackingLink` cannot surface. Customer-authored text is flattened to a single line and leading markdown markers are escaped — a bio may describe itself, not the file it sits in.
+
+> If you front the site with a CDN, check its managed `robots.txt`. A default AI-crawler block will stop the exact audience these files exist for.
+
+---
+
+## Plans and access
+
+Priced per month, **sold in blocks** rather than renewed monthly.
+
+| Plan | Monthly | Clients | Entries | Seats |
+|---|---|---|---|---|
+| **Free Trial** | — | 1 | 10 | 1 |
+| **Starter** | $29 | 1 | Unlimited | 1 |
+| **Pro** | $59 | 5 | Unlimited | 1 |
+| **Agency** | $119 | Unlimited | Unlimited | 5 |
+
+Terms: 1 month (0%), 3 months (10%), 6 months (15%), 12 months (20% off). Trial is 14 days.
+
+Access is a **timestamp**, not a subscription — which makes selling a month, a year or a perpetual licence the same field with a different number in it. `convex/model/plans.ts` is the one definition of what each plan allows, imported by both the enforcing mutations and the pricing UI, so the two cannot drift.
+
+Stripe is wired but optional. Without keys, `billingIsConfigured()` is false and the billing page says so rather than the app failing to boot.
+
+---
+
+## Getting started
 
 ### Prerequisites
 
 - Node.js 20+
-- A [Convex](https://convex.dev) account and project
-- A [Kinde](https://kinde.com) account and application
+- A [Convex](https://convex.dev) project
+- A [Kinde](https://kinde.com) application
 
-### 1. Clone and install
+### 1. Install
 
 ```bash
-git clone <your-repo-url> devrelstudio
-cd devrelstudio
+git clone <your-repo-url> devrel_studio
+cd devrel_studio
 npm install
 ```
 
-### 2. Set up Convex
+### 2. Link Convex
 
 ```bash
 npx convex dev
 ```
 
-This will prompt you to log in to Convex and link a project. It writes `CONVEX_DEPLOYMENT` and `NEXT_PUBLIC_CONVEX_URL` to `.env.local` automatically and starts watching your `convex/` directory for schema changes.
+Writes `CONVEX_DEPLOYMENT` and `NEXT_PUBLIC_CONVEX_URL` into `.env.local` and watches `convex/` for changes.
 
 ### 3. Configure Kinde
 
 1. Create an application in the [Kinde dashboard](https://app.kinde.com)
-2. Set the **Allowed callback URLs** to `http://localhost:3000/api/auth/kinde_callback`
-3. Set the **Allowed logout redirect URLs** to `http://localhost:3000`
-4. Copy your credentials into `.env.local` (see [Environment Variables](#environment-variables))
+2. Allowed callback URL: `http://localhost:3000/api/auth/kinde_callback`
+3. Allowed logout redirect URL: `http://localhost:3000`
+4. Add a webhook to `https://<deployment>.convex.site/kinde`, subscribed to `user.created` and `user.updated`
 
-### 4. Configure Kinde webhooks for Convex user sync
+### 4. Fill in `.env.local`
 
-In your Kinde dashboard, add a webhook pointing to your Convex HTTP endpoint:
+See [Environment variables](#environment-variables). At minimum you need the Convex and Kinde values plus `NEXT_PUBLIC_ROOT_DOMAIN` and `MANAGER_CODE_SECRET`.
 
-```
-https://<your-convex-deployment>.convex.site/api/webhooks/kinde
-```
-
-Subscribe to: `user.created`, `user.updated`
-
-This keeps the Convex `users` table in sync with Kinde whenever someone signs up or updates their profile.
-
-### 5. Create `.env.local`
+### 5. Run
 
 ```bash
-cp .env.example .env.local
-# then fill in your values (see Environment Variables below)
-```
-
-### 6. Start the development server
-
-```bash
-# Terminal 1 — Convex backend
-npx convex dev
-
-# Terminal 2 — Next.js frontend
-npm run dev
+npx convex dev     # terminal 1 — backend
+npm run dev        # terminal 2 — frontend
 ```
 
 Open [http://localhost:3000](http://localhost:3000).
 
-## Environment Variables
+**Testing the other hosts locally.** Subdomains of `localhost` work without any hosts-file editing:
 
-| Variable | Required | Description |
+```bash
+curl -H "Host: acme.localhost:3000" http://localhost:3000/
+open http://admin.localhost:3000/login
+```
+
+---
+
+## Environment variables
+
+### Required
+
+| Variable | Where | Description |
 |---|---|---|
-| `CONVEX_DEPLOYMENT` | ✅ | Set automatically by `npx convex dev` |
-| `NEXT_PUBLIC_CONVEX_URL` | ✅ | Convex deployment URL |
-| `NEXT_PUBLIC_CONVEX_HTTP_URL` | ✅ | Convex HTTP actions URL |
-| `KINDE_CLIENT_ID` | ✅ | From your Kinde application |
-| `KINDE_CLIENT_SECRET` | ✅ | From your Kinde application |
-| `KINDE_ISSUER_URL` | ✅ | e.g. `https://yourapp.kinde.com` |
-| `KINDE_SITE_URL` | ✅ | e.g. `http://localhost:3000` |
-| `KINDE_POST_LOGIN_REDIRECT_URL` | ✅ | e.g. `http://localhost:3000/dashboard` |
-| `KINDE_POST_LOGOUT_REDIRECT_URL` | ✅ | e.g. `http://localhost:3000` |
+| `CONVEX_DEPLOYMENT` | Local | Set by `npx convex dev` |
+| `NEXT_PUBLIC_CONVEX_URL` | Both | Convex deployment URL |
+| `NEXT_PUBLIC_ROOT_DOMAIN` | Both | Bare host — `devrel.studio`, `localhost:3000`. Composed with a slug for subdomain URLs |
+| `KINDE_CLIENT_ID` / `KINDE_CLIENT_SECRET` | Next | From the Kinde application |
+| `KINDE_ISSUER_URL` | Both | `https://yourapp.kinde.com` |
+| `KINDE_SITE_URL` | Next | Your origin |
+| `KINDE_POST_LOGIN_REDIRECT_URL` | Next | e.g. `/dashboard` |
+| `KINDE_POST_LOGOUT_REDIRECT_URL` | Next | e.g. `/` |
+| `MANAGER_CODE_SECRET` | Both | Hashes client access codes. **Rotating it invalidates every manager session** |
 
-For production, replace all `localhost:3000` values with your live domain.
+### Optional
 
-## Convex Backend
+| Variable | Enables |
+|---|---|
+| `KINDE_COOKIE_DOMAIN` | Read by the Kinde SDK; set to `.devrel.studio` to share a session across subdomains |
+| `RESEND_API_KEY`, `EMAIL_FROM` | All outbound email — invites, reports, digests, trial notices |
+| `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_PRICE_{STARTER,PRO,AGENCY}` | Card checkout |
+| `GITHUB_TOKEN` | Raises the GitHub rate limit for star sync |
+| `ADMIN_EMAILS` | **Convex-side only.** Read by `admin:bootstrap` to promote the first administrators — see below |
+| `OWNER_EMAIL` | Where operator notifications are sent (defaults to `support@devrel.studio`) |
+| `SENTRY_DSN`, `NEXT_PUBLIC_SENTRY_DSN` | Error reporting |
+| `NEXT_PUBLIC_APP_URL`, `SITE_URL` | Absolute URLs where the origin cannot be inferred |
+| `REPORT_REDIRECT_TO` | Diverts every report email to one address — useful in staging |
 
-All server-side logic lives in `convex/`. Convex handles queries, mutations, and real-time subscriptions without a separate API layer.
+Convex functions read their own environment (`npx convex env set …`), which is separate from Vercel's. `MANAGER_CODE_SECRET`, `RESEND_API_KEY` and `GITHUB_TOKEN` need to be set in **both** places; `ADMIN_EMAILS` belongs on Convex only.
 
+---
+
+## Testing
+
+```bash
+npm test           # vitest run
+npm run test:watch
+npm run typecheck  # tsc --noEmit
+npm run lint
 ```
-convex/
-├── schema.ts        # Table definitions and indexes
-├── users.ts         # createUserKinde, updateUserKinde, getUserByKindeId, deleteUser, …
-├── content.ts       # getAllContent, getContentByClient, createEntry, updateEntry, deleteEntry, seedDemoData
-├── clients.ts       # getClients, getActiveClients, createClient, updateClient, deleteClient
-├── waitlist.ts      # joinWaitlist
-├── http.ts          # HTTP actions — Kinde webhook handler (/api/webhooks/kinde)
-└── auth.config.ts   # JWKS domain config for Convex ↔ Kinde token verification
-```
 
-**Key patterns:**
-- `internalMutation` / `internalQuery` functions are used for webhook handlers (not callable from the browser)
-- Public `query` functions are used for real-time reactive data in the client
-- All queries are optimistic — the UI updates immediately before the server confirms
+Twenty-one suites, 505 tests, all passing. Concentrated where a mistake is expensive rather than spread evenly: access control and admin authorisation, impersonation, view-tracking correctness and write contention, metric roll-ups, retainer rate history, report scheduling across timezones, PDF rendering, CSV import, and naming rules.
 
-## Authentication
-
-Authentication is handled entirely by [Kinde](https://kinde.com). The integration works as follows:
-
-1. **Sign-in / Sign-up pages** (`/sign-in`, `/sign-up`) use `LoginLink` and `RegisterLink` from `@kinde-oss/kinde-auth-nextjs` to redirect users to Kinde's hosted auth flow.
-2. Kinde calls back to `/api/auth/kinde_callback`, which is handled by `handleAuth()` from the Kinde Next.js SDK.
-3. On successful auth, Kinde fires a webhook to the Convex HTTP endpoint, which creates or updates the user record in the `users` table.
-4. The `UserProvider` context (`contexts/user-context.tsx`) reads the Kinde session client-side via `useKindeBrowserClient` and cross-references it with the Convex `users` table to expose a `profile` object to all dashboard pages.
-5. If a user is authenticated in Kinde but not yet in Convex (race condition on first login), the context redirects to `/` until the webhook completes.
-
-**Logout** uses `LogoutLink` from `@kinde-oss/kinde-auth-nextjs` which clears the Kinde session and redirects to `KINDE_POST_LOGOUT_REDIRECT_URL`.
-
-## Content Categories
-
-DevRel Studio tracks five content categories, each with its own set of platforms, sub-types, and metric fields:
-
-| Category | Platforms | Key Metric | Sub-types |
-|---|---|---|---|
-| **Written** | Dev.to, freeCodeCamp, Medium, Hashnode, LinkedIn, Newsletter, Blog, Docs, Twitter/X | Views | Tutorial, Guide, Reference Doc, Blog Post, Case Study, Opinion |
-| **Video** | YouTube, Loom, Vimeo, TikTok | Views | Tutorial, Demo, Conference Talk, Interview |
-| **Event** | Free-text (conference names vary) | Attendees | Conference Talk, Workshop, Meetup, Panel, Keynote |
-| **Podcast** | Spotify, Apple Podcasts, YouTube Podcasts | Downloads / Listeners | Guest Appearance, Host, Solo Episode |
-| **Package** | npm, GitHub | Downloads + Weekly Downloads | Convex Component, Library, CLI Tool |
-
-Every entry also supports:
-- **Reshares** — log every platform where the piece was cross-promoted (LinkedIn, Twitter/X, Reddit, Hacker News, Dev.to, etc.)
-- **UTM tracking link** — separate from the canonical URL
-- **Tags** — free-form, with suggested tags per category
-- **Status** — Published, Draft, Waiting Approval, Scheduled
-
-## Pricing Model
-
-DevRel Studio uses a **one-time fee** model — no subscriptions, no recurring charges.
-
-| Plan | Price | Client Workspaces | Team Seats |
-|---|---|---|---|
-| **Starter** | $49 | 1 | 1 |
-| **Pro** | $149 | Up to 5 | 1 |
-| **Agency** | $349 | Unlimited | Up to 5 |
-
-**Upgrade pricing:** You pay only the price difference (Starter → Pro = $100, Pro → Agency = $200).
-
-**Free Trial:** 1 workspace, up to 10 content entries, unlimited time. No credit card required.
-
-**Refund policy:** Full refund within 14 days of purchase.
+---
 
 ## Deployment
 
-### Vercel (recommended)
+**Two deployments, and they are separate.** The frontend goes to Vercel on push to `main`. Convex does **not** — it is a manual step.
 
 ```bash
-# Push to GitHub, then connect the repo in the Vercel dashboard
-# Add all environment variables in the Vercel project settings
-# Convex auto-deploys when you run:
+# 1. Backend — schema, functions, crons
 npx convex deploy
+
+# 2. Frontend — automatic on push to main, or:
+vercel --prod
 ```
 
-### Required production steps
+Order matters. Deploying the frontend first means new code calling functions that do not exist yet; a route that fetches a missing query will fall back or fail until Convex catches up.
 
-1. Update all `localhost:3000` env vars to your production domain
-2. Update the Kinde application's allowed callback and logout URLs to your production domain
-3. Update the Kinde webhook URL to your production Convex HTTP URL
-4. Run `npx convex deploy` to push your schema and functions to the production Convex deployment
+### Production checklist
 
-### Build
+1. Point `NEXT_PUBLIC_ROOT_DOMAIN` at the live domain and update every `localhost:3000` value
+2. Update Kinde's callback and logout URLs, and repoint the webhook at the production Convex deployment
+3. Set `MANAGER_CODE_SECRET` in **both** Vercel and Convex — the same value
+4. Add a **wildcard DNS record** (`*.devrel.studio`) and a wildcard certificate, or no client subdomain resolves
+5. If the apex is proxied by a CDN, make sure subdomains are not — and check the CDN's managed `robots.txt`
+6. Run `npx convex deploy`
 
-```bash
-npm run build
-npm run start
-```
+---
 
 ## Scripts
 
 | Command | Description |
 |---|---|
-| `npm run dev` | Start Next.js development server on port 3000 |
-| `npm run build` | Production build |
-| `npm run start` | Start production server |
+| `npm run dev` | Next.js dev server on :3000 |
+| `npm run build` / `npm run start` | Production build and server |
+| `npm test` / `npm run test:watch` | Vitest |
+| `npm run typecheck` | `tsc --noEmit` |
 | `npm run lint` | ESLint |
-| `npx convex dev` | Start Convex dev server (watches `convex/` for changes) |
-| `npx convex deploy` | Deploy Convex schema and functions to production |
+| `npx convex dev` | Watch and push `convex/` to the dev deployment |
+| `npx convex deploy` | Push schema and functions to production |
+| `npx convex env set KEY value` | Set a Convex-side environment variable |
+
+---
 
 ## License
 
