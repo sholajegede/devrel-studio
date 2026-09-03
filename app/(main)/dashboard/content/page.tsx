@@ -3,6 +3,7 @@
 import { useEffect, useState, useMemo } from 'react'
 import Link from 'next/link'
 import { AdminTour, AdminTourTriggerButton, TourVariant } from '@/components/admin-onboarding-tour'
+import { Checkbox } from '@/components/ui/checkbox'
 import { useWorkspaceRole } from '@/hooks/use-workspace-role'
 import { useClientScope } from '@/contexts/client-scope'
 import { RoleNotice } from '@/components/dashboard/role-notice'
@@ -11,6 +12,7 @@ import {
   ContentEntry,
   CATEGORIES,
   STATUSES,
+  type Status,
   PLATFORMS,
   getMonthsFromContent,
   formatMonthLabel,
@@ -37,15 +39,46 @@ import {
 import {
   Search, ExternalLink, Edit, Trash2, PlusCircle, Download, Copy, FileUp,
   Link2, CheckCircle2, Pencil, AlertCircle, Clock,
-  FileText, RefreshCw,
+  FileText, RefreshCw, Loader2, Bookmark, X,
 } from 'lucide-react'
 import { useAction, useMutation, useQuery } from 'convex/react'
 import { api } from '@/convex/_generated/api'
+import { ConvexError } from 'convex/values'
 import { Id } from '@/convex/_generated/dataModel'
 import { useRouter } from 'next/navigation'
 import { useUserContext } from '@/contexts/user-context'
 import PageLoader from '@/components/page-loader'
 import { toast } from 'sonner'
+
+/** A named filter combination, held in this browser. */
+interface SavedView {
+  name: string
+  search: string
+  category: string
+  status: string
+  month: string
+  platform: string
+}
+
+const VIEWS_KEY = 'devrel-studio:content-views'
+
+/**
+ * A name the reader will probably accept.
+ *
+ * Built from the filters that are actually set, in the order somebody would say
+ * them — "Acme · Draft" rather than "view 3". A suggestion they keep is a name
+ * they did not have to think of.
+ */
+function suggestViewName(view: Omit<SavedView, 'name'>): string {
+  const parts = [
+    view.category !== 'all' ? view.category : null,
+    view.status !== 'all' ? view.status : null,
+    view.platform !== 'all' ? view.platform : null,
+    view.search ? `"${view.search}"` : null,
+  ].filter(Boolean)
+
+  return parts.length ? parts.join(' · ') : 'All content'
+}
 
 export default function ContentListPage() {
   const { profile } = useUserContext()
@@ -59,6 +92,21 @@ export default function ContentListPage() {
   const [isTimeout,      setIsTimeout]      = useState(false)
   const [importOpen,     setImportOpen]     = useState(false)
   const [isSyncing,      setIsSyncing]      = useState(false)
+  // Selected rows, by id. Held as a Set because the only questions asked of it
+  // are "is this one in" and "how many", both of which a list answers slowly.
+  const [selected,       setSelected]       = useState<Set<string>>(new Set())
+  const [bulkBusy,       setBulkBusy]       = useState(false)
+
+  /**
+   * Named filter combinations, kept in this browser.
+   *
+   * Local rather than on the account, deliberately: "Acme, unpublished" is a
+   * working habit, not a piece of the customer's record, and putting it in the
+   * database would mean a migration and a sync for something whose whole value
+   * is that it is instant. It survives reloads, which is the complaint.
+   */
+  const [views, setViews] = useState<SavedView[]>([])
+  const [viewsReady, setViewsReady] = useState(false)
   const router = useRouter()
 
   const syncMyStats = useAction(api.sync.syncMyStats)
@@ -71,6 +119,8 @@ export default function ContentListPage() {
   )
 
   const deleteEntry = useMutation(api.content.deleteContent)
+  const bulkSetStatus = useMutation(api.content.bulkSetStatus)
+  const bulkDelete = useMutation(api.content.bulkDelete)
   const duplicateEntry = useMutation(api.content.duplicateContent)
   const restoreEntry = useMutation(api.content.restoreContent)
 
@@ -119,6 +169,52 @@ export default function ContentListPage() {
     filtered.sort((a, b) => new Date(b.publicationDate).getTime() - new Date(a.publicationDate).getTime())
     return filtered
   }, [content, searchQuery, categoryFilter, statusFilter, monthFilter, platformFilter])
+
+  // Selection is scoped to what is on screen. Changing a filter and then
+  // pressing "delete 40" must not reach rows the reader can no longer see.
+  const visibleIds = useMemo(
+    () => new Set(filteredContent.map((entry) => entry._id as string)),
+    [filteredContent],
+  )
+  const selectedVisible = useMemo(
+    () => [...selected].filter((id) => visibleIds.has(id)),
+    [selected, visibleIds],
+  )
+
+  const toggleRow = (id: string) => {
+    setSelected((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  const allVisibleSelected =
+    filteredContent.length > 0 && selectedVisible.length === filteredContent.length
+
+  const toggleAllVisible = () => {
+    setSelected(allVisibleSelected ? new Set() : new Set(visibleIds))
+  }
+
+  const runBulk = async (action: () => Promise<unknown>, done: (n: number) => string) => {
+    const count = selectedVisible.length
+    setBulkBusy(true)
+    try {
+      await action()
+      toast.success(done(count))
+      setSelected(new Set())
+    } catch (error) {
+      toast.error(
+        error instanceof ConvexError
+          ? String(error.data)
+          : 'That did not work — nothing was changed.',
+      )
+    } finally {
+      setBulkBusy(false)
+    }
+  }
+
 
   // ── Stat sync ─────────────────────────────────────────────────────────────
   // npm downloads and GitHub stars refresh on a daily cron; the button below is
@@ -190,6 +286,57 @@ export default function ContentListPage() {
     setStatusFilter('all')
     setMonthFilter('all')
     setPlatformFilter('all')
+  }
+
+  // ── Saved views ───────────────────────────────────────────────────────────
+  //
+  // Read once on mount rather than on every render, and written back on every
+  // change. Wrapped because storage throws outright in a browser configured to
+  // block it, and a filter shortcut is not worth taking the page down for.
+
+  useEffect(() => {
+    try {
+      const raw = window.localStorage.getItem(VIEWS_KEY)
+      if (raw) setViews(JSON.parse(raw) as SavedView[])
+    } catch {
+      // No saved views, then. Everything else on the page still works.
+    }
+    setViewsReady(true)
+  }, [])
+
+  const persistViews = (next: SavedView[]) => {
+    setViews(next)
+    try {
+      window.localStorage.setItem(VIEWS_KEY, JSON.stringify(next))
+    } catch {
+      // Saved for this session only. Worth not mentioning: the reader asked to
+      // save a filter, not to hear about storage quotas.
+    }
+  }
+
+  const currentView = (): Omit<SavedView, 'name'> => ({
+    search: searchQuery,
+    category: categoryFilter,
+    status: statusFilter,
+    month: monthFilter,
+    platform: platformFilter,
+  })
+
+  const applyView = (view: SavedView) => {
+    setSearchQuery(view.search)
+    setCategoryFilter(view.category)
+    setStatusFilter(view.status)
+    setMonthFilter(view.month)
+    setPlatformFilter(view.platform)
+  }
+
+  const saveCurrentView = () => {
+    const name = window.prompt('Name this view', suggestViewName(currentView()))?.trim()
+    if (!name) return
+
+    // Same name replaces rather than duplicates — somebody re-saving "Acme,
+    // unpublished" means "update it", not "make a second one".
+    persistViews([...views.filter((view) => view.name !== name), { name, ...currentView() }])
   }
 
   const refreshStats = async () => {
@@ -402,9 +549,115 @@ export default function ContentListPage() {
                 <RefreshCw className="h-3.5 w-3.5" />Clear
               </Button>
             )}
+
+            {/* Save. Only when there is something to save — offering to name
+                "no filters at all" is offering to name nothing. */}
+            {hasActiveFilters && (
+              <Button variant="ghost" size="sm" onClick={saveCurrentView} className="gap-1.5 text-muted-foreground">
+                <Bookmark className="h-3.5 w-3.5" />Save view
+              </Button>
+            )}
           </div>
+
+          {/* The saved ones. A row of chips rather than a dropdown: there are
+              rarely more than four, and a list you can see is faster than a
+              list you have to open. */}
+          {viewsReady && views.length > 0 && (
+            <div className="mt-3 flex flex-wrap items-center gap-1.5 border-t border-border pt-3">
+              <span className="mr-1 text-xs text-muted-foreground">Views</span>
+              {views.map((view) => (
+                <span key={view.name} className="group/view inline-flex items-center">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => applyView(view)}
+                    className="h-7 rounded-r-none border-r-0 px-2.5 text-xs"
+                  >
+                    {view.name}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() =>
+                      persistViews(views.filter((other) => other.name !== view.name))
+                    }
+                    aria-label={`Delete the ${view.name} view`}
+                    className="h-7 rounded-l-none px-1.5 text-muted-foreground hover:text-destructive"
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
+                </span>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
+
+      {/* What is selected, and the three things that can be done with it.
+          Sticky, because a selection made at the bottom of forty rows is acted
+          on from wherever the reader happens to be. */}
+      {can.edit && selectedVisible.length > 0 && (
+        <div className="sticky top-4 z-20 mb-3 flex flex-wrap items-center gap-3 rounded-xl border border-accent/30 bg-card/95 px-4 py-3 shadow-sm backdrop-blur">
+          <span className="text-sm font-medium text-foreground">
+            {selectedVisible.length} selected
+          </span>
+
+          <Select
+            onValueChange={(status) =>
+              runBulk(
+                () =>
+                  bulkSetStatus({
+                    ids: selectedVisible as Id<'contentEntries'>[],
+                    status: status as Status,
+                  }),
+                (n) => `${n} ${n === 1 ? 'entry' : 'entries'} set to ${status}`,
+              )
+            }
+            disabled={bulkBusy}
+          >
+            <SelectTrigger className="h-8 w-44 text-xs">
+              <SelectValue placeholder="Change status" />
+            </SelectTrigger>
+            <SelectContent>
+              {STATUSES.map((status) => (
+                <SelectItem key={status} value={status}>{status}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          {can.delete && (
+            <Button
+              variant="ghost"
+              size="sm"
+              disabled={bulkBusy}
+              onClick={() =>
+                runBulk(
+                  () => bulkDelete({ ids: selectedVisible as Id<'contentEntries'>[] }),
+                  (n) => `${n} ${n === 1 ? 'entry' : 'entries'} deleted`,
+                )
+              }
+              className="h-8 gap-1.5 text-xs text-destructive hover:text-destructive"
+            >
+              {bulkBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+              Delete
+            </Button>
+          )}
+
+          <div className="ml-auto flex items-center gap-2">
+            <Button variant="ghost" size="sm" onClick={toggleAllVisible} className="h-8 text-xs">
+              {allVisibleSelected ? 'Deselect all' : `Select all ${filteredContent.length}`}
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setSelected(new Set())}
+              className="h-8 text-xs text-muted-foreground"
+            >
+              Clear
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* Content list */}
       <div className="space-y-3">
@@ -432,6 +685,17 @@ export default function ContentListPage() {
                 <CardContent className="p-4">
                   <div className="flex flex-col gap-3">
                     <div className="flex items-start justify-between gap-4">
+                      {/* Only for people who can act on a selection. Offering a
+                          checkbox to a viewer produces a bar whose every button
+                          refuses them. */}
+                      {can.edit && (
+                        <Checkbox
+                          checked={selected.has(entry._id)}
+                          onCheckedChange={() => toggleRow(entry._id)}
+                          aria-label={`Select ${entry.title}`}
+                          className="mt-1 shrink-0"
+                        />
+                      )}
                       <div className="min-w-0 flex-1">
                         {entry.link ? (
                           <Link href={entry.link} target="_blank"
