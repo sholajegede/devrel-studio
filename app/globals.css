@@ -138,3 +138,68 @@
   animation: marquee 28s linear infinite;
   width: max-content;
 }
+/* ── The brand loader ─────────────────────────────────────────────────────────
+ *
+ * See components/brand/brand-loader.tsx. Two rules, and both of them are about
+ * not being noticed.
+ *
+ * The band travels in user-space units because the element it moves is inside
+ * an SVG, where a percentage translation resolves against the element's own
+ * bounding box — the one measurement that is changing as it moves.
+ *
+ * The loader itself fades in on a delay rather than appearing at once. Most
+ * waits in this app are shorter than the delay, so most of the time nothing is
+ * drawn at all: a loader that flashes for eighty milliseconds makes a fast page
+ * feel slower than one that shows nothing and then simply has the content.
+ */
+
+@keyframes brand-loader-band {
+  from { transform: translateX(0); }
+  to   { transform: translateX(162px); }
+}
+
+@keyframes brand-loader-appear {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.brand-loader {
+  animation: brand-loader-appear 260ms ease-out 140ms both;
+}
+
+/*
+ * Linear, which is not the reflex choice and is the right one here.
+ *
+ * An ease moves slowest at the ends of its travel, and the ends of this travel
+ * are the part where the band is off the mark entirely — so easing spends the
+ * extra time on the frames where nothing is lit, and the loader reads as
+ * stalling between passes. Constant speed keeps the pause at the wrap short and
+ * even.
+ */
+.brand-loader__band {
+  animation: brand-loader-band 1.4s linear infinite;
+}
+
+/*
+ * Reduced motion takes the travel away, not the signal. The band is parked
+ * across the middle of the mark so it still reads as lit, and the whole thing
+ * breathes instead — a change in opacity is not the kind of movement that
+ * causes trouble, and something has to say the page is still working.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .brand-loader__band {
+    animation: none;
+    transform: translateX(81px);
+  }
+
+  .brand-loader {
+    animation:
+      brand-loader-appear 260ms ease-out 140ms both,
+      brand-loader-breathe 2.6s ease-in-out 400ms infinite;
+  }
+}
+
+@keyframes brand-loader-breathe {
+  0%, 100% { opacity: 0.55; }
+  50%      { opacity: 1; }
+}

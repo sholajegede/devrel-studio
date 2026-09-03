@@ -6,7 +6,7 @@ import { ContentForm } from '@/components/dashboard/content-form'
 import { useQuery } from 'convex/react'
 import { api } from '@/convex/_generated/api'
 import { Id } from '@/convex/_generated/dataModel'
-import { Loader2 } from 'lucide-react'
+import { SectionLoader } from '@/components/brand/brand-loader'
 
 export default function EditContentPage() {
   const params = useParams()
@@ -17,14 +17,7 @@ export default function EditContentPage() {
   })
 
   if (entry === undefined) {
-    return (
-      <div className="flex min-h-[60vh] items-center justify-center">
-        <div className="flex flex-col items-center gap-2">
-          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-          <div className="text-muted-foreground">Loading content...</div>
-        </div>
-      </div>
-    )
+    return <SectionLoader label="Loading content" className="min-h-[60vh]" />
   }
 
   if (entry === null) {

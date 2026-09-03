@@ -59,6 +59,7 @@ import {
 import { AdminTour, AdminTourTriggerButton, TourVariant } from '@/components/admin-onboarding-tour'
 import { useWorkspaceRole } from '@/hooks/use-workspace-role'
 import { RoleNotice } from '@/components/dashboard/role-notice'
+import { SectionLoader } from '@/components/brand/brand-loader'
 import {
   formatMoney,
   monthsBilled,
@@ -699,9 +700,7 @@ export default function ClientsPage() {
 
       {/* Client list */}
       {clients === undefined ? (
-        <div className="flex items-center justify-center py-20">
-          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-        </div>
+        <SectionLoader className="min-h-[36vh]" />
       ) : clients.length === 0 ? (
         <Card>
           <CardContent className="py-16 text-center">

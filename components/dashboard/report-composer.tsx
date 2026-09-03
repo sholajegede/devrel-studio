@@ -19,6 +19,7 @@ import {
 } from '@/components/ui/dialog'
 import { toast } from 'sonner'
 import { Loader2, Plus, X } from 'lucide-react'
+import { BrandLoader } from '@/components/brand/brand-loader'
 
 // ── Writing a report ──────────────────────────────────────────────────────────
 //
@@ -197,8 +198,8 @@ export function ReportComposer({
         </DialogHeader>
 
         {notes === undefined ? (
-          <div className="flex items-center justify-center py-16">
-            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+          <div className="flex items-center justify-center py-14">
+            <BrandLoader size="sm" />
           </div>
         ) : notes === null ? (
           // The query returns null when the client is not in the caller's

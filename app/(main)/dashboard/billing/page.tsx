@@ -35,6 +35,7 @@ import {
   AccordionTrigger,
 } from '@/components/ui/accordion'
 import { AdminTour, AdminTourTriggerButton, TourVariant } from '@/components/admin-onboarding-tour'
+import { SectionLoader } from '@/components/brand/brand-loader'
 
 // Presentation only — prices, limits and features come from convex/model/plans,
 // which is the same definition the server enforces against.
@@ -473,7 +474,7 @@ export default function BillingPage() {
     <Suspense
       fallback={
         <main className="px-6 lg:px-10 py-8">
-          <div className="h-8 w-40 animate-pulse rounded bg-muted/60" />
+          <SectionLoader className="min-h-[60vh]" />
         </main>
       }
     >
