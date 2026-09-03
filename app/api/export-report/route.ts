@@ -20,6 +20,33 @@ export const runtime = 'nodejs'
  *   where @react-pdf/renderer cannot. Assembling the payload here rather than
  *   there is what stops the emailed PDF drifting from the downloaded one.
  */
+/**
+ * A client's branding, looked up here rather than taken from the request.
+ *
+ * The browser has this already — it draws the header with it — and sending it
+ * would have been one less round trip. It is fetched anyway, because the
+ * renderer *downloads* the logo it is handed, and a URL that arrives in a
+ * request body is a URL somebody else chose. Resolving it from the slug means
+ * the only address this route can ever fetch is one an owner uploaded.
+ */
+async function brandingForSlug(
+  slug: string,
+): Promise<{ logoUrl: string | null; brandColor: string | null }> {
+  const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL
+  if (!convexUrl) return { logoUrl: null, brandColor: null }
+
+  const gate = await new ConvexHttpClient(convexUrl)
+    .query(api.managerAccess.getGateInfo, { slug })
+    .catch(() => null)
+
+  return {
+    // The light one: this prints on a white page. `getGateInfo` already falls
+    // back to the dark variant when it is the only one uploaded.
+    logoUrl: gate?.logoUrl ?? null,
+    brandColor: gate?.brandColor ?? null,
+  }
+}
+
 async function reportFromSlug(slug: string, month: string): Promise<ReportData | null> {
   const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL
   if (!convexUrl) return null
@@ -74,13 +101,23 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
 
-    const data: ReportData | null =
-      typeof body?.slug === 'string' && typeof body?.month === 'string'
-        ? await reportFromSlug(body.slug, body.month)
-        : (body as ReportData)
+    const fromSlug = typeof body?.slug === 'string' && typeof body?.month === 'string'
+
+    const data: ReportData | null = fromSlug
+      ? await reportFromSlug(body.slug, body.month)
+      : (body as ReportData)
 
     if (!data) {
       return NextResponse.json({ error: 'No report for that client and period' }, { status: 404 })
+    }
+
+    // The browser's payload carries everything on screen and no branding — the
+    // page assembles it from what it is displaying, and the logo is not part of
+    // that. Without this the downloaded PDF came out unbranded while the emailed
+    // one did not, from the same renderer, which is exactly the drift the two
+    // callers share a renderer to avoid.
+    if (!fromSlug && typeof body?.client === 'string') {
+      data.branding = await brandingForSlug(body.client)
     }
 
     const buffer = await renderToBuffer(createReportDocument(data))
