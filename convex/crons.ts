@@ -48,4 +48,17 @@ crons.daily(
   {},
 )
 
+// The week's attention, to the person who produced the work.
+//
+// Monday morning, because a digest about last week read on Monday is something
+// to act on and the same digest on Friday is a receipt. It sends nothing to a
+// workspace with a quiet week — an email that always arrives saying "0 views"
+// trains its reader to delete it unopened.
+crons.weekly(
+  'send weekly digests',
+  { dayOfWeek: 'monday', hourUTC: 8, minuteUTC: 0 },
+  internal.analytics.sendWeeklyDigests,
+  {},
+)
+
 export default crons

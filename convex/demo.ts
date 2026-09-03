@@ -1,6 +1,7 @@
 import { v } from 'convex/values'
-import { internalMutation } from './_generated/server'
-import { ensureMembership } from './model/workspaces'
+import { ConvexError } from 'convex/values'
+import { internalMutation, mutation, query } from './_generated/server'
+import { ensureMembership, getCurrentWorkspace, requireWorkspace } from './model/workspaces'
 
 // ── The public demo ───────────────────────────────────────────────────────────
 //
@@ -302,6 +303,148 @@ export const seedDemo = internalMutation({
       workspaceId: workspace._id,
       clientId: client._id,
       inserted,
+    }
+  },
+})
+
+// ── Example data, in somebody's own workspace ─────────────────────────────────
+//
+// An empty product cannot demonstrate itself. The onboarding checklist explains
+// what to do, but a new customer reading it has no idea what the result looks
+// like — and the fastest way to know whether this is worth paying for is to see
+// a populated dashboard with their own name on the workspace.
+//
+// The same fixtures the public demo uses, so what they see is what the product
+// actually produces rather than a mock that flatters it.
+
+const EXAMPLE_CLIENT = 'Northwind (example)'
+
+/**
+ * Fill this workspace with example content, or take it back out.
+ *
+ * Refuses when there is real work in the workspace. Somebody who has already
+ * logged their own entries does not need this, and mixing invented rows into a
+ * client's actual record is the one outcome that would be unforgivable.
+ *
+ * Everything it writes is marked, and `clearExamples` removes exactly what this
+ * added — nothing else, ever.
+ */
+export const fillWithExamples = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const context = await requireWorkspace(ctx, 'editor')
+
+    const entries = await ctx.db
+      .query('contentEntries')
+      .withIndex('by_workspace', (q) => q.eq('workspaceId', context.workspaceId))
+      .collect()
+
+    const real = entries.filter((entry) => entry.client !== EXAMPLE_CLIENT)
+    if (real.length > 0) {
+      throw new ConvexError(
+        'This workspace already has content of its own. Examples are only for an empty one.',
+      )
+    }
+
+    // Already filled: leave it alone rather than stacking a second copy.
+    if (entries.length > 0) return { inserted: 0, alreadyFilled: true }
+
+    let client = await ctx.db
+      .query('clients')
+      .withIndex('by_workspace', (q) => q.eq('workspaceId', context.workspaceId))
+      .filter((q) => q.eq(q.field('company'), EXAMPLE_CLIENT))
+      .first()
+
+    if (!client) {
+      const clientId = await ctx.db.insert('clients', {
+        userId: context.user._id,
+        workspaceId: context.workspaceId,
+        name: 'Jordan Reyes',
+        company: EXAMPLE_CLIENT,
+        monthlyRetainer: 4500,
+        currency: 'USD',
+        startDate: monthsAgo(9, 1),
+        status: 'Active' as const,
+        contractType: 'Retainer' as const,
+        // No slug. An example client must not take a real subdomain, and it
+        // must not publish a dashboard somebody could send to anyone.
+      })
+      client = (await ctx.db.get(clientId))!
+    }
+
+    const now = new Date().toISOString()
+    let inserted = 0
+
+    for (const entry of demoEntries()) {
+      await ctx.db.insert('contentEntries', {
+        ...entry,
+        userId: context.user._id,
+        workspaceId: context.workspaceId,
+        client: EXAMPLE_CLIENT,
+        link: entry.link ?? '',
+        trackingLink: '',
+        notes: '',
+        updatedAt: now,
+      })
+      inserted++
+    }
+
+    return { inserted, alreadyFilled: false }
+  },
+})
+
+/**
+ * Take the examples back out.
+ *
+ * Matched on the example client name, which is the only thing this ever wrote —
+ * so it cannot reach a row somebody typed themselves even if the two ended up
+ * side by side.
+ */
+export const clearExamples = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const context = await requireWorkspace(ctx, 'editor')
+
+    const entries = await ctx.db
+      .query('contentEntries')
+      .withIndex('by_workspace', (q) => q.eq('workspaceId', context.workspaceId))
+      .collect()
+
+    let deleted = 0
+    for (const entry of entries) {
+      if (entry.client !== EXAMPLE_CLIENT) continue
+      await ctx.db.delete(entry._id)
+      deleted++
+    }
+
+    const clients = await ctx.db
+      .query('clients')
+      .withIndex('by_workspace', (q) => q.eq('workspaceId', context.workspaceId))
+      .collect()
+
+    for (const client of clients) {
+      if (client.company === EXAMPLE_CLIENT) await ctx.db.delete(client._id)
+    }
+
+    return { deleted }
+  },
+})
+
+/** Whether this workspace is currently showing examples. */
+export const hasExamples = query({
+  args: {},
+  handler: async (ctx) => {
+    const context = await getCurrentWorkspace(ctx)
+    if (!context) return { empty: false, examples: false }
+
+    const entries = await ctx.db
+      .query('contentEntries')
+      .withIndex('by_workspace', (q) => q.eq('workspaceId', context.workspaceId))
+      .take(50)
+
+    return {
+      empty: entries.length === 0,
+      examples: entries.length > 0 && entries.every((entry) => entry.client === EXAMPLE_CLIENT),
     }
   },
 })

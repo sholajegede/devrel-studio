@@ -83,6 +83,16 @@ export default defineSchema({
      * product already resolves through, so a paused account reads nothing and
      * writes nothing without forty call sites having to remember.
      */
+    /**
+     * When this account last opened the dashboard.
+     *
+     * Only ever moved forward, and only by the dashboard itself, so "since you
+     * were last here" means the last visit rather than the last request — a page
+     * that stamped it on every query would make the phrase mean "since a moment
+     * ago", which is nothing.
+     */
+    lastSeenAt: v.optional(v.number()),
+
     pausedAt: v.optional(v.number()),
     /** Why. Shown to nobody but an admin; recorded in the audit log as well. */
     pausedReason: v.optional(v.string()),
