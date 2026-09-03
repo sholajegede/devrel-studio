@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { headers } from 'next/headers'
 import { LoginLink } from '@kinde-oss/kinde-auth-nextjs/components'
 import { ShieldCheck } from 'lucide-react'
 import { siteOrigin } from '@/lib/site'
@@ -23,7 +24,20 @@ export const metadata = {
   robots: { index: false, follow: false },
 }
 
-export default function AdminLoginPage() {
+export default async function AdminLoginPage() {
+  // Absolute, and derived from the host being served.
+  //
+  // Kinde resolves a relative post-login URL against KINDE_SITE_URL, which is
+  // the product's origin — so "/" would complete the sign-in and land the admin
+  // on the marketing site, looking exactly like a failure. The address has to
+  // name this host, and naming it from the request keeps a preview deployment
+  // pointing at its own console rather than production's.
+  const host = (await headers()).get('host') ?? ''
+  const protocol = host.startsWith('localhost') || host.includes('.localhost')
+    ? 'http'
+    : 'https'
+  const backHere = host ? `${protocol}://${host}` : undefined
+
   return (
     <main className="flex min-h-screen items-center justify-center bg-background px-6">
       <div className="w-full max-w-sm">
@@ -47,7 +61,7 @@ export default function AdminLoginPage() {
           silently failing.
         */}
         <LoginLink
-          postLoginRedirectURL="/"
+          postLoginRedirectURL={backHere}
           className="mt-6 flex h-10 w-full items-center justify-center rounded-md bg-foreground text-sm font-medium text-background transition-opacity hover:opacity-90"
         >
           Continue
