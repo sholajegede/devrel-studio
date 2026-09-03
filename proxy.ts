@@ -137,13 +137,22 @@ const handleAdminHost = async (
   // answers "signed in", never "allowed".
   //
   // `withAuth` hands back a redirect to the sign-in flow when there is no
-  // session, and a pass-through when there is; only the first is interesting
-  // here, because the rewrite has to happen either way afterwards.
+  // session, and a pass-through when there is.
   const gate = (await (withAuth as unknown as (
     request: NextRequest,
   ) => Promise<NextResponse>)(req)) as NextResponse | undefined;
 
-  if (gate && gate.status >= 300 && gate.status < 400) return gate;
+  if (gate && gate.status >= 300 && gate.status < 400) {
+    // Kinde's own redirect starts the flow on the product's origin, which means
+    // somebody who typed the console's address lands on a sign-in page belonging
+    // to something else. Send them to the console's front door instead — it is
+    // one click, on the host they asked for, and it is the page that knows to
+    // come back here afterwards.
+    const login = url.clone();
+    login.pathname = '/login';
+    login.search = '';
+    return NextResponse.redirect(login);
+  }
 
   if (pathname === '/' || pathname === '') {
     url.pathname = '/admin';
