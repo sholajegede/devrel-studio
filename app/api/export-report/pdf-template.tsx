@@ -1,5 +1,5 @@
 import React from 'react'
-import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer'
+import { Document, Image, Page, Text, View, StyleSheet } from '@react-pdf/renderer'
 import {
   CATEGORY_METRIC,
   CATEGORY_PDF_COLOR,
@@ -68,6 +68,13 @@ export interface ReportData {
   } | null
   targets?: { reach?: number | null; published?: number | null } | null
   highlights?: ReportHighlight[]
+  /**
+   * How this client's own document should look.
+   *
+   * Optional throughout, and absent for every report generated before it
+   * existed — which is what keeps an already-sent PDF reproducible.
+   */
+  branding?: { logoUrl?: string | null; brandColor?: string | null } | null
 }
 
 // ── Design tokens ─────────────────────────────────────────────────────────────
@@ -127,6 +134,8 @@ const s = StyleSheet.create({
 
   // Hero
   hero: { marginBottom: 28 },
+  // Height-bounded so a wide wordmark and a square glyph both sit correctly.
+  heroLogo:     { height: 28, maxWidth: 160, objectFit: 'contain', marginBottom: 10 },
   heroClient:   { fontFamily: 'Helvetica-Bold', fontSize: 24, color: C.fg, marginBottom: 4 },
   heroSubtitle: { fontSize: 10, color: C.muted, marginBottom: 3 },
   heroPeriod:   { fontFamily: 'Helvetica-Bold', fontSize: 11, color: C.accent },
@@ -405,7 +414,7 @@ function TargetBar({ actual, target }: { actual: number; target?: number | null 
 }
 
 export function createReportDocument(data: ReportData) {
-  const { client, content, stats, period, notes, targets, highlights } = data
+  const { client, content, stats, period, notes, targets, highlights, branding } = data
   const clientName = client.charAt(0).toUpperCase() + client.slice(1)
 
   // Same definition as lib/report's `reachOf` — views, attendees and downloads,
@@ -440,11 +449,29 @@ export function createReportDocument(data: ReportData) {
       <Page size="LETTER" style={s.page}>
         <Header />
 
-        {/* Hero */}
+        {/* Hero.
+            With a logo this reads as the client's own document; without one it
+            prints exactly as it did before, because a report that has already
+            been sent must stay reproducible. */}
         <View style={s.hero}>
+          {branding?.logoUrl ? (
+            // Bounded rather than cropped — the file is theirs and its
+            // proportions are unknown, and a squashed logo is worse than a
+            // small one.
+            // eslint-disable-next-line jsx-a11y/alt-text
+            <Image src={branding.logoUrl} style={s.heroLogo} />
+          ) : null}
           <Text style={s.heroClient}>{clientName}</Text>
           <Text style={s.heroSubtitle}>Content Performance Report</Text>
-          <Text style={s.heroPeriod}>{period}</Text>
+          <Text
+            style={
+              branding?.brandColor
+                ? [s.heroPeriod, { color: branding.brandColor }]
+                : s.heroPeriod
+            }
+          >
+            {period}
+          </Text>
         </View>
 
         {/* The written opening, before any table. */}

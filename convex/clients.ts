@@ -36,6 +36,62 @@ const clientFields = {
   contractType: contractTypeValidator,
   notes: v.optional(v.string()),
   slug: v.optional(v.string()),
+  logoUrl: v.optional(v.string()),
+  brandColor: v.optional(v.string()),
+  customDomain: v.optional(v.string()),
+}
+
+/**
+ * A hex colour, or nothing.
+ *
+ * Validated on the way in rather than trusted from the form, because this value
+ * is interpolated into a style attribute on a page served to a client's staff —
+ * anything that is not six hex digits has no business reaching it.
+ */
+function cleanBrandColor(value: string | undefined): string | undefined {
+  if (!value) return undefined
+  const hex = value.trim().toLowerCase()
+  return /^#[0-9a-f]{6}$/.test(hex) ? hex : undefined
+}
+
+/**
+ * An https image address, or nothing.
+ *
+ * https only: the client dashboard is served over TLS, and a http logo either
+ * fails to load or costs the page its lock icon — on the one screen whose whole
+ * job is to look credible.
+ */
+/**
+ * A bare hostname, lowercased, or nothing.
+ *
+ * Stored in the shape a Host header arrives in — no scheme, no port, no path —
+ * because the alternative is normalising on every request rather than once here.
+ * A pasted URL is accepted and reduced, since that is what somebody copying from
+ * their browser will hand over.
+ */
+function cleanCustomDomain(value: string | undefined): string | undefined {
+  if (!value?.trim()) return undefined
+
+  const raw = value.trim().toLowerCase()
+  const host = raw.includes('://') ? raw.split('://')[1] : raw
+  const bare = host.split('/')[0].split(':')[0]
+
+  // A domain under this product's own name is not a custom domain — it is a
+  // slug, and accepting it here would shadow the routing that already exists.
+  if (!/^[a-z0-9.-]+\.[a-z]{2,}$/.test(bare)) return undefined
+  if (bare.endsWith('devrel.studio')) return undefined
+
+  return bare
+}
+
+function cleanLogoUrl(value: string | undefined): string | undefined {
+  if (!value?.trim()) return undefined
+  try {
+    const url = new URL(value.trim())
+    return url.protocol === 'https:' ? url.toString() : undefined
+  } catch {
+    return undefined
+  }
 }
 
 // ── Slugs ─────────────────────────────────────────────────────────────────────
@@ -49,6 +105,29 @@ const clientFields = {
 // does the routing — see that file for why keeping two copies was a bug.
 
 export { normalizeSlug }
+
+/**
+ * The dashboard slug a custom domain stands for, or null.
+ *
+ * Public, and answering only for a host somebody has already pointed at this
+ * product — the mapping is a fact that host announces by resolving here. It
+ * returns the slug and nothing else, which is what the URL would have carried in
+ * the first place.
+ */
+export const slugForDomain = query({
+  args: { host: v.string() },
+  handler: async (ctx, args) => {
+    const host = args.host.toLowerCase().trim()
+    if (!host) return null
+
+    const client = await ctx.db
+      .query('clients')
+      .withIndex('by_custom_domain', (q) => q.eq('customDomain', host))
+      .first()
+
+    return client?.slug ?? null
+  },
+})
 
 async function assertSlugAvailable(
   ctx: MutationCtx,
@@ -118,6 +197,9 @@ export const createClient = mutation({
 
     return await ctx.db.insert('clients', {
       ...args,
+      brandColor: cleanBrandColor(args.brandColor),
+      logoUrl: cleanLogoUrl(args.logoUrl),
+      customDomain: cleanCustomDomain(args.customDomain),
       userId: user._id,
       workspaceId,
       slug: slug || undefined,
@@ -131,7 +213,13 @@ export const updateClient = mutation({
     ...clientFields,
   },
   handler: async (ctx, args) => {
-    const { clientId, ...fields } = args
+    const { clientId, ...rest } = args
+    const fields = {
+      ...rest,
+      brandColor: cleanBrandColor(rest.brandColor),
+      logoUrl: cleanLogoUrl(rest.logoUrl),
+      customDomain: cleanCustomDomain(rest.customDomain),
+    }
     const { doc: before } = await requireInWorkspace(ctx, clientId, 'editor')
 
     const slug = normalizeSlug(fields.slug || fields.company)

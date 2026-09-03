@@ -219,6 +219,11 @@ export const getReport = query({
         contact: client.name,
         website: client.website,
         slug,
+        // Carried so the exported PDF looks like a document prepared for this
+        // client rather than a printout from somebody's tool. Both optional and
+        // both fall back to the product's own look.
+        logoUrl: client.logoUrl ?? null,
+        brandColor: client.brandColor ?? null,
       },
       period: args.period,
       entries: visible,

@@ -9,6 +9,7 @@ import {
   normalizeHandle,
   normalizeSlug,
 } from '@/lib/naming'
+import { luminance, readableOn } from '@/lib/utils'
 
 describe('normalizeSlug', () => {
   it('lowercases and hyphenates', () => {
@@ -161,5 +162,32 @@ describe('adminHostFor', () => {
     expect(adminHostFor('devrel.studio')).toBe('admin.devrel.studio')
     expect(adminHostFor('www.devrel.studio')).toBe('admin.devrel.studio')
     expect(adminHostFor('localhost:3000')).toBe('admin.localhost')
+  })
+})
+
+// ── Brand colours stay readable ───────────────────────────────────────────────
+//
+// The client picks the colour and the product keeps the text on it legible. A
+// pale brand colour with white text on it loses the label entirely, on the one
+// page that client's own staff will look at.
+
+describe('readableOn', () => {
+  it('puts white on a dark brand colour', () => {
+    expect(readableOn('#0b3d91')).toBe('#ffffff')
+    expect(readableOn('#000000')).toBe('#ffffff')
+  })
+
+  it('puts dark ink on a pale one', () => {
+    expect(readableOn('#ffffff')).toBe('#10231f')
+    expect(readableOn('#f7d54a')).toBe('#10231f')
+  })
+
+  it('switches before a naive midpoint would', () => {
+    // The threshold is 0.45, not 0.5, because the two candidates are not
+    // symmetric — near-black on a mid tone reads better than white does. This
+    // green sits in the band between the two, where the choice differs.
+    expect(luminance('#8cc63f')).toBeGreaterThan(0.45)
+    expect(luminance('#8cc63f')).toBeLessThan(0.5)
+    expect(readableOn('#8cc63f')).toBe('#10231f')
   })
 })

@@ -62,6 +62,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar as CalendarPicker } from "@/components/ui/calendar";
 import type { DateRange } from "react-day-picker";
 import { useQuery } from "convex/react";
+import { readableOn } from "@/lib/utils";
 import { api } from "@/convex/_generated/api";
 import {
   OnboardingTour,
@@ -137,29 +138,53 @@ function DashboardSkeleton({ clientName }: { clientName: string }) {
 function DashboardHeader({
   clientName,
   tourControls,
+  branding,
 }: {
   clientName: string;
   tourControls?: { startTour: () => void } | null;
+  branding?: { logoUrl: string | null; brandColor: string | null };
 }) {
+  // With a logo, the page leads with the client's identity and devrel.studio
+  // becomes a line of attribution underneath. Without one it stays as it was —
+  // a client who has uploaded nothing should not get a hole where a logo goes.
+  const logo = branding?.logoUrl ?? null;
+
   return (
     <header className="sticky top-0 z-10 border-b border-border bg-card">
       <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between">
           <div className="flex items-center gap-3">
-            <Image src="/images/devrel-logo.png" alt="DevRel Studio" width={32} height={32} className="rounded" />
+            {logo ? (
+              // Their own file, so its dimensions are unknown — bounded rather
+              // than cropped, because a squashed logo is worse than a small one.
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={logo}
+                alt={clientName}
+                className="h-8 max-w-[140px] object-contain"
+              />
+            ) : (
+              <Image src="/images/devrel-logo.png" alt="DevRel Studio" width={32} height={32} className="rounded" />
+            )}
             <div>
               <h1 className="text-base font-semibold text-foreground">
-                devrel<span className="text-muted-foreground">.studio</span>
+                {logo ? clientName : (
+                  <>devrel<span className="text-muted-foreground">.studio</span></>
+                )}
               </h1>
-              <p className="text-xs text-muted-foreground">Performance Dashboard</p>
+              <p className="text-xs text-muted-foreground">
+                {logo ? 'Performance dashboard · devrel.studio' : 'Performance Dashboard'}
+              </p>
             </div>
           </div>
           <div className="flex items-center gap-3">
             <ThemeToggle />
             {tourControls && <TourTriggerButton onStartTour={tourControls.startTour} />}
-            <Badge variant="outline" className="bg-accent/10 text-accent border-accent/20">
-              Client: {clientName}
-            </Badge>
+            {!logo && (
+              <Badge variant="outline" className="bg-accent/10 text-accent border-accent/20">
+                Client: {clientName}
+              </Badge>
+            )}
           </div>
         </div>
       </div>
@@ -333,7 +358,13 @@ export default function ClientDashboard({
     return url.startsWith("http://") || url.startsWith("https://") ? url : `https://${url}`;
   };
 
-  const clientName = subdomain.charAt(0).toUpperCase() + subdomain.slice(1);
+  // How this client's dashboard should look, and what it should call them. The
+  // slug capitalised is a fallback for the moment before it loads — "Kinde" is a
+  // reasonable guess at a company called Kinde, and a blank header is not.
+  const gate = useQuery(api.managerAccess.getGateInfo, { slug: subdomain });
+  const clientName =
+    gate?.clientName || subdomain.charAt(0).toUpperCase() + subdomain.slice(1);
+  const branding = { logoUrl: gate?.logoUrl ?? null, brandColor: gate?.brandColor ?? null };
 
   // ── Data derivation — all hooks must be called before any early return ────
 
@@ -416,7 +447,7 @@ export default function ClientDashboard({
     if (isTimeout) {
       return (
         <div className="min-h-screen bg-background">
-          <DashboardHeader clientName={clientName} />
+          <DashboardHeader clientName={clientName} branding={branding} />
           <main className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 py-8">
             <div className="flex min-h-[400px] flex-col items-center justify-center gap-4">
               <AlertCircle className="h-12 w-12 text-muted-foreground" />
@@ -504,9 +535,28 @@ export default function ClientDashboard({
   // ── Render ────────────────────────────────────────────────────────────────
 
   return (
-    <div className="min-h-screen bg-background">
+    <div
+      className="min-h-screen bg-background"
+      /*
+       * The client's colour, scoped to their own page.
+       *
+       * Overriding the token rather than restyling components means every accent
+       * on this dashboard follows it at once — chips, the active tab, the chart
+       * fill — and nothing outside this subtree is touched. The foreground is
+       * computed rather than assumed white, because a pale brand colour with
+       * white text on it loses the label entirely.
+       */
+      style={
+        branding.brandColor
+          ? ({
+              '--accent': branding.brandColor,
+              '--accent-foreground': readableOn(branding.brandColor),
+            } as React.CSSProperties)
+          : undefined
+      }
+    >
       <OnboardingTour autoStart={true} onTourControlReady={(controls) => setTourControls(controls)} />
-      <DashboardHeader clientName={clientName} tourControls={tourControls} />
+      <DashboardHeader clientName={clientName} tourControls={tourControls} branding={branding} />
 
       <main className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 py-8">
 

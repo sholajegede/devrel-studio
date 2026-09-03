@@ -201,6 +201,50 @@ export default defineSchema({
     company: v.string(),
     email: v.optional(v.string()),
     website: v.optional(v.string()),
+
+    // ── How the client's own dashboard looks ──────────────────────────────────
+    //
+    // The page at [slug].devrel.studio is opened by somebody who was sent a link
+    // by a consultant they are paying. Until these two fields it carried this
+    // product's identity and none of theirs, which makes a commissioned report
+    // look like a tool the contractor happens to use.
+    //
+    // Both optional, and both fall back to the product's own look. A client with
+    // no logo should not get a hole where one would go.
+
+    /**
+     * A URL to the client's logo, shown in their dashboard header.
+     *
+     * A link rather than an upload because this app has never had an upload
+     * pipeline — avatars come from Kinde — and inventing one for a logo would be
+     * a great deal more than the change is worth. Every company that has a logo
+     * has it at an address; the field takes that address and validates it is
+     * https on write.
+     */
+    logoUrl: v.optional(v.string()),
+
+    /**
+     * A hex colour, `#rrggbb`, validated on write.
+     *
+     * Applied to accents on the client's dashboard and to the exported PDF, and
+     * nowhere else — a brand colour is for the page that belongs to them, not
+     * for the DevRel's own workspace.
+     */
+    brandColor: v.optional(v.string()),
+
+    /**
+     * A domain the client owns, pointed at this dashboard.
+     *
+     * `reports.acme.com` rather than a subdomain of somebody else's product. The
+     * strongest signal available that the report was commissioned rather than
+     * generated, and the last piece of white-labelling the surface has.
+     *
+     * Stored lowercase and without a scheme, because that is the form a Host
+     * header arrives in — comparing anything else means normalising on every
+     * request instead of once on write.
+     */
+    customDomain: v.optional(v.string()),
+
     /**
      * The rate in effect right now.
      *
@@ -289,7 +333,10 @@ export default defineSchema({
     .index("by_user", ["userId"])
     .index("by_workspace", ["workspaceId"])
     .index("by_status", ["status"])
-    .index("by_slug", ["slug"]),
+    .index("by_slug", ["slug"])
+    // Every request arriving on a domain the product does not recognise costs
+    // one lookup, so it has to be an indexed one.
+    .index("by_custom_domain", ["customDomain"]),
 
   // ── Workspaces ──────────────────────────────────────────────────────────────
   //

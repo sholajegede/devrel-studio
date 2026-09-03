@@ -36,6 +36,10 @@ async function reportFromSlug(slug: string, month: string): Promise<ReportData |
   return {
     client: data.client.name,
     period: report.label,
+    branding: {
+      logoUrl: data.client.logoUrl ?? null,
+      brandColor: data.client.brandColor ?? null,
+    },
     // `published` is filtered on status === 'Published', so status is always
     // present — but the type carries it as optional, and defaulting is honest
     // where a cast would just silence the compiler.

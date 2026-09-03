@@ -75,3 +75,36 @@ describe('report PDF', () => {
     expect(buffer.length).toBeGreaterThan(1000)
   })
 })
+
+// ── Branding on the exported document ─────────────────────────────────────────
+//
+// The PDF is what ends up attached to an invoice or forwarded to a VP, so it is
+// the one artifact most worth having the client's own name on. Both fields are
+// optional and absent on every report generated before they existed — an
+// already-sent report has to stay reproducible.
+
+describe('report PDF branding', () => {
+  it('renders with a logo and a brand colour', async () => {
+    const buffer = await renderToBuffer(
+      createReportDocument({
+        ...base,
+        branding: { logoUrl: 'https://example.com/logo.png', brandColor: '#8cc63f' },
+      }),
+    )
+    expect(buffer.length).toBeGreaterThan(0)
+  })
+
+  it('renders identically shaped output with no branding at all', async () => {
+    // The path every existing report takes.
+    const buffer = await renderToBuffer(createReportDocument({ ...base, branding: null }))
+    expect(buffer.length).toBeGreaterThan(0)
+  })
+
+  it('tolerates a half-filled branding object', async () => {
+    // A client with a colour and no logo, which is the common case.
+    const buffer = await renderToBuffer(
+      createReportDocument({ ...base, branding: { brandColor: '#0b3d91' } }),
+    )
+    expect(buffer.length).toBeGreaterThan(0)
+  })
+})
