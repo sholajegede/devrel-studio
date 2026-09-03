@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   dueNow,
   localMoment,
+  nextRun,
   periodBefore,
   type ScheduleShape,
 } from '@/lib/schedule'
@@ -109,5 +110,67 @@ describe('dueNow', () => {
     const tokyo = dueNow(schedule({ timezone: 'Asia/Tokyo', hourLocal: 8 }), at)
     expect(tokyo.due).toBe(true)
     expect(tokyo.period).toBe('2026-08')
+  })
+})
+
+// ── When the next one goes out ────────────────────────────────────────────────
+//
+// `dueNow` answers "is it this hour" for the cron. This answers "when is it" for
+// somebody looking at a client card, and the two have to agree or the card
+// promises a date the job will not honour.
+
+describe('nextRun', () => {
+  const base = { enabled: true, dayOfMonth: 3, hourLocal: 9, timezone: 'UTC' }
+
+  it('is this month when the day is still ahead', () => {
+    expect(nextRun(base, new Date('2026-09-01T10:00:00Z'))).toEqual({
+      year: 2026,
+      month: 9,
+      day: 3,
+    })
+  })
+
+  it('rolls to next month once the hour has passed', () => {
+    // 09:00 on the 3rd has gone; the next one is October's.
+    expect(nextRun(base, new Date('2026-09-03T10:00:00Z'))).toEqual({
+      year: 2026,
+      month: 10,
+      day: 3,
+    })
+  })
+
+  it('is still today before the hour', () => {
+    expect(nextRun(base, new Date('2026-09-03T08:00:00Z'))).toEqual({
+      year: 2026,
+      month: 9,
+      day: 3,
+    })
+  })
+
+  it('rolls the year over in December', () => {
+    expect(nextRun(base, new Date('2026-12-20T10:00:00Z'))).toEqual({
+      year: 2027,
+      month: 1,
+      day: 3,
+    })
+  })
+
+  it('skips a month already sent', () => {
+    // Sent August's report by hand on the 1st. The 3rd would otherwise still
+    // look due, and the card would promise a send the cron will refuse.
+    expect(
+      nextRun({ ...base, lastSentPeriod: '2026-08' }, new Date('2026-09-01T08:00:00Z')),
+    ).toEqual({ year: 2026, month: 10, day: 3 })
+  })
+
+  it('says nothing for a schedule that is off', () => {
+    // A date beside a switch that is off is worse than no date.
+    expect(nextRun({ ...base, enabled: false })).toBeNull()
+  })
+
+  it('agrees with dueNow at the moment it fires', () => {
+    const at = new Date('2026-09-03T09:30:00Z')
+    expect(dueNow(base, at).due).toBe(true)
+    expect(nextRun(base, at)).toEqual({ year: 2026, month: 10, day: 3 })
   })
 })

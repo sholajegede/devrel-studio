@@ -86,6 +86,44 @@ export function dueNow(
   return { due: true, period, reason: 'due' }
 }
 
+/**
+ * When this schedule fires next, as a local date.
+ *
+ * `dueNow` answers "is it this hour" for the cron; this answers "when is it" for
+ * a person looking at a client card. Same fields, opposite direction — and the
+ * one recurring commitment in the product was otherwise invisible until the
+ * moment it fired.
+ *
+ * Returns null for a disabled schedule rather than the date it would have run:
+ * "next report 3 October" beside a switch that is off is worse than saying
+ * nothing.
+ */
+export function nextRun(
+  schedule: ScheduleShape,
+  at: Date = new Date(),
+): { year: number; month: number; day: number } | null {
+  if (!schedule.enabled) return null
+
+  const moment = localMoment(at, schedule.timezone)
+
+  // This month's slot, unless it has already gone by — either because the day
+  // has passed, or because it is the day and the hour has.
+  const passed =
+    moment.day > schedule.dayOfMonth ||
+    (moment.day === schedule.dayOfMonth && moment.hour >= schedule.hourLocal)
+
+  // Already sent this month's report early? Then the next one is next month,
+  // whatever the clock says — the same guard `dueNow` uses to avoid duplicates.
+  const alreadySent = schedule.lastSentPeriod === periodBefore(moment)
+
+  const rollForward = passed || alreadySent
+  const month = rollForward ? moment.month + 1 : moment.month
+
+  return month > 12
+    ? { year: moment.year + 1, month: 1, day: schedule.dayOfMonth }
+    : { year: moment.year, month, day: schedule.dayOfMonth }
+}
+
 /** Sensible defaults for a client that has never been configured. */
 export const DEFAULT_SCHEDULE = {
   enabled: false,
