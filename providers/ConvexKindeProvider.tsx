@@ -1,6 +1,6 @@
 "use client";
 
-import { ReactNode, useCallback, useMemo } from "react";
+import { ReactNode, useCallback, useEffect, useMemo, useRef } from "react";
 import { KindeProvider } from "@kinde-oss/kinde-auth-nextjs";
 import { useKindeBrowserClient } from "@kinde-oss/kinde-auth-nextjs";
 import { ConvexProviderWithAuth, ConvexReactClient } from "convex/react";
@@ -63,6 +63,26 @@ async function fetchFreshIdToken(): Promise<string | null> {
 function useAuthFromKinde() {
   const { getIdTokenRaw, isAuthenticated, isLoading } = useKindeBrowserClient();
 
+  // `fetchAccessToken` must keep the same identity for the life of the session.
+  //
+  // Convex takes it as a dependency of the effect that owns the socket's
+  // authentication. A new identity tears that effect down and sets it back up,
+  // and the teardown calls `client.clearAuth()` — so between the two, the socket
+  // has no verified identity and every mounted query re-runs unauthenticated.
+  // Queries that insist on a caller threw there, and a query that throws during
+  // render unmounts the route: the dashboard went blank and a reload fixed it,
+  // which is exactly why it read as random.
+  //
+  // Depending on `getIdTokenRaw` did that on most renders. Kinde rebuilds its
+  // whole client object — every accessor on it included — each time its own
+  // state settles, so the function is a fresh reference nearly every time even
+  // though it does the same thing. Reading it through a ref keeps the callback
+  // stable while still calling the newest version of it.
+  const getIdTokenRawRef = useRef(getIdTokenRaw);
+  useEffect(() => {
+    getIdTokenRawRef.current = getIdTokenRaw;
+  }, [getIdTokenRaw]);
+
   const fetchAccessToken = useCallback(
     async ({ forceRefreshToken }: { forceRefreshToken: boolean }) => {
       // Convex sets this when the token it holds is at or near expiry. Handing
@@ -73,10 +93,10 @@ function useAuthFromKinde() {
         if (refreshed) return refreshed;
       }
 
-      const token = getIdTokenRaw();
+      const token = getIdTokenRawRef.current?.();
       return token ?? null;
     },
-    [getIdTokenRaw]
+    []
   );
 
   return useMemo(

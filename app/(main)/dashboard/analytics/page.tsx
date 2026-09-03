@@ -36,7 +36,9 @@ export default function AnalyticsPage() {
   )
   const live = useQuery(api.analytics.liveNow, ready ? {} : 'skip')
 
-  const loading = overview === undefined
+  // Null as well as undefined: the query answers null while the socket has no
+  // verified identity yet, which is a state to wait through rather than render.
+  const loading = overview == null
 
   const totalViews = overview?.tiles.allTimeViews ?? 0
 
