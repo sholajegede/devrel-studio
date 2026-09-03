@@ -1,4 +1,6 @@
 import { describe, expect, it } from 'vitest'
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
 import { renderToBuffer } from '@react-pdf/renderer'
 import { createReportDocument, type ReportData } from '@/app/api/export-report/pdf-template'
 
@@ -106,5 +108,29 @@ describe('report PDF branding', () => {
       createReportDocument({ ...base, branding: { brandColor: '#0b3d91' } }),
     )
     expect(buffer.length).toBeGreaterThan(0)
+  })
+})
+
+// ── The download and the email must not drift ─────────────────────────────────
+//
+// Two callers share this renderer precisely so the PDF a client downloads and
+// the one that arrives in their inbox are the same document. They drifted anyway:
+// the cron path fetched branding and the browser path posted a payload assembled
+// from what was on screen, which does not include a logo. The route now resolves
+// branding from the slug for both.
+
+describe('both export paths carry branding', () => {
+  const route = readFileSync(join(process.cwd(), 'app/api/export-report/route.ts'), 'utf8')
+
+  it('the browser path is given branding it did not send', () => {
+    expect(route).toMatch(/data\.branding = await brandingForSlug\(body\.client\)/)
+  })
+
+  it('and it is never read out of the request body', () => {
+    // The renderer downloads the logo it is handed, so a URL arriving in a
+    // request body is a URL somebody else chose. Resolving from the slug means
+    // the only address this route can fetch is one an owner uploaded.
+    expect(route).toMatch(/async function brandingForSlug/)
+    expect(route).not.toMatch(/body\??\.branding/)
   })
 })

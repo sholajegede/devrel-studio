@@ -1,5 +1,5 @@
 import { ConvexError, v } from 'convex/values'
-import { MutationCtx, mutation, query } from './_generated/server'
+import { MutationCtx, internalMutation, mutation, query } from './_generated/server'
 import { Doc, Id } from './_generated/dataModel'
 import {
   getCurrentWorkspace,
@@ -151,6 +151,57 @@ async function discardFile(ctx: MutationCtx, storageId: Id<'_storage'> | undefin
     // Already gone. Which is the state we wanted.
   }
 }
+
+/**
+ * Delete uploaded logos that no client ever claimed.
+ *
+ * The upload happens before the form is saved, deliberately — it is what lets
+ * somebody see the logo before committing to it, and cancel without touching the
+ * client. The cost is that every abandoned upload leaves a file nothing points
+ * at: choosing a logo three times before saving stores three and attaches one.
+ *
+ * Nothing else can find them, so nothing else will ever delete them. This does.
+ *
+ * A day old, so a file uploaded a moment ago and about to be attached is never
+ * swept out from under a form somebody is still filling in.
+ */
+export const pruneOrphanedLogos = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    const cutoff = Date.now() - 24 * 60 * 60 * 1000
+
+    // Every id any client points at, in one pass. The alternative is a lookup
+    // per file, and the file count is the larger of the two numbers.
+    const clients = await ctx.db.query('clients').collect()
+    const claimed = new Set<string>()
+    for (const client of clients) {
+      if (client.logoStorageId) claimed.add(client.logoStorageId)
+      if (client.logoDarkStorageId) claimed.add(client.logoDarkStorageId)
+    }
+
+    const files = await ctx.db.system.query('_storage').take(500)
+
+    let deleted = 0
+    for (const file of files) {
+      if (file._creationTime > cutoff) continue
+      if (claimed.has(file._id)) continue
+
+      // Profile images live in the same store and are referenced from `users`,
+      // not `clients` — so anything not claimed above is checked against them
+      // before it is touched.
+      const owner = await ctx.db
+        .query('users')
+        .filter((q) => q.eq(q.field('imageStorageId'), file._id))
+        .first()
+      if (owner) continue
+
+      await discardFile(ctx, file._id)
+      deleted++
+    }
+
+    return { deleted, checked: files.length }
+  },
+})
 
 /** A stored logo's address, so the form can show what is currently set. */
 export const logoUrlFor = query({

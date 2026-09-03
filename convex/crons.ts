@@ -61,4 +61,16 @@ crons.weekly(
   {},
 )
 
+// Uploads nobody claimed.
+//
+// A logo is stored before the form is saved, so it can be seen before it is
+// committed to — which means an abandoned upload leaves a file nothing points
+// at. Nothing else can find those, so nothing else would ever remove them.
+crons.daily(
+  'prune orphaned uploads',
+  { hourUTC: 4, minuteUTC: 15 },
+  internal.clients.pruneOrphanedLogos,
+  {},
+)
+
 export default crons
