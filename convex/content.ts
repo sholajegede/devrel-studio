@@ -369,6 +369,64 @@ export const importContent = mutation({
   },
 })
 
+// ── Acting on several at once ─────────────────────────────────────────────────
+//
+// Logging a conference week means five entries that all need the same status
+// change. Doing that one row at a time was the most repetitive thing in the
+// product.
+//
+// Each row is authorised on its own rather than the batch being authorised once:
+// a list of ids arrives from the browser, and "the caller may edit the first one"
+// says nothing about the rest.
+
+/** The most rows one call may touch. Large enough for a week, small enough to stay one transaction. */
+const BULK_LIMIT = 100
+
+export const bulkSetStatus = mutation({
+  args: {
+    ids: v.array(v.id('contentEntries')),
+    status: statusValidator,
+  },
+  handler: async (ctx, args) => {
+    if (args.ids.length === 0) return { updated: 0 }
+    if (args.ids.length > BULK_LIMIT) {
+      throw new ConvexError(`That is more than ${BULK_LIMIT} entries at once`)
+    }
+
+    const now = new Date().toISOString()
+    let updated = 0
+
+    for (const id of args.ids) {
+      await requireInWorkspace(ctx, id, 'editor')
+      await ctx.db.patch(id, { status: args.status, updatedAt: now })
+      updated++
+    }
+
+    return { updated }
+  },
+})
+
+export const bulkDelete = mutation({
+  args: { ids: v.array(v.id('contentEntries')) },
+  handler: async (ctx, args) => {
+    if (args.ids.length === 0) return { deleted: 0 }
+    if (args.ids.length > BULK_LIMIT) {
+      throw new ConvexError(`That is more than ${BULK_LIMIT} entries at once`)
+    }
+
+    let deleted = 0
+    for (const id of args.ids) {
+      // 'admin', matching the single-row delete. Deleting is the one content
+      // action an editor cannot do, and doing it in bulk does not change that.
+      await requireInWorkspace(ctx, id, 'admin')
+      await ctx.db.delete(id)
+      deleted++
+    }
+
+    return { deleted }
+  },
+})
+
 export const deleteContent = mutation({
   args: { id: v.id('contentEntries') },
   handler: async (ctx, args) => {

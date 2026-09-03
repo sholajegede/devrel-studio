@@ -21,6 +21,7 @@ import {
 import { toast } from 'sonner'
 import {
   Building2,
+  Copy,
   CreditCard,
   ExternalLink,
   FileText,
@@ -191,6 +192,34 @@ export function CommandPalette() {
                     }
                   >
                     <ExternalLink className="h-4 w-4" />
+                    {client.company || client.name}
+                    <CommandShortcut>{client.slug}</CommandShortcut>
+                  </CommandItem>
+                ))}
+            </CommandGroup>
+
+            {/* The same clients, the other verb.
+                Opening a dashboard is what an owner does; copying its address is
+                what they do when a manager asks for the link again — which is
+                the more frequent of the two. */}
+            <CommandSeparator />
+            <CommandGroup heading="Copy dashboard link">
+              {clients
+                .filter((client) => client.slug)
+                .map((client) => (
+                  <CommandItem
+                    key={`copy-${client._id}`}
+                    value={`copy link ${client.company} ${client.name} ${client.slug}`}
+                    onSelect={() =>
+                      run(async () => {
+                        await navigator.clipboard.writeText(
+                          `https://${client.slug}.${process.env.NEXT_PUBLIC_ROOT_DOMAIN}`,
+                        )
+                        toast.success(`${client.company || client.name} link copied`)
+                      })
+                    }
+                  >
+                    <Copy className="h-4 w-4" />
                     {client.company || client.name}
                     <CommandShortcut>{client.slug}</CommandShortcut>
                   </CommandItem>

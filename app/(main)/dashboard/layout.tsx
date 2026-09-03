@@ -3,6 +3,7 @@
 import { UserProvider } from "@/contexts/user-context";
 import { DashboardSidebar } from "@/components/dashboard/sidebar";
 import { CommandPalette } from "@/components/dashboard/command-palette";
+import { ShortcutsOverlay } from "@/components/dashboard/shortcuts-overlay";
 import { ClientScopeProvider } from "@/contexts/client-scope";
 import { ImpersonationBanner } from "@/components/admin/impersonation-banner";
 
@@ -23,6 +24,10 @@ export default function DashboardLayout({
       {/* Mounted at the layout so ⌘K works on every dashboard page. It renders
           nothing until opened. */}
       <CommandPalette />
+      {/* Renders nothing until somebody presses ?. The palette was discoverable
+          because the sidebar advertises it; nothing said what else the keyboard
+          did, so for most people the answer was "nothing". */}
+      <ShortcutsOverlay />
       {/* Seven sidebar links stand between a keyboard user and the page
           content, on every navigation. Visually hidden until focused. */}
       <a
