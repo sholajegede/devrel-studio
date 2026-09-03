@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useMemo } from 'react'
+import { useState, useRef, useMemo, useEffect } from 'react'
 import { useUserContext } from '@/contexts/user-context'
 import { useQuery, useMutation } from 'convex/react'
 import { api } from '@/convex/_generated/api'
@@ -53,7 +53,7 @@ import {
   Plus, MoreVertical, Building2, Mail, Globe,
   DollarSign, Calendar, FileText, Loader2, Users,
   TrendingUp, Edit3, Trash2, ExternalLink, KeyRound,
-  Wallet, CalendarOff, Send,
+  Wallet, CalendarOff, Send, Copy,
 } from 'lucide-react'
 import { AdminTour, AdminTourTriggerButton, TourVariant } from '@/components/admin-onboarding-tour'
 import { useWorkspaceRole } from '@/hooks/use-workspace-role'
@@ -168,8 +168,28 @@ function ClientFormDialog({
     })
   }
 
-  // Reset when dialog opens with new initial data
-  useState(() => { setForm(initial); slugTouched.current = false })
+  /**
+   * Re-seed whenever the dialog opens on a different client.
+   *
+   * This was `useState(() => { setForm(initial) })`, which looks like a
+   * run-once effect and is not one: the initialiser passed to useState runs
+   * exactly once, at mount, to compute the *first* state. The dialog is mounted
+   * for the life of the page and reused, so it ran once against the empty form
+   * and never again — every Edit afterwards opened blank, showing placeholders
+   * where the client's real details should have been.
+   *
+   * Worse than cosmetic: the form posts every field, so saving from a blank one
+   * would have written those blanks over the company, email, retainer and dates.
+   */
+  useEffect(() => {
+    if (!open) return
+    setForm(initial)
+    slugTouched.current = false
+    // `initial` is rebuilt on each render of the parent, so it cannot be a
+    // dependency without re-seeding mid-edit and discarding what is being typed.
+    // Opening the dialog is the event that matters.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, initial.name, initial.company, initial.slug])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -287,17 +307,55 @@ function ClientFormDialog({
           {/* Slug */}
           <div className="space-y-1.5">
             <Label htmlFor="slug">Dashboard slug</Label>
-            <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">devrel.studio/</span>
-              <Input
-                id="slug"
-                value={form.slug}
-                onChange={(e) => { set('slug', e.target.value); slugTouched.current = true }}
-                placeholder="acme-corp"
-                className="pl-[108px] font-mono text-sm"
-              />
+            {/* The address is a subdomain, not a path.
+                This read "devrel.studio/" before, which named a URL that does
+                work — it redirects — but is not the one a client is given, and
+                not the one that appears in their browser. Showing the wrong
+                shape in the field that creates it is how somebody sends the
+                wrong link. */}
+            <div className="flex items-center gap-2">
+              <div className="relative flex-1">
+                <Input
+                  id="slug"
+                  value={form.slug}
+                  onChange={(e) => { set('slug', e.target.value); slugTouched.current = true }}
+                  placeholder="acme-corp"
+                  className="pr-[110px] font-mono text-sm"
+                />
+                <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 font-mono text-xs text-muted-foreground">
+                  .devrel.studio
+                </span>
+              </div>
+
+              {/* Copyable the moment it exists, because the next thing anybody
+                  does with a slug is send it to somebody. */}
+              {form.slug && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="shrink-0 gap-1.5"
+                  onClick={async () => {
+                    await navigator.clipboard.writeText(dashboardUrlFor(form.slug))
+                    toast.success('Dashboard link copied')
+                  }}
+                >
+                  <Copy className="h-3.5 w-3.5" />
+                  Copy
+                </Button>
+              )}
             </div>
-            <p className="text-xs text-muted-foreground">This becomes the client&apos;s live dashboard URL and the identifier used in content entries.</p>
+            <p className="text-xs text-muted-foreground">
+              {form.slug ? (
+                <>
+                  Their dashboard lives at{' '}
+                  <span className="font-mono text-foreground">{dashboardUrlFor(form.slug)}</span>.
+                  This is also the identifier used in content entries.
+                </>
+              ) : (
+                <>This becomes the client&apos;s live dashboard address and the identifier used in content entries.</>
+              )}
+            </p>
           </div>
 
           {/* How their dashboard looks.
@@ -401,6 +459,18 @@ function ClientFormDialog({
 }
 
 // ── Page ──────────────────────────────────────────────────────────────────────
+
+/**
+ * The address a client is actually given.
+ *
+ * A subdomain, which is what the proxy routes and what appears in their
+ * browser — devrel.studio/<slug> redirects there but is not the link to send.
+ */
+function dashboardUrlFor(slug: string): string {
+  const root = process.env.NEXT_PUBLIC_ROOT_DOMAIN ?? 'devrel.studio'
+  const protocol = root.startsWith('localhost') ? 'http' : 'https'
+  return `${protocol}://${slug}.${root}`
+}
 
 /** "3 Oct" — short, because it sits inside a line of other detail. */
 function formatScheduleDate(next: { year: number; month: number; day: number }): string {
@@ -892,14 +962,29 @@ export default function ClientsPage() {
                         <KeyRound className="h-3 w-3" />
                         {client.accessCodeHash && !client.isPublic ? 'Coded' : 'Open'}
                       </span>
+                    {/* Copying the address is the more frequent of the two —
+                        a manager asking for the link again is a weekly event,
+                        and opening it yourself is not. */}
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        await navigator.clipboard.writeText(dashboardUrlFor(client.slug!))
+                        toast.success('Dashboard link copied')
+                      }}
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-muted/50 px-2.5 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors shrink-0"
+                      aria-label={`Copy the dashboard link for ${client.company || client.name}`}
+                    >
+                      <Copy className="h-3 w-3" />
+                      Copy link
+                    </button>
                     <a
-                      href={`https://${client.slug}.${process.env.NEXT_PUBLIC_ROOT_DOMAIN}`}
+                      href={dashboardUrlFor(client.slug!)}
                       target="_blank"
                       rel="noreferrer"
                       className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-muted/50 px-2.5 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors shrink-0"
                     >
                       <ExternalLink className="h-3 w-3" />
-                      View dashboard
+                      View
                     </a>
                     </div>
                   ) : null}
