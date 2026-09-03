@@ -307,6 +307,95 @@ export const sendMonthlyReportReady = internalAction({
 })
 
 /**
+ * The week's attention, to the person who produced the work.
+ *
+ * Everything the product knows about who reads a report is currently visible
+ * only to somebody who signs in and goes looking, which means it is invisible to
+ * exactly the customer most at risk of leaving. This is the one message that
+ * carries it to them.
+ *
+ * It sends nothing in a quiet week. An email that arrives every Monday saying
+ * "0 views" trains its reader to delete it unopened, and takes the weeks that
+ * matter down with it — so the cron checks for something worth saying first.
+ */
+export const sendWeeklyDigest = internalAction({
+  args: {
+    email: v.string(),
+    firstName: v.optional(v.string()),
+    views: v.number(),
+    visitors: v.number(),
+    /** Per client, biggest first, already trimmed by the caller. */
+    clients: v.array(v.object({ name: v.string(), views: v.number() })),
+    /** Manager opens — the ones attributable to somebody who had the code. */
+    managerViews: v.number(),
+    reportsRead: v.number(),
+    dashboardUrl: v.string(),
+  },
+  handler: async (_ctx, args): Promise<SendResult> => {
+    const greeting = args.firstName ? `Hi ${args.firstName},` : 'Hi,'
+    const person = args.visitors === 1 ? 'person' : 'people'
+    const time = args.views === 1 ? 'time' : 'times'
+
+    // The manager line is the one worth reading — a named buyer opening the work
+    // is a different fact from a stranger finding it — so it leads when there is
+    // one, and is silently absent when there is not.
+    const managerLine =
+      args.managerViews > 0
+        ? `<p style="margin:0 0 14px;font-size:15px;line-height:1.6;">
+             <strong>${args.managerViews}</strong> of those were someone signed in with an access
+             code — a client, not a passer-by.
+           </p>`
+        : ''
+
+    const reportLine =
+      args.reportsRead > 0
+        ? `<p style="margin:0 0 14px;font-size:15px;line-height:1.6;">
+             A monthly report was opened <strong>${args.reportsRead}</strong> ${args.reportsRead === 1 ? 'time' : 'times'}.
+           </p>`
+        : ''
+
+    const clientRows = args.clients
+      .map(
+        (client) =>
+          `<tr>
+             <td style="padding:6px 0;font-size:14px;color:#2d3748;">${client.name}</td>
+             <td style="padding:6px 0;font-size:14px;color:#718096;text-align:right;">${client.views}</td>
+           </tr>`,
+      )
+      .join('')
+
+    return await send({
+      to: args.email,
+      subject: `${args.visitors} ${person} read your work this week`,
+      html: layout(`
+        <p style="margin:0 0 14px;font-size:15px;line-height:1.6;">${greeting}</p>
+        <p style="margin:0 0 14px;font-size:15px;line-height:1.6;">
+          Your dashboards were opened <strong>${args.views}</strong> ${time} in the last seven days,
+          by <strong>${args.visitors}</strong> ${person}.
+        </p>
+        ${managerLine}
+        ${reportLine}
+        ${
+          clientRows
+            ? `<table style="width:100%;border-collapse:collapse;margin:0 0 22px;">${clientRows}</table>`
+            : ''
+        }
+        <p style="margin:0 0 22px;">${button(args.dashboardUrl, 'See who has been reading')}</p>
+        <p style="margin:0;font-size:13px;line-height:1.6;color:#718096;">
+          Sent on the weeks something happened — a quiet week gets no email. Country-level only;
+          nobody is identifiable.
+        </p>
+      `),
+      text: `${greeting}\n\nYour dashboards were opened ${args.views} ${time} in the last seven days, by ${args.visitors} ${person}.${
+        args.managerViews > 0
+          ? `\n\n${args.managerViews} of those were someone signed in with an access code — a client, not a passer-by.`
+          : ''
+      }\n\nSee who has been reading: ${args.dashboardUrl}\n\nSent on the weeks something happened — a quiet week gets no email.`,
+    })
+  },
+})
+
+/**
  * Tells someone their free trial is nearly over.
  *
  * The dashboard already carries a banner from ten days out, but a banner only

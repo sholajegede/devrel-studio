@@ -1,12 +1,16 @@
 'use client'
 
 import Link from 'next/link'
-import { useQuery } from 'convex/react'
+import { useState } from 'react'
+import { useMutation, useQuery } from 'convex/react'
+import { ConvexError } from 'convex/values'
+import { toast } from 'sonner'
 import { api } from '@/convex/_generated/api'
 import { useUserContext } from '@/contexts/user-context'
 import { useWorkspaceRole } from '@/hooks/use-workspace-role'
+import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
-import { ArrowRight, Check, Circle } from 'lucide-react'
+import { ArrowRight, Check, Circle, Loader2 } from 'lucide-react'
 
 /**
  * First-run checklist.
@@ -21,6 +25,28 @@ import { ArrowRight, Check, Circle } from 'lucide-react'
  * after completion becomes furniture.
  */
 export function GettingStarted() {
+  const state = useQuery(api.demo.hasExamples, {})
+  const fillWithExamples = useMutation(api.demo.fillWithExamples)
+  const clearExamples = useMutation(api.demo.clearExamples)
+  const [busy, setBusy] = useState(false)
+
+  const run = async (action: () => Promise<unknown>, done: string) => {
+    setBusy(true)
+    try {
+      await action()
+      toast.success(done)
+    } catch (error) {
+      toast.error(
+        error instanceof ConvexError ? String(error.data) : 'That did not work — try again.',
+      )
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const fill = () => run(() => fillWithExamples({}), 'Example data added')
+  const clear = () => run(() => clearExamples({}), 'Examples cleared')
+
   const { profile } = useUserContext()
   const { can } = useWorkspaceRole()
 
@@ -72,7 +98,12 @@ export function GettingStarted() {
   ]
 
   const completed = steps.filter((step) => step.done).length
-  if (completed === steps.length) return null
+
+  // Normally the card retires itself once every step is done. It cannot while
+  // examples are in the workspace: filling them ticks two of the steps, and a
+  // card that vanished at that moment would take the only way to remove them
+  // with it.
+  if (completed === steps.length && !state?.examples) return null
 
   // A viewer cannot complete any of these; telling them to would be noise.
   if (!can.create) return null
@@ -139,6 +170,49 @@ export function GettingStarted() {
             )
           })}
         </ol>
+
+        {/* The alternative to reading about it.
+            A new customer has no picture of what a filled dashboard looks like,
+            and the fastest way to decide whether this is worth paying for is to
+            see one with their own workspace name on it. Same fixtures as the
+            public demo, so it shows what the product actually produces. */}
+        {state?.empty && (
+          <div className="mt-5 flex flex-wrap items-center gap-3 border-t border-accent/20 pt-4">
+            <p className="min-w-0 flex-1 text-xs leading-relaxed text-muted-foreground">
+              Or see what a filled dashboard looks like first — example entries across
+              all six categories, removable in one click.
+            </p>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={fill}
+              disabled={busy}
+              className="shrink-0 gap-1.5 text-xs"
+            >
+              {busy && <Loader2 className="h-3 w-3 animate-spin" />}
+              Fill with examples
+            </Button>
+          </div>
+        )}
+
+        {state?.examples && (
+          <div className="mt-5 flex flex-wrap items-center gap-3 border-t border-accent/20 pt-4">
+            <p className="min-w-0 flex-1 text-xs leading-relaxed text-muted-foreground">
+              You are looking at example data. Nothing here is yours — clear it whenever
+              you want to start for real.
+            </p>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={clear}
+              disabled={busy}
+              className="shrink-0 gap-1.5 text-xs"
+            >
+              {busy && <Loader2 className="h-3 w-3 animate-spin" />}
+              Clear examples
+            </Button>
+          </div>
+        )}
       </CardContent>
     </Card>
   )

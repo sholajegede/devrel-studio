@@ -37,7 +37,7 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Calendar as CalendarPicker } from '@/components/ui/calendar'
 import type { DateRange } from 'react-day-picker'
-import { useQuery } from 'convex/react'
+import { useQuery, useMutation } from 'convex/react'
 import { api } from '@/convex/_generated/api'
 import { useRouter } from 'next/navigation'
 import { useUserContext } from '@/contexts/user-context'
@@ -107,6 +107,16 @@ export default function DashboardPage() {
     }, 10000)
     return () => clearTimeout(timer)
   }, [rawContent])
+
+  // What moved while they were away, and the mark that defines "away". The mark
+  // is thrown deliberately late — after the page has rendered — so the panel
+  // above is computed against the *previous* visit rather than this one.
+  const since = useQuery(api.analytics.sinceLastVisit, profile?._id ? {} : 'skip')
+  const markSeen = useMutation(api.analytics.markSeen)
+  useEffect(() => {
+    if (!profile?._id || since === undefined) return
+    void markSeen({}).catch(() => {})
+  }, [profile?._id, since, markSeen])
 
   const months = useMemo(
     () => rawContent ? getMonthsFromContent(rawContent as ContentEntry[]) : [],
@@ -237,6 +247,44 @@ export default function DashboardPage() {
         <AccessBanner />
         <RoleNotice />
         <GettingStarted />
+
+        {/* What moved while they were away.
+            Renders nothing on a first visit, nothing on a refresh, and nothing
+            in a week where nobody opened anything — a line that is always there
+            saying "0" is a line people stop reading. */}
+        {since && (
+          <div className="mb-6 flex flex-wrap items-center gap-x-2 gap-y-1 rounded-xl border border-accent/25 bg-accent/5 px-4 py-3 text-sm">
+            <Eye className="h-4 w-4 shrink-0 text-accent" />
+            <span className="text-foreground">
+              <strong className="font-medium">{since.visitors}</strong>{' '}
+              {since.visitors === 1 ? 'person' : 'people'} opened your work since you
+              were last here
+              {since.managerViews > 0 && (
+                <>
+                  {' — '}
+                  <strong className="font-medium">{since.managerViews}</strong>{' '}
+                  {since.managerViews === 1 ? 'was a client' : 'were clients'} signed in
+                  with a code
+                </>
+              )}
+              {since.reportsRead > 0 && (
+                <>
+                  {', and a report was opened '}
+                  <strong className="font-medium">{since.reportsRead}</strong>{' '}
+                  {since.reportsRead === 1 ? 'time' : 'times'}
+                </>
+              )}
+              .
+            </span>
+            <Link
+              href="/dashboard/analytics"
+              className="text-accent underline-offset-4 hover:underline"
+            >
+              See who
+            </Link>
+          </div>
+        )}
+
         <FeedbackInbox />
 
         {/* Page heading */}

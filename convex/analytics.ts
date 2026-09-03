@@ -1,5 +1,6 @@
 import { v } from 'convex/values'
-import { internalMutation, mutation, query } from './_generated/server'
+import { internal } from './_generated/api'
+import { internalAction, internalMutation, internalQuery, mutation, query } from './_generated/server'
 import type { Doc, Id } from './_generated/dataModel'
 import type { MutationCtx, QueryCtx } from './_generated/server'
 import { requireWorkspace } from './model/workspaces'
@@ -439,6 +440,202 @@ export const pruneOldViews = internalMutation({
       await ctx.db.delete(view._id)
     }
     return { deleted: stale.length }
+  },
+})
+
+/**
+ * The week's attention, per workspace owner, for the digest.
+ *
+ * An `internalAction` sends the mail; this is the read it works from, and it
+ * returns only workspaces with something worth saying. A digest that arrives
+ * every Monday reading "0 views" teaches its reader to delete it unopened, and
+ * takes the weeks that matter with it.
+ *
+ * Scans `pageViews` once over the window and groups in memory rather than
+ * querying per workspace: at these volumes one indexed range read beats N.
+ */
+export const weeklyDigestRecipients = internalQuery({
+  args: {},
+  handler: async (ctx) => {
+    const since = Date.now() - 7 * DAY_MS
+
+    const views = await ctx.db
+      .query('pageViews')
+      .withIndex('by_time', (q) => q.gte('at', since))
+      .collect()
+
+    interface Bucket {
+      views: number
+      visitors: Set<string>
+      managerViews: number
+      reportsRead: number
+      byClient: Map<string, number>
+    }
+
+    const byWorkspace = new Map<string, Bucket>()
+
+    for (const view of views) {
+      // Platform traffic belongs to nobody's workspace, and a portfolio view is
+      // not somebody reading a client's report — the digest is about the work
+      // being delivered under an engagement.
+      if (!view.workspaceId) continue
+
+      const bucket = byWorkspace.get(view.workspaceId) ?? {
+        views: 0,
+        visitors: new Set<string>(),
+        managerViews: 0,
+        reportsRead: 0,
+        byClient: new Map<string, number>(),
+      }
+
+      bucket.views += 1
+      bucket.visitors.add(view.visitorHash)
+      if (view.identity === 'manager') bucket.managerViews += 1
+      if (view.surface === 'dashboard' && isReportPath(view.path)) bucket.reportsRead += 1
+      if (view.surface === 'dashboard') {
+        bucket.byClient.set(view.target, (bucket.byClient.get(view.target) ?? 0) + 1)
+      }
+
+      byWorkspace.set(view.workspaceId, bucket)
+    }
+
+    const recipients = []
+
+    for (const [workspaceId, bucket] of byWorkspace) {
+      const workspace = await ctx.db.get(workspaceId as Id<'workspaces'>)
+      if (!workspace) continue
+
+      const owner = await ctx.db.get(workspace.ownerId)
+      // A paused account is not sent mail about a product it cannot open.
+      if (!owner || owner.pausedAt) continue
+
+      recipients.push({
+        email: owner.email,
+        firstName: owner.firstName,
+        views: bucket.views,
+        visitors: bucket.visitors.size,
+        managerViews: bucket.managerViews,
+        reportsRead: bucket.reportsRead,
+        clients: [...bucket.byClient.entries()]
+          .map(([name, count]) => ({ name, views: count }))
+          .sort((a, b) => b.views - a.views)
+          .slice(0, 5),
+      })
+    }
+
+    return recipients
+  },
+})
+
+/**
+ * What has happened since this account last opened the dashboard.
+ *
+ * The one thing that makes a workspace feel alive rather than static: a product
+ * that says what moved while you were away is answering a question you had, and
+ * one that looks identical every visit is not.
+ *
+ * Returns null on a first visit rather than counting everything since the
+ * beginning of time — "12 people read your work since you were last here" is a
+ * lie when the last time was never.
+ */
+export const sinceLastVisit = query({
+  args: {},
+  handler: async (ctx) => {
+    const context = await requireWorkspace(ctx)
+    const since = context.user.lastSeenAt
+    if (!since) return null
+
+    // A visit that ended a minute ago is still this visit. Without a floor the
+    // line would read "nothing since you were last here" for anybody who
+    // refreshes, which is technically true and useless.
+    const elapsed = Date.now() - since
+    if (elapsed < 5 * 60 * 1000) return null
+
+    const views = await ctx.db
+      .query('pageViews')
+      .withIndex('by_workspace_and_time', (q) =>
+        q.eq('workspaceId', context.workspaceId).gt('at', since),
+      )
+      .collect()
+
+    if (views.length === 0) return null
+
+    return {
+      since,
+      views: views.length,
+      visitors: uniqueBy(views, (view) => view.visitorHash),
+      managerViews: views.filter((view) => view.identity === 'manager').length,
+      reportsRead: views.filter(
+        (view) => view.surface === 'dashboard' && isReportPath(view.path),
+      ).length,
+    }
+  },
+})
+
+/**
+ * Note that this account has been here.
+ *
+ * Called by the dashboard when it loads, and only moves the mark forward — a
+ * clock that could go backwards would make the panel above replay events the
+ * reader has already seen.
+ *
+ * Throttled to once an hour. The alternative is a write on every navigation, on
+ * a field whose entire purpose is to be coarse.
+ */
+export const markSeen = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const context = await requireWorkspace(ctx)
+    const now = Date.now()
+    const last = context.user.lastSeenAt ?? 0
+
+    if (now - last < 60 * 60 * 1000) return { moved: false }
+
+    await ctx.db.patch(context.user._id, { lastSeenAt: now })
+    return { moved: true }
+  },
+})
+
+/**
+ * Send this week's digests.
+ *
+ * An action rather than a mutation because it sends mail, and one send failing
+ * must not roll back the others — each recipient is independent, and a provider
+ * having a bad minute should cost one email rather than the whole run.
+ */
+export const sendWeeklyDigests = internalAction({
+  args: {},
+  handler: async (ctx): Promise<{ sent: number; failed: number }> => {
+    const recipients: {
+      email: string
+      firstName?: string
+      views: number
+      visitors: number
+      managerViews: number
+      reportsRead: number
+      clients: { name: string; views: number }[]
+    }[] = await ctx.runQuery(internal.analytics.weeklyDigestRecipients, {})
+
+    const dashboardUrl = `${process.env.SITE_URL ?? 'https://devrel.studio'}/dashboard/analytics`
+
+    let sent = 0
+    let failed = 0
+
+    for (const recipient of recipients) {
+      try {
+        await ctx.runAction(internal.email.sendWeeklyDigest, {
+          ...recipient,
+          dashboardUrl,
+        })
+        sent += 1
+      } catch {
+        // One address failing is one email lost, not a run abandoned partway
+        // through with no record of who already had theirs.
+        failed += 1
+      }
+    }
+
+    return { sent, failed }
   },
 })
 
