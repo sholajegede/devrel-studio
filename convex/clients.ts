@@ -37,6 +37,7 @@ const clientFields = {
   notes: v.optional(v.string()),
   slug: v.optional(v.string()),
   logoStorageId: v.optional(v.id('_storage')),
+  logoDarkStorageId: v.optional(v.id('_storage')),
   brandColor: v.optional(v.string()),
   customDomain: v.optional(v.string()),
 }
@@ -262,6 +263,7 @@ export const createClient = mutation({
     if (slug) await assertSlugAvailable(ctx, slug)
 
     if (args.logoStorageId) await assertUsableLogo(ctx, args.logoStorageId)
+    if (args.logoDarkStorageId) await assertUsableLogo(ctx, args.logoDarkStorageId)
 
     return await ctx.db.insert('clients', {
       ...args,
@@ -291,6 +293,12 @@ export const updateClient = mutation({
     if (fields.logoStorageId && fields.logoStorageId !== before.logoStorageId) {
       await assertUsableLogo(ctx, fields.logoStorageId)
     }
+    if (
+      fields.logoDarkStorageId &&
+      fields.logoDarkStorageId !== before.logoDarkStorageId
+    ) {
+      await assertUsableLogo(ctx, fields.logoDarkStorageId)
+    }
 
     const slug = normalizeSlug(fields.slug || fields.company)
     if (slug) await assertSlugAvailable(ctx, slug, clientId)
@@ -319,6 +327,12 @@ export const updateClient = mutation({
     // pointing at it, which is the state that made every later save fail.
     if (before.logoStorageId && before.logoStorageId !== fields.logoStorageId) {
       await discardFile(ctx, before.logoStorageId)
+    }
+    if (
+      before.logoDarkStorageId &&
+      before.logoDarkStorageId !== fields.logoDarkStorageId
+    ) {
+      await discardFile(ctx, before.logoDarkStorageId)
     }
 
     // Entries are tagged with the slug as a string, and the client dashboard
@@ -525,6 +539,7 @@ export const deleteClient = mutation({
     // Their logo goes with them. Nothing else refers to the file, so keeping it
     // is storage that is paid for and can never be found again.
     await discardFile(ctx, client.logoStorageId)
+    await discardFile(ctx, client.logoDarkStorageId)
 
     // Drop manager sessions too. They are only checked by slug and expiry, so
     // leaving them behind would let an old manager into whichever client next

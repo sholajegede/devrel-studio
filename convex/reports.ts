@@ -222,9 +222,14 @@ export const getReport = query({
         // Carried so the exported PDF looks like a document prepared for this
         // client rather than a printout from somebody's tool. Both optional and
         // both fall back to the product's own look.
+        // The light one. The PDF prints on a white page, so the dark variant
+        // would be the wrong choice even when both exist — and it is still
+        // better than nothing when it is all there is.
         logoUrl: client.logoStorageId
           ? await ctx.storage.getUrl(client.logoStorageId)
-          : (client.logoUrl ?? null),
+          : client.logoDarkStorageId
+            ? await ctx.storage.getUrl(client.logoDarkStorageId)
+            : (client.logoUrl ?? null),
         brandColor: client.brandColor ?? null,
       },
       period: args.period,
