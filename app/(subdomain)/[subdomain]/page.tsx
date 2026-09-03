@@ -142,12 +142,17 @@ function DashboardHeader({
 }: {
   clientName: string;
   tourControls?: { startTour: () => void } | null;
-  branding?: { logoUrl: string | null; brandColor: string | null };
+  branding?: {
+    logoUrl: string | null;
+    logoDarkUrl: string | null;
+    brandColor: string | null;
+  };
 }) {
   // With a logo, the page leads with the client's identity and devrel.studio
   // becomes a line of attribution underneath. Without one it stays as it was —
   // a client who has uploaded nothing should not get a hole where a logo goes.
   const logo = branding?.logoUrl ?? null;
+  const logoDark = branding?.logoDarkUrl ?? logo;
 
   return (
     <header className="sticky top-0 z-10 border-b border-border bg-card">
@@ -155,14 +160,27 @@ function DashboardHeader({
         <div className="flex h-16 items-center justify-between">
           <div className="flex items-center gap-3">
             {logo ? (
-              // Their own file, so its dimensions are unknown — bounded rather
+              // Both grounds, swapped by CSS rather than by reading the theme in
+              // JavaScript: the class is already on the document when the first
+              // paint happens, so there is no flash of the wrong one and no
+              // hydration mismatch to reconcile.
+              //
+              // Their own files, so the dimensions are unknown — bounded rather
               // than cropped, because a squashed logo is worse than a small one.
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={logo}
-                alt={clientName}
-                className="h-8 max-w-[140px] object-contain"
-              />
+              <>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={logo}
+                  alt={clientName}
+                  className="h-8 max-w-[140px] object-contain dark:hidden"
+                />
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={logoDark ?? logo}
+                  alt={clientName}
+                  className="hidden h-8 max-w-[140px] object-contain dark:block"
+                />
+              </>
             ) : (
               <Image src="/images/devrel-logo.png" alt="DevRel Studio" width={32} height={32} className="rounded" />
             )}
@@ -364,7 +382,11 @@ export default function ClientDashboard({
   const gate = useQuery(api.managerAccess.getGateInfo, { slug: subdomain });
   const clientName =
     gate?.clientName || subdomain.charAt(0).toUpperCase() + subdomain.slice(1);
-  const branding = { logoUrl: gate?.logoUrl ?? null, brandColor: gate?.brandColor ?? null };
+  const branding = {
+    logoUrl: gate?.logoUrl ?? null,
+    logoDarkUrl: gate?.logoDarkUrl ?? null,
+    brandColor: gate?.brandColor ?? null,
+  };
 
   // ── Data derivation — all hooks must be called before any early return ────
 

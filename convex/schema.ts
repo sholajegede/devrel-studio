@@ -233,6 +233,19 @@ export default defineSchema({
     logoStorageId: v.optional(v.id("_storage")),
 
     /**
+     * A second logo, for dark backgrounds.
+     *
+     * Most wordmarks are drawn for one ground and disappear on the other, and
+     * the client dashboard follows the reader's own theme — so a single file is
+     * a promise the page cannot keep.
+     *
+     * Optional, and symmetric with the one above: whichever is missing falls
+     * back to the other, so a client with one logo is not worse off than before
+     * this existed.
+     */
+    logoDarkStorageId: v.optional(v.id("_storage")),
+
+    /**
      * A logo address, from before uploads existed.
      *
      * Read as a fallback when there is no stored file, so a client configured

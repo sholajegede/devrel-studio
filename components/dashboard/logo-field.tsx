@@ -25,11 +25,21 @@ const MAX_BYTES = 2 * 1024 * 1024
 const ACCEPT = 'image/png,image/jpeg,image/webp,image/svg+xml,image/gif'
 
 export function LogoField({
+  id,
   storageId,
   onChange,
+  dark = false,
 }: {
+  id: string
   storageId: string
   onChange: (storageId: string) => void
+  /**
+   * Preview this one against a dark ground.
+   *
+   * A logo drawn for a dark background is invisible on the light card this form
+   * sits on, which would make a correct upload look like a failed one.
+   */
+  dark?: boolean
 }) {
   const generateUploadUrl = useMutation(api.clients.generateLogoUploadUrl)
   const input = useRef<HTMLInputElement>(null)
@@ -79,10 +89,10 @@ export function LogoField({
   }
 
   return (
-    <div className="flex items-center gap-3">
+    <div className="flex flex-wrap items-center gap-2">
       <input
         ref={input}
-        id="logo"
+        id={id}
         type="file"
         accept={ACCEPT}
         className="sr-only"
@@ -99,11 +109,17 @@ export function LogoField({
         <img
           src={current}
           alt="Client logo"
-          className="h-9 max-w-[120px] rounded border border-border bg-muted/40 object-contain p-1"
+          className={`h-9 max-w-[120px] rounded border border-border object-contain p-1 ${
+            dark ? 'bg-slate-900' : 'bg-white'
+          }`}
         />
       ) : (
-        <div className="flex h-9 w-[120px] items-center justify-center rounded border border-dashed border-border text-xs text-muted-foreground">
-          {storageId ? 'Loading…' : 'No logo'}
+        <div
+          className={`flex h-9 w-[120px] items-center justify-center rounded border border-dashed border-border text-xs text-muted-foreground ${
+            dark ? 'bg-slate-900/60' : 'bg-white/60'
+          }`}
+        >
+          {storageId ? 'Loading…' : 'None'}
         </div>
       )}
 

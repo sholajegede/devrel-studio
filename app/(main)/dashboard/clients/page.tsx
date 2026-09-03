@@ -84,6 +84,7 @@ interface ClientFormData {
   website: string
   monthlyRetainer: string
   logoStorageId: string
+  logoDarkStorageId: string
   brandColor: string
   customDomain: string
   currency: Currency
@@ -100,7 +101,7 @@ const EMPTY_FORM: ClientFormData = {
   monthlyRetainer: '', currency: 'USD',
   startDate: '', endDate: '',
   status: 'Active', contractType: '', notes: '', slug: '',
-  logoStorageId: '', brandColor: '', customDomain: '',
+  logoStorageId: '', logoDarkStorageId: '', brandColor: '', customDomain: '',
 }
 
 const STATUS_STYLES: Record<ClientStatus, string> = {
@@ -362,19 +363,52 @@ function ClientFormDialog({
           {/* How their dashboard looks.
               The page at that address is opened by somebody the client pays,
               and it carried this product's identity and none of theirs. */}
-          <div className="space-y-1.5">
-            <Label htmlFor="logo">
-              Client logo <span className="text-muted-foreground text-xs">(optional)</span>
-            </Label>
-            <LogoField
-              storageId={form.logoStorageId}
-              onChange={(id) => set('logoStorageId', id)}
-            />
-            <p className="text-xs text-muted-foreground">
-              Shown at the top of their dashboard and on the exported PDF. Held here
-              rather than linked, so it cannot break when somebody else&apos;s site
-              changes. PNG, JPG, WebP or SVG, under 2 MB.
-            </p>
+          <div className="space-y-3">
+            <div>
+              <Label>
+                Client logo <span className="text-muted-foreground text-xs">(optional)</span>
+              </Label>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Shown at the top of their dashboard and on the exported PDF. Held here
+                rather than linked, so it cannot break when somebody else&apos;s site
+                changes. PNG, JPG, WebP or SVG, under 2 MB.
+              </p>
+            </div>
+
+            {/* Two, because a wordmark drawn for a white page disappears on a
+                dark one and the dashboard follows the reader's own theme.
+                Either alone is used for both, so one upload is no worse than
+                before this existed. */}
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="space-y-1.5">
+                <Label htmlFor="logo" className="text-xs font-normal text-muted-foreground">
+                  On a light background
+                </Label>
+                <LogoField
+                  id="logo"
+                  storageId={form.logoStorageId}
+                  onChange={(id) => set('logoStorageId', id)}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="logo-dark" className="text-xs font-normal text-muted-foreground">
+                  On a dark background
+                </Label>
+                <LogoField
+                  id="logo-dark"
+                  storageId={form.logoDarkStorageId}
+                  onChange={(id) => set('logoDarkStorageId', id)}
+                  dark
+                />
+              </div>
+            </div>
+
+            {(form.logoStorageId || form.logoDarkStorageId) &&
+              !(form.logoStorageId && form.logoDarkStorageId) && (
+                <p className="text-xs text-muted-foreground">
+                  Only one uploaded — it will be used on both backgrounds.
+                </p>
+              )}
           </div>
 
           <div className="space-y-1.5">
@@ -541,6 +575,7 @@ export default function ClientsPage() {
           notes: data.notes || undefined,
           slug: data.slug || undefined,
           logoStorageId: (data.logoStorageId || undefined) as Id<'_storage'> | undefined,
+          logoDarkStorageId: (data.logoDarkStorageId || undefined) as Id<'_storage'> | undefined,
           brandColor: data.brandColor || undefined,
           customDomain: data.customDomain || undefined,
         })
@@ -560,6 +595,7 @@ export default function ClientsPage() {
           notes: data.notes || undefined,
           slug: data.slug || undefined,
           logoStorageId: (data.logoStorageId || undefined) as Id<'_storage'> | undefined,
+          logoDarkStorageId: (data.logoDarkStorageId || undefined) as Id<'_storage'> | undefined,
           brandColor: data.brandColor || undefined,
           customDomain: data.customDomain || undefined,
         })
@@ -600,6 +636,7 @@ export default function ClientsPage() {
         notes: editTarget.notes ?? '',
         slug: editTarget.slug ?? '',
         logoStorageId: editTarget.logoStorageId ?? '',
+        logoDarkStorageId: editTarget.logoDarkStorageId ?? '',
         brandColor: editTarget.brandColor ?? '',
         customDomain: editTarget.customDomain ?? '',
       }

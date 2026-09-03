@@ -49,6 +49,7 @@ export const getGateInfo = query({
         isPublic: false,
         hasCode: false,
         logoUrl: null,
+        logoDarkUrl: null,
         brandColor: null,
       }
     }
@@ -62,12 +63,25 @@ export const getGateInfo = query({
       // How this client's own dashboard should look. Public on purpose: it is
       // read by the page every manager opens, before any code is entered, and a
       // logo is not a secret. Nothing else about the client is exposed here.
-      // The stored file, or the address a client was configured with before
-      // uploads existed — losing somebody's logo to an upgrade would be a
-      // strange way to improve it.
+      // Both grounds, and each falls back to the other.
+      //
+      // Most wordmarks are drawn for one background and vanish on the second, so
+      // a client who has uploaded two gets the right one either way — and a
+      // client who has uploaded one is exactly as well off as before, rather
+      // than having a hole in whichever theme they did not think about.
+      //
+      // The legacy address is the last resort: losing somebody's logo to an
+      // upgrade would be a strange way to improve it.
       logoUrl: client.logoStorageId
         ? await ctx.storage.getUrl(client.logoStorageId)
-        : (client.logoUrl ?? null),
+        : client.logoDarkStorageId
+          ? await ctx.storage.getUrl(client.logoDarkStorageId)
+          : (client.logoUrl ?? null),
+      logoDarkUrl: client.logoDarkStorageId
+        ? await ctx.storage.getUrl(client.logoDarkStorageId)
+        : client.logoStorageId
+          ? await ctx.storage.getUrl(client.logoStorageId)
+          : (client.logoUrl ?? null),
       brandColor: client.brandColor ?? null,
     }
   },
