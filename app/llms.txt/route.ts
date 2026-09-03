@@ -67,7 +67,10 @@ export async function GET() {
   const body = portfolios
     .map((entry) =>
       lines(
-        `## @${entry.handle}`,
+        // H3, under the "## Portfolios" heading below. At H2 an entry was a
+        // sibling of the section that contains it, which in a file whose whole
+        // audience parses headings is a wrong answer about the structure.
+        `### @${entry.handle}`,
         '',
         field('URL', `${origin}/@${entry.handle}`),
         field('llms.txt', `${origin}/@${entry.handle}/llms.txt`),
