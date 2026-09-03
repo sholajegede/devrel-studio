@@ -57,7 +57,12 @@ function currentMonthKey() {
 export default function DashboardPage() {
   const { profile } = useUserContext()
   const { matches } = useClientScope()
+  // Starts on the current month and moves itself once, below, if that month is
+  // empty. Somebody opening this on the third of the month has usually published
+  // nothing yet, and greeting them with "0 entries this period" says the product
+  // is empty when it is the calendar that is.
   const [selectedMonth,  setSelectedMonth]  = useState<string>(currentMonthKey())
+  const [monthAdjusted,  setMonthAdjusted]  = useState(false)
   const [categoryFilter, setCategoryFilter] = useState<string>('all')
   const [dateRange,      setDateRange]      = useState<DateRange | undefined>(undefined)
   const [rangeOpen,      setRangeOpen]      = useState(false)
@@ -65,6 +70,9 @@ export default function DashboardPage() {
   const [tourControls,   setTourControls]   = useState<{ startTour: () => void } | null>(null)
 
   const handleMonthChange = (value: string) => {
+    // Touching the control settles it: no later adjustment may move a month the
+    // reader chose, empty or not.
+    setMonthAdjusted(true)
     setSelectedMonth(value)
     setDateRange(undefined)
   }
@@ -104,6 +112,32 @@ export default function DashboardPage() {
     () => rawContent ? getMonthsFromContent(rawContent as ContentEntry[]) : [],
     [rawContent]
   )
+
+  /**
+   * The months offered in the picker.
+   *
+   * The current one is always present even when nothing was published in it.
+   * Without that the trigger had a value matching no item and rendered *blank* —
+   * a control with an icon, a chevron and no text, next to two that name
+   * themselves.
+   */
+  const monthOptions = useMemo(() => {
+    const now = currentMonthKey()
+    return months.includes(now) ? months : [now, ...months]
+  }, [months])
+
+  /**
+   * Land on a month with something in it, once.
+   *
+   * Only before the reader has touched the control, and only when the month they
+   * would have landed on is empty — picking an empty month deliberately has to
+   * keep working, or the filter is lying about what it is showing.
+   */
+  useEffect(() => {
+    if (monthAdjusted || !rawContent || months.length === 0) return
+    setMonthAdjusted(true)
+    if (!months.includes(currentMonthKey())) setSelectedMonth(months[0])
+  }, [rawContent, months, monthAdjusted])
 
   // Chart data: last 6 months of published vs in-progress
   const chartData = useMemo(() => {
@@ -222,7 +256,7 @@ export default function DashboardPage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Months</SelectItem>
-                {months.map((month) => (
+                {monthOptions.map((month) => (
                   <SelectItem key={month} value={month}>{formatMonthLabel(month)}</SelectItem>
                 ))}
               </SelectContent>

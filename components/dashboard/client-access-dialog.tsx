@@ -28,6 +28,25 @@ import {
   ShieldCheck,
 } from 'lucide-react'
 
+/**
+ * The message a DevRel would otherwise type.
+ *
+ * Plain text rather than anything formatted: this is pasted into email, Slack
+ * and WhatsApp, and the one format all three agree on is none. The address and
+ * the code sit on their own lines because a manager reading it on a phone will
+ * copy one of them by touch.
+ */
+function handoverText(client: string, url: string, code: string): string {
+  return [
+    `Here is your ${client} dashboard — it updates as work is published.`,
+    '',
+    url,
+    `Access code: ${code}`,
+    '',
+    'The code is only needed the first time on each device.',
+  ].join('\n')
+}
+
 export function ClientAccessDialog({
   client,
   open,
@@ -164,6 +183,8 @@ export function ClientAccessDialog({
     }
   }
 
+  const clientLabel = client.company || client.name
+
   const copy = async (value: string) => {
     await navigator.clipboard.writeText(value)
     setCopied(true)
@@ -286,6 +307,20 @@ export function ClientAccessDialog({
                   <p className="text-xs text-amber-700 dark:text-amber-300">
                     Copy this now — it is stored hashed and will not be shown again.
                   </p>
+
+                  {/* The two halves together, written out.
+                      Handing a manager their dashboard is one errand, not two —
+                      and the code is only visible in this one moment, so the
+                      chance to pair it with the address does not come back. */}
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => copy(handoverText(clientLabel, dashboardUrl, code))}
+                    className="w-full gap-1.5"
+                  >
+                    {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+                    Copy link and code together
+                  </Button>
                 </div>
               ) : (
                 <p className="text-xs text-muted-foreground">

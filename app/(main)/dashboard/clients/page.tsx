@@ -1,10 +1,11 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState, useRef, useMemo } from 'react'
 import { useUserContext } from '@/contexts/user-context'
 import { useQuery, useMutation } from 'convex/react'
 import { api } from '@/convex/_generated/api'
 import { Id, Doc } from '@/convex/_generated/dataModel'
+import { nextRun } from '@/lib/schedule'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -52,7 +53,7 @@ import {
   Plus, MoreVertical, Building2, Mail, Globe,
   DollarSign, Calendar, FileText, Loader2, Users,
   TrendingUp, Edit3, Trash2, ExternalLink, KeyRound,
-  Wallet, CalendarOff,
+  Wallet, CalendarOff, Send,
 } from 'lucide-react'
 import { AdminTour, AdminTourTriggerButton, TourVariant } from '@/components/admin-onboarding-tour'
 import { useWorkspaceRole } from '@/hooks/use-workspace-role'
@@ -323,6 +324,14 @@ function ClientFormDialog({
 
 // ── Page ──────────────────────────────────────────────────────────────────────
 
+/** "3 Oct" — short, because it sits inside a line of other detail. */
+function formatScheduleDate(next: { year: number; month: number; day: number }): string {
+  return new Date(next.year, next.month - 1, next.day).toLocaleDateString(undefined, {
+    day: 'numeric',
+    month: 'short',
+  })
+}
+
 export default function ClientsPage() {
   const { profile } = useUserContext()
   const userId = profile?._id
@@ -337,6 +346,15 @@ export default function ClientsPage() {
   const [deleteId,    setDeleteId]    = useState<Id<'clients'> | null>(null)
   const [editTarget,  setEditTarget]  = useState<Doc<'clients'> | null>(null)
   const [accessTarget, setAccessTarget] = useState<Doc<'clients'> | null>(null)
+  // Schedules, keyed by client. The one recurring commitment in the product was
+  // invisible on this page until the moment it fired.
+  const schedules = useQuery(api.reports.listSchedules, profile?._id ? {} : 'skip')
+  const scheduleFor = useMemo(() => {
+    const map = new Map<string, NonNullable<typeof schedules>[number]['schedule']>()
+    for (const row of schedules ?? []) map.set(row.clientId, row.schedule)
+    return map
+  }, [schedules])
+
   const [rateTarget,   setRateTarget]   = useState<Doc<'clients'> | null>(null)
   const [pauseTarget,  setPauseTarget]  = useState<Doc<'clients'> | null>(null)
   const [isSaving,    setIsSaving]    = useState(false)
@@ -614,6 +632,42 @@ export default function ClientsPage() {
                       <span>Ended {formatDate(client.endDate)}</span>
                     </div>
                   )}
+                  {(() => {
+                    // Reads from the same fields the hourly job does, through
+                    // the same function, so the date on the card and the date it
+                    // actually sends cannot disagree.
+                    const schedule = scheduleFor.get(client._id)
+                    if (!schedule) return null
+
+                    // The query returns nulls where the schema has optionals;
+                    // `nextRun` reads the absence, not the null.
+                    const next = nextRun({
+                      ...schedule,
+                      lastSentPeriod: schedule.lastSentPeriod ?? undefined,
+                    })
+                    const recipients = schedule.recipients.length
+
+                    return (
+                      <div className="flex items-center gap-2">
+                        <Send className="h-3.5 w-3.5 shrink-0" />
+                        <span className="truncate">
+                          {next ? (
+                            <>
+                              Next report {formatScheduleDate(next)}
+                              <span className="text-muted-foreground/70">
+                                {' · to '}
+                                {recipients} {recipients === 1 ? 'recipient' : 'recipients'}
+                              </span>
+                            </>
+                          ) : (
+                            <span className="text-muted-foreground/70">
+                              Monthly report is off
+                            </span>
+                          )}
+                        </span>
+                      </div>
+                    )
+                  })()}
                   {client.notes && (
                     <div className="flex items-start gap-2">
                       <FileText className="h-3.5 w-3.5 shrink-0 mt-0.5" />
