@@ -104,12 +104,12 @@ async function assertUsableLogo(ctx: MutationCtx, storageId: Id<'_storage'>) {
   if (!meta) throw new ConvexError('That upload did not arrive — try again')
 
   if (meta.size > LOGO_MAX_BYTES) {
-    await ctx.storage.delete(storageId)
+    await discardFile(ctx, storageId)
     throw new ConvexError('That image is over 2 MB — a logo should be well under it')
   }
 
   if (!meta.contentType || !LOGO_TYPES.includes(meta.contentType)) {
-    await ctx.storage.delete(storageId)
+    await discardFile(ctx, storageId)
     throw new ConvexError('That is not an image file')
   }
 }
@@ -128,6 +128,28 @@ export const generateLogoUploadUrl = mutation({
     return await ctx.storage.generateUploadUrl()
   },
 })
+
+/**
+ * Delete a stored file, tolerating one that is already gone.
+ *
+ * `ctx.storage.delete` throws on an id it cannot find, and that turned a piece
+ * of housekeeping into something that could refuse somebody's edit: a client row
+ * pointing at a file deleted by an earlier half-finished save could never be
+ * saved again, because every attempt died on the same dead id before reaching
+ * the patch.
+ *
+ * Cleaning up is worth doing and is never worth failing a save over. Swallowing
+ * the miss also repairs the row on the way past, since the id is being replaced
+ * in the same transaction.
+ */
+async function discardFile(ctx: MutationCtx, storageId: Id<'_storage'> | undefined) {
+  if (!storageId) return
+  try {
+    await ctx.storage.delete(storageId)
+  } catch {
+    // Already gone. Which is the state we wanted.
+  }
+}
 
 /** A stored logo's address, so the form can show what is currently set. */
 export const logoUrlFor = query({
@@ -270,13 +292,6 @@ export const updateClient = mutation({
       await assertUsableLogo(ctx, fields.logoStorageId)
     }
 
-    // The file being replaced, or cleared, is deleted rather than orphaned.
-    // Nothing else can reach it once the client stops pointing at it, so leaving
-    // it behind is storage that is paid for and can never be found again.
-    if (before.logoStorageId && before.logoStorageId !== fields.logoStorageId) {
-      await ctx.storage.delete(before.logoStorageId)
-    }
-
     const slug = normalizeSlug(fields.slug || fields.company)
     if (slug) await assertSlugAvailable(ctx, slug, clientId)
 
@@ -297,6 +312,14 @@ export const updateClient = mutation({
     }
 
     await ctx.db.patch(clientId, patch)
+
+    // The replaced file goes only after the row that pointed at it has been
+    // written. Deleting first meant that anything throwing in between — a slug
+    // collision, a validation refusal — left the file gone and the client still
+    // pointing at it, which is the state that made every later save fail.
+    if (before.logoStorageId && before.logoStorageId !== fields.logoStorageId) {
+      await discardFile(ctx, before.logoStorageId)
+    }
 
     // Entries are tagged with the slug as a string, and the client dashboard
     // matches on it exactly. Renaming the slug without moving the entries would
@@ -501,7 +524,7 @@ export const deleteClient = mutation({
 
     // Their logo goes with them. Nothing else refers to the file, so keeping it
     // is storage that is paid for and can never be found again.
-    if (client.logoStorageId) await ctx.storage.delete(client.logoStorageId)
+    await discardFile(ctx, client.logoStorageId)
 
     // Drop manager sessions too. They are only checked by slug and expiry, so
     // leaving them behind would let an old manager into whichever client next
