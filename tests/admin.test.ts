@@ -256,3 +256,31 @@ describe('a request status cannot be a typo', () => {
     expect(source).toMatch(/new Set<string>\(REQUEST_STATUSES\)/)
   })
 })
+
+// ── One entrance ──────────────────────────────────────────────────────────────
+//
+// The console answers on its own host. A link to it in the product's sidebar
+// undoes the point of that: it puts the entrance back in the navigation of the
+// page every customer opens, and makes the sidebar render differently depending
+// on who is looking at it.
+//
+// This is a source check rather than a rendering one because the failure is a
+// line somebody adds back for convenience, and it is easier to add than to
+// notice.
+
+describe('the product does not advertise the console', () => {
+  const sidebar = readFileSync(
+    join(process.cwd(), 'components/dashboard/sidebar.tsx'),
+    'utf8',
+  )
+
+  it('has no link to the console', () => {
+    expect(sidebar).not.toMatch(/['"]\/admin/)
+  })
+
+  it('does not ask whether the viewer is an admin', () => {
+    // The query is what made the sidebar differ per viewer. Removing the link
+    // and leaving the question behind would keep the cost and lose the point.
+    expect(sidebar).not.toMatch(/myAdminRole|openRequestCount/)
+  })
+})
