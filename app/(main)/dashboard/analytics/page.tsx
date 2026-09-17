@@ -20,6 +20,20 @@ import { ViewsChart } from '@/components/dashboard/analytics/views-chart'
 
 const RANGES = [7, 14, 30, 90] as const
 
+/**
+ * Tile names from before the range fix.
+ *
+ * This bundle and the Convex query it reads deploy on separate commands —
+ * Vercel ships on push, Convex on `convex deploy` — so a release exists where
+ * the page is newer than the backend answering it. When the tiles were renamed
+ * off their `7d` suffix, the page went out first and every one of these came
+ * back undefined, which took the whole route down.
+ *
+ * Delete this, and the `??` fallbacks below, once prod is serving the renamed
+ * query.
+ */
+type LegacyTiles = Partial<{ visitors7d: number; managerViews7d: number }>
+
 export default function AnalyticsPage() {
   const { profile } = useUserContext()
   const [days, setDays] = useState<number>(14)
@@ -41,6 +55,10 @@ export default function AnalyticsPage() {
   const loading = overview == null
 
   const totalViews = overview?.tiles.allTimeViews ?? 0
+
+  // Widened rather than cast away: the new names still typecheck normally, and
+  // only the retired ones go through `LegacyTiles`.
+  const tiles = (overview?.tiles ?? {}) as NonNullable<typeof overview>['tiles'] & LegacyTiles
 
   return (
     <main className="px-6 lg:px-10 py-8 max-w-400">
@@ -90,22 +108,22 @@ export default function AnalyticsPage() {
               info="Pages opened today across all your client dashboards and your public portfolio. The day resets at midnight UTC, not in your local timezone, so the number doesn't jump when you travel."
             />
             <StatTile
-              label="Visitors · 7d"
-              value={formatNumber(overview.tiles.visitors7d)}
+              label={`Visitors · ${days}d`}
+              value={formatNumber(tiles.visitors ?? tiles.visitors7d)}
               caption="Unique people"
-              info="Separate people who opened something in the last 7 days, not page loads — one person reading five pages counts once. Identified by a hash that changes daily, so someone returning tomorrow counts again."
+              info={`Separate people who opened something in the last ${days} days, not page loads — one person reading five pages counts once. Identified by a hash that changes daily, so someone returning tomorrow counts again.`}
             />
             <StatTile
-              label="Manager opens · 7d"
-              value={formatNumber(overview.tiles.managerViews7d)}
+              label={`Manager opens · ${days}d`}
+              value={formatNumber(tiles.managerViews ?? tiles.managerViews7d)}
               caption="Signed in with an access code"
-              info="Views by someone holding a valid access code for that client's dashboard — the manager you gave the code to. Everyone else is anonymous, including every portfolio visitor."
+              info={`Views in the last ${days} days by someone holding a valid access code for that client's dashboard — the manager you gave the code to. Everyone else is anonymous, including every portfolio visitor.`}
             />
             <StatTile
-              label="Median read · 7d"
+              label={`Median read · ${days}d`}
               value={formatDuration(overview.tiles.medianDwellMs)}
               caption="Time on page"
-              info="The midpoint time spent on a page, counting only while the tab is actually visible. Views where the browser closed before reporting are left out rather than counted as zero."
+              info={`The midpoint time spent on a page over the last ${days} days, counting only while the tab is actually visible. Views where the browser closed before reporting are left out rather than counted as zero.`}
             />
           </div>
 
@@ -174,9 +192,9 @@ export default function AnalyticsPage() {
 
           {/* ── Breakdowns ─────────────────────────────────────────────────── */}
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-            {/* The titles name the selected range rather than a fixed week.
-                They said "7d" while the selector above governed the chart, so
-                choosing 90 days left four panels quietly showing one. */}
+            {/* Like the tiles at the top, these name the selected range rather
+                than a fixed week — they said "7d" while the selector governed
+                only the chart, so choosing 90 days left them showing one. */}
             <BreakdownList
               title={`Client dashboards · ${days}d`}
               rows={overview.breakdowns.byClient}

@@ -299,11 +299,11 @@ function emptyOverview(days: number) {
     days,
     tiles: {
       viewsToday: 0,
-      visitors7d: 0,
-      views7d: 0,
-      dashboardViews7d: 0,
-      portfolioViews7d: 0,
-      managerViews7d: 0,
+      visitors: 0,
+      views: 0,
+      dashboardViews: 0,
+      portfolioViews: 0,
+      managerViews: 0,
       medianDwellMs: null as number | null,
       peakDay: null as { date: string; views: number } | null,
       allTimeViews: 0,
@@ -364,7 +364,6 @@ export const overview = query({
     const allTime = await viewsInWindow(ctx, context.workspaceId, 365)
 
     const now = Date.now()
-    const last7 = windowed.filter((view) => view.at >= now - 7 * DAY_MS)
 
     // Days are bucketed in UTC, which is what "views today · since midnight
     // UTC" in the tile means. Local-day bucketing would make the number move
@@ -396,35 +395,34 @@ export const overview = query({
     }
     const peak = [...allTimeByDay.entries()].sort((a, b) => b[1] - a[1])[0]
 
-    const dashboardViews = last7.filter((view) => view.surface === 'dashboard')
-    const portfolioViews = last7.filter((view) => view.surface === 'portfolio')
-
-    // The breakdowns follow the range selector; the tiles above them do not.
+    // Everything except "views today" and the all-time row reads the selected
+    // range.
     //
-    // They used to be computed from `last7` whatever the selector said, so
-    // choosing 90 days changed the chart and left every list beneath it showing
-    // one week — a range control that silently governed half the page. The
-    // tiles keep their fixed seven-day window because each one names it
-    // ("visitors · 7d"), which is a promise about a number rather than a
-    // filter somebody set.
+    // The tiles used to be pinned to seven days whatever the selector said, on
+    // the reasoning that a tile labelled "visitors · 7d" promises a week. What
+    // that produced was three headline numbers that never moved: pick 30d or
+    // 90d and the chart and the breakdowns redrew beneath a row sitting
+    // perfectly still, which reads as a filter that does nothing rather than as
+    // a deliberate window. The labels name the selected range now, so the
+    // promise follows the control.
     const windowedDashboard = windowed.filter((view) => view.surface === 'dashboard')
     const windowedPortfolio = windowed.filter((view) => view.surface === 'portfolio')
 
     // Only views that reported a duration can contribute — a visitor who
     // closed the tab abruptly sent no beacon, and averaging their visit in as
     // zero would understate every other one.
-    const timed = last7.filter((view) => typeof view.durationMs === 'number')
+    const timed = windowed.filter((view) => typeof view.durationMs === 'number')
     const medianDwellMs = median(timed.map((view) => view.durationMs!))
 
     return {
       days,
       tiles: {
         viewsToday: today?.views ?? 0,
-        visitors7d: uniqueBy(last7, (view) => view.visitorHash),
-        views7d: last7.length,
-        dashboardViews7d: dashboardViews.length,
-        portfolioViews7d: portfolioViews.length,
-        managerViews7d: last7.filter((view) => view.identity === 'manager').length,
+        visitors: uniqueBy(windowed, (view) => view.visitorHash),
+        views: windowed.length,
+        dashboardViews: windowedDashboard.length,
+        portfolioViews: windowedPortfolio.length,
+        managerViews: windowed.filter((view) => view.identity === 'manager').length,
         medianDwellMs,
         peakDay: peak ? { date: peak[0], views: peak[1] } : null,
         allTimeViews: allTime.length,
