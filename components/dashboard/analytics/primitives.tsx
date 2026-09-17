@@ -149,8 +149,18 @@ export function EmptyRow({ children }: { children: React.ReactNode }) {
 
 // ── Formatting ────────────────────────────────────────────────────────────────
 
-export function formatNumber(value: number): string {
-  return value.toLocaleString()
+/**
+ * A count, or an em dash when there isn't one.
+ *
+ * The guard is not defensive clutter. These numbers come from a Convex query,
+ * and this bundle and the backend answering it deploy on separate commands — so
+ * a field can be briefly missing from a payload that is otherwise fine. An
+ * unguarded `.toLocaleString()` turned that into a TypeError during render,
+ * which unmounts the route: the whole Analytics page went blank because one
+ * tile had nothing to show. `formatDuration` below already got this right.
+ */
+export function formatNumber(value: number | null | undefined): string {
+  return typeof value === 'number' ? value.toLocaleString() : '—'
 }
 
 /** Compact durations: 42s, 6m 40s. Hours never appear — see recordDuration. */
