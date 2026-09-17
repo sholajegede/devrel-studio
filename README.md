@@ -6,29 +6,47 @@ A developer advocate logs each piece of work they ship — a post, a talk, a pac
 
 Live at **[devrel.studio](https://devrel.studio)**. See a real client dashboard at **[devrel.studio/demo](https://devrel.studio/demo)**.
 
----
-
 ## Contents
 
-- [The four surfaces](#the-four-surfaces)
-- [Features](#features)
-- [How the hosts work](#how-the-hosts-work)
-- [Tech stack](#tech-stack)
-- [Project structure](#project-structure)
-- [Routes](#routes)
-- [Data model](#data-model)
-- [Content categories](#content-categories)
-- [Access and authentication](#access-and-authentication)
-- [Background jobs](#background-jobs)
-- [Machine-readable surfaces](#machine-readable-surfaces)
-- [Plans and access](#plans-and-access)
-- [Getting started](#getting-started)
-- [Environment variables](#environment-variables)
-- [Testing](#testing)
-- [Deployment](#deployment)
-- [Scripts](#scripts)
-
----
+- [DevRel Studio](#devrel-studio)
+  - [Contents](#contents)
+  - [The four surfaces](#the-four-surfaces)
+  - [Features](#features)
+    - [Advocate workspace — `devrel.studio/dashboard`](#advocate-workspace--devrelstudiodashboard)
+    - [Client dashboard — `<slug>.devrel.studio`](#client-dashboard--slugdevrelstudio)
+    - [Public portfolio — `devrel.studio/@handle`](#public-portfolio--devrelstudiohandle)
+    - [Admin console — `admin.devrel.studio`](#admin-console--admindevrelstudio)
+  - [How the hosts work](#how-the-hosts-work)
+  - [Tech stack](#tech-stack)
+  - [Project structure](#project-structure)
+  - [Routes](#routes)
+    - [Apex — `devrel.studio`](#apex--devrelstudio)
+    - [Client host — `<slug>.devrel.studio` or a custom domain](#client-host--slugdevrelstudio-or-a-custom-domain)
+    - [Console — `admin.devrel.studio`](#console--admindevrelstudio)
+    - [API](#api)
+    - [Convex HTTP — `<deployment>.convex.site`](#convex-http--deploymentconvexsite)
+  - [Data model](#data-model)
+    - [`contentEntries`](#contententries)
+  - [Content categories](#content-categories)
+  - [Access and authentication](#access-and-authentication)
+  - [Background jobs](#background-jobs)
+  - [Machine-readable surfaces](#machine-readable-surfaces)
+  - [Plans and access](#plans-and-access)
+  - [Getting started](#getting-started)
+    - [Prerequisites](#prerequisites)
+    - [1. Install](#1-install)
+    - [2. Link Convex](#2-link-convex)
+    - [3. Configure Kinde](#3-configure-kinde)
+    - [4. Fill in `.env.local`](#4-fill-in-envlocal)
+    - [5. Run](#5-run)
+  - [Environment variables](#environment-variables)
+    - [Required](#required)
+    - [Optional](#optional)
+  - [Testing](#testing)
+  - [Deployment](#deployment)
+    - [Production checklist](#production-checklist)
+  - [Scripts](#scripts)
+  - [License](#license)
 
 ## The four surfaces
 
@@ -42,8 +60,6 @@ The single most useful thing to understand about this codebase is that it serves
 | **Admin console** | `admin.devrel.studio` | Whoever operates the platform | Kinde session **+** admin role |
 
 These are genuinely separate. An admin has no implicit access to anyone's client data. A client manager has no account at all. A portfolio is world-readable and deliberately excludes anything a client commissioned.
-
----
 
 ## Features
 
@@ -84,8 +100,6 @@ Its own origin, so cookies, storage and any future edge rule stop at the boundar
 
 The host is **not** the security boundary — every query behind these pages resolves the caller through `requireAdmin` server-side.
 
----
-
 ## How the hosts work
 
 All routing decisions live in `proxy.ts`:
@@ -105,8 +119,6 @@ Worth knowing:
 - **Custom domains** cost one Convex HTTP lookup on first request, cached in module scope with a shorter TTL for misses so a domain being set up starts working within the minute.
 - **View tracking** happens in the proxy because it is the only chokepoint in front of both the client dashboard and the portfolio, and it runs *before* the ISR cache — so a portfolio served from cache is still counted. Bots and prefetches are excluded.
 
----
-
 ## Tech stack
 
 | Layer | Technology |
@@ -125,8 +137,6 @@ Worth knowing:
 | Errors | [Sentry](https://sentry.io) |
 | Tests | [Vitest](https://vitest.dev) + Testing Library + jsdom |
 | Hosting | Vercel (frontend) + Convex Cloud (backend) |
-
----
 
 ## Project structure
 
@@ -185,8 +195,6 @@ devrel_studio/
 └── proxy.ts                     # Host routing, auth gate, view tracking
 ```
 
----
-
 ## Routes
 
 ### Apex — `devrel.studio`
@@ -231,8 +239,6 @@ devrel_studio/
 
 `/kinde` (user sync webhook) · `/stripe` (payment webhook) · `/resolve-domain` (custom-domain lookup) · `/track` (view ingest)
 
----
-
 ## Data model
 
 Sixteen tables in `convex/schema.ts`.
@@ -267,8 +273,6 @@ Sixteen tables in `convex/schema.ts`.
 
 `lib/metrics.ts` is the single source of truth for which number belongs to which category — an Event's stray `views` is never added to a views total.
 
----
-
 ## Content categories
 
 Six, each with its own platforms, sub-types and headline metric:
@@ -283,8 +287,6 @@ Six, each with its own platforms, sub-types and headline metric:
 | **Demo** | Stars | Vercel, Netlify, Cloudflare Pages, GitHub | Full App, Starter Kit, Sample |
 
 **Package** and **Demo** metrics refresh themselves — a daily cron reads npm's download API and GitHub's star count, with a "Refresh now" button for the impatient. `GITHUB_TOKEN` is optional and only raises the rate limit.
-
----
 
 ## Access and authentication
 
@@ -307,8 +309,6 @@ npx convex run admin:bootstrap --prod
 
 Idempotent: a second run is silent rather than filling the audit trail.
 
----
-
 ## Background jobs
 
 Six crons in `convex/crons.ts`:
@@ -321,8 +321,6 @@ Six crons in `convex/crons.ts`:
 | Prune old page views | Daily 03:30 UTC | Views are kept one year |
 | Send weekly digests | Mondays 08:00 UTC | Skipped entirely for a quiet week |
 | Prune orphaned uploads | Daily 04:15 UTC | Logos uploaded but never saved |
-
----
 
 ## Machine-readable surfaces
 
@@ -337,8 +335,6 @@ Alongside `sitemap.xml`, `robots.txt` and generated OpenGraph cards, the app pub
 The rule they obey: **an llms.txt says exactly what the HTML page at the same URL already says, and nothing more.** Entries are projected field by field, never spread, so `notes` and `trackingLink` cannot surface. Customer-authored text is flattened to a single line and leading markdown markers are escaped — a bio may describe itself, not the file it sits in.
 
 > If you front the site with a CDN, check its managed `robots.txt`. A default AI-crawler block will stop the exact audience these files exist for.
-
----
 
 ## Plans and access
 
@@ -356,8 +352,6 @@ Terms: 1 month (0%), 3 months (10%), 6 months (15%), 12 months (20% off). Trial 
 Access is a **timestamp**, not a subscription — which makes selling a month, a year or a perpetual licence the same field with a different number in it. `convex/model/plans.ts` is the one definition of what each plan allows, imported by both the enforcing mutations and the pricing UI, so the two cannot drift.
 
 Stripe is wired but optional. Without keys, `billingIsConfigured()` is false and the billing page says so rather than the app failing to boot.
-
----
 
 ## Getting started
 
@@ -410,8 +404,6 @@ curl -H "Host: acme.localhost:3000" http://localhost:3000/
 open http://admin.localhost:3000/login
 ```
 
----
-
 ## Environment variables
 
 ### Required
@@ -444,8 +436,6 @@ open http://admin.localhost:3000/login
 
 Convex functions read their own environment (`npx convex env set …`), which is separate from Vercel's. `MANAGER_CODE_SECRET`, `RESEND_API_KEY` and `GITHUB_TOKEN` need to be set in **both** places; `ADMIN_EMAILS` belongs on Convex only.
 
----
-
 ## Testing
 
 ```bash
@@ -456,8 +446,6 @@ npm run lint
 ```
 
 Twenty-one suites, 505 tests, all passing. Concentrated where a mistake is expensive rather than spread evenly: access control and admin authorisation, impersonation, view-tracking correctness and write contention, metric roll-ups, retainer rate history, report scheduling across timezones, PDF rendering, CSV import, and naming rules.
-
----
 
 ## Deployment
 
@@ -482,8 +470,6 @@ Order matters. Deploying the frontend first means new code calling functions tha
 5. If the apex is proxied by a CDN, make sure subdomains are not — and check the CDN's managed `robots.txt`
 6. Run `npx convex deploy`
 
----
-
 ## Scripts
 
 | Command | Description |
@@ -496,8 +482,6 @@ Order matters. Deploying the frontend first means new code calling functions tha
 | `npx convex dev` | Watch and push `convex/` to the dev deployment |
 | `npx convex deploy` | Push schema and functions to production |
 | `npx convex env set KEY value` | Set a Convex-side environment variable |
-
----
 
 ## License
 
