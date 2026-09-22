@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import Image from 'next/image'
-import { isSignedIn } from '@/lib/session'
+import { SignedInSwitch } from '@/components/marketing/auth-aware'
 import { Button } from '@/components/ui/button'
 import { ThemeToggle } from '@/components/theme-toggle'
 import { LayoutDashboard } from 'lucide-react'
@@ -8,16 +8,15 @@ import { LayoutDashboard } from 'lucide-react'
 /**
  * Marketing header.
  *
- * An async server component so it can read the session directly. Every page
- * that renders it is already server-rendered, and doing the check here means
- * the correct buttons are in the first HTML rather than appearing after
- * hydration — a signed-in user should never see "Sign in" flash at them.
+ * The session is read in the browser, not on the server. Reading it on the
+ * server made every marketing page that renders this header dynamic, so each
+ * request was a server render. A signed-in visitor sees "Sign in" for a moment
+ * before it changes to "Dashboard". That is the cost of static pages.
  *
  * Signed in, the pair of call-to-action buttons collapses to one: someone with
  * an account does not need to be sold, they need the way back in.
  */
-export async function MarketingNav() {
-  const signedIn = await isSignedIn()
+export function MarketingNav() {
 
   return (
     <header className="sticky top-0 z-50 border-b border-border/40 bg-background/90 backdrop-blur supports-backdrop-filter:bg-background/70">
@@ -48,14 +47,16 @@ export async function MarketingNav() {
         <div className="flex items-center gap-3">
           <ThemeToggle />
 
-          {signedIn ? (
+          <SignedInSwitch
+            signedIn={
             <Link href="/dashboard">
               <Button size="sm" className="gap-1.5 bg-accent text-accent-foreground hover:bg-accent/90">
                 <LayoutDashboard className="h-3.5 w-3.5" />
                 Dashboard
               </Button>
             </Link>
-          ) : (
+            }
+            signedOut={
             <>
               {/*
                 Visible at every width.
@@ -76,7 +77,8 @@ export async function MarketingNav() {
                 </Button>
               </Link>
             </>
-          )}
+            }
+          />
         </div>
       </div>
     </header>
