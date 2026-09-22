@@ -10,17 +10,10 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from '@/components/ui/accordion'
-import { headers } from 'next/headers'
 import { MarketingNav } from '@/components/marketing/nav'
 import { MarketingFooter } from '@/components/marketing/footer'
-import { isSignedIn } from '@/lib/session'
+import { SignedInSwitch, LocalPriceAnswer } from '@/components/marketing/auth-aware'
 import { FeatureBento } from '@/components/marketing/bento'
-import {
-  currencyForCountry,
-  formatPrice,
-  monthlyPrice,
-  type CurrencyCode,
-} from '@/lib/currency'
 
 // ─── Shared pieces ────────────────────────────────────────────────────────────
 //
@@ -87,9 +80,28 @@ function GhostLink({ href, children }: { href: string; children: React.ReactNode
   )
 }
 
+function StartOrOpen() {
+  return (
+    <SignedInSwitch
+      signedIn={
+        <PrimaryLink href="/dashboard">
+          Open dashboard
+          <ArrowRight className="h-3.5 w-3.5" />
+        </PrimaryLink>
+      }
+      signedOut={
+        <PrimaryLink href="/sign-up">
+          Start free
+          <ArrowRight className="h-3.5 w-3.5" />
+        </PrimaryLink>
+      }
+    />
+  )
+}
+
 // ─── Hero ─────────────────────────────────────────────────────────────────────
 
-function Hero({ signedIn }: { signedIn: boolean }) {
+function Hero() {
   return (
     <section className="relative overflow-hidden">
       {/* Hairline grid, fading out before it reaches the content. Pure texture —
@@ -130,20 +142,19 @@ function Hero({ signedIn }: { signedIn: boolean }) {
         </p>
 
         <div className="mt-9 flex flex-col items-center justify-center gap-2.5 sm:flex-row">
-          <PrimaryLink href={signedIn ? '/dashboard' : '/sign-up'}>
-            {signedIn ? 'Open dashboard' : 'Start free'}
-            <ArrowRight className="h-3.5 w-3.5" />
-          </PrimaryLink>
+          <StartOrOpen />
           <GhostLink href="/demo">Explore the demo</GhostLink>
         </div>
 
         {/* The trial line is a reason to sign up. Someone already signed up does
             not need reassuring about a card they never entered. */}
-        {!signedIn && (
-          <p className="mt-5 text-[13px] text-muted-foreground">
-            14-day free trial · No card required
-          </p>
-        )}
+        <SignedInSwitch
+          signedOut={
+            <p className="mt-5 text-[13px] text-muted-foreground">
+              14-day free trial · No card required
+            </p>
+          }
+        />
 
         {/* Product shot. The one place on the page allowed to carry colour. */}
         <div className="relative mx-auto mt-20 max-w-5xl">
@@ -408,12 +419,9 @@ function Testimonial() {
 
 // ─── FAQ ──────────────────────────────────────────────────────────────────────
 
-function faqItems(currency: CurrencyCode) {
-  const price = (id: 'starter' | 'pro' | 'agency') =>
-    formatPrice(monthlyPrice(id, currency), currency)
-
+function faqItems(): { q: string; a: React.ReactNode }[] {
   return [
-  { q: 'How much is it?',                              a: `Starter is ${price('starter')} a month, Pro is ${price('pro')} and Agency is ${price('agency')}. You buy 1, 3, 6 or 12 months at a time, and longer terms cost less. The first 14 days are free and need no card.` },
+  { q: 'How much is it?',                              a: <LocalPriceAnswer /> },
   { q: 'How does payment work?',                       a: 'You email us the plan and the number of months. We send transfer details. Access opens when the payment lands. Card payments are not available yet, because Stripe needs a US company.' },
   { q: 'What happens when access runs out?',           a: 'Nothing disappears. Your content stays. Your clients keep their dashboards. You just cannot add or edit until you extend.' },
   { q: 'What counts as a client workspace?',           a: 'Each client gets their own content log and their own dashboard URL. Starter covers one client. Pro covers five. Agency has no limit.' },
@@ -425,13 +433,13 @@ function faqItems(currency: CurrencyCode) {
   ]
 }
 
-function FAQ({ currency }: { currency: CurrencyCode }) {
+function FAQ() {
   return (
     <section id="faq" className="mx-auto max-w-3xl px-6 py-28">
       <SectionHeading eyebrow="FAQ" title="Common questions" />
 
       <Accordion type="single" collapsible className="mt-12 overflow-hidden rounded-xl border border-border">
-        {faqItems(currency).map(({ q, a }, i) => (
+        {faqItems().map(({ q, a }, i) => (
           <AccordionItem
             key={q}
             value={`item-${i}`}
@@ -459,7 +467,7 @@ function FAQ({ currency }: { currency: CurrencyCode }) {
 
 // ─── Final CTA ────────────────────────────────────────────────────────────────
 
-function CTA({ signedIn }: { signedIn: boolean }) {
+function CTA() {
   return (
     <section className="border-t border-border">
       <div className="relative mx-auto max-w-6xl overflow-hidden px-6 py-28 text-center">
@@ -477,10 +485,7 @@ function CTA({ signedIn }: { signedIn: boolean }) {
           </p>
 
           <div className="mt-9 flex flex-col items-center justify-center gap-2.5 sm:flex-row">
-            <PrimaryLink href={signedIn ? '/dashboard' : '/sign-up'}>
-              {signedIn ? 'Open dashboard' : 'Start free'}
-              <ArrowRight className="h-3.5 w-3.5" />
-            </PrimaryLink>
+            <StartOrOpen />
             <GhostLink href="/demo">Explore the demo</GhostLink>
           </div>
 
@@ -502,27 +507,19 @@ function CTA({ signedIn }: { signedIn: boolean }) {
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
-export default async function LandingPage() {
-  /**
-   * This page is already rendered per request for the signed-in navbar, so
-   * reading the geo header alongside it costs nothing extra. That is the only
-   * reason the FAQ can quote a local price without giving up a cached page.
-   */
-  const [signedIn, headerList] = await Promise.all([isSignedIn(), headers()])
-  const currency = currencyForCountry(headerList.get('x-vercel-ip-country'))
-
+export default function LandingPage() {
   return (
     <div className="min-h-screen bg-background">
       <MarketingNav />
-      <Hero signedIn={signedIn} />
+      <Hero />
       <SocialProof />
       <BeforeAfter />
       <FeatureBento />
       <ContentCategories />
       <HowItWorks />
       <Testimonial />
-      <FAQ currency={currency} />
-      <CTA signedIn={signedIn} />
+      <FAQ />
+      <CTA />
       <MarketingFooter />
     </div>
   )

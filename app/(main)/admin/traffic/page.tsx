@@ -30,9 +30,20 @@ import {
 
 const RANGES = [7, 30, 90]
 
+/** 'all' is every page on every host: the product, portfolios and client dashboards. */
+const SURFACES = [
+  { id: 'all', label: 'All pages' },
+  { id: 'site', label: 'devrel.studio' },
+  { id: 'portfolio', label: 'Portfolios' },
+  { id: 'dashboard', label: 'Client dashboards' },
+] as const
+
+type Surface = (typeof SURFACES)[number]['id']
+
 export default function AdminTrafficPage() {
   const [days, setDays] = useState(30)
-  const traffic = useQuery(api.adminInsights.traffic, { days })
+  const [surface, setSurface] = useState<Surface>('all')
+  const traffic = useQuery(api.adminInsights.traffic, { days, surface })
   const signups = useQuery(api.adminInsights.signups, { days })
 
   const loading = traffic === undefined
@@ -43,11 +54,25 @@ export default function AdminTrafficPage() {
         <div>
           <h1 className="text-2xl font-semibold text-foreground">Traffic</h1>
           <p className="text-sm text-muted-foreground">
-            Every page on devrel.studio, by route. Client dashboards and portfolios
-            are counted separately — they belong to the DevRel who owns them.
+            Every page on the platform: devrel.studio itself, every portfolio and
+            every client dashboard. Filter to one surface below.
           </p>
         </div>
-        <div className="flex gap-1">
+        <div className="flex flex-wrap gap-1">
+          {SURFACES.map((option) => (
+            <Button
+              key={option.id}
+              type="button"
+              size="sm"
+              variant={surface === option.id ? 'secondary' : 'ghost'}
+              onClick={() => setSurface(option.id)}
+              aria-pressed={surface === option.id}
+              className="h-8 px-3 text-xs"
+            >
+              {option.label}
+            </Button>
+          ))}
+          <span aria-hidden className="mx-1 w-px self-stretch bg-border" />
           {RANGES.map((range) => (
             <Button
               key={range}
@@ -96,9 +121,11 @@ export default function AdminTrafficPage() {
               accent
             />
             <StatTile
-              label="Client dashboards"
-              value={formatNumber(traffic.elsewhere.dashboards)}
-              caption={`${formatNumber(traffic.elsewhere.portfolios)} portfolio views`}
+              label="devrel.studio"
+              value={formatNumber(traffic.bySurface.site)}
+              caption={`${formatNumber(traffic.bySurface.portfolio)} portfolio · ${formatNumber(
+                traffic.bySurface.dashboard,
+              )} dashboard views`}
             />
           </div>
 
@@ -116,7 +143,7 @@ export default function AdminTrafficPage() {
           <div className="mt-4 grid gap-4 lg:grid-cols-3">
             <div className="lg:col-span-2">
               <Panel>
-                <Label>Routes</Label>
+                <Label>Pages</Label>
                 {/* Routes, not URLs. The proxy replaces anything that looks like
                     an identifier with its parameter name before the row is
                     written, so /dashboard/edit/:id is one line rather than one
