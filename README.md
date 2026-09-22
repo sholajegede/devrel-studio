@@ -134,7 +134,6 @@ Worth knowing:
 | Payments | [Stripe](https://stripe.com) — optional; the app runs fully without keys |
 | Email | [Resend](https://resend.com), via Convex actions |
 | PDF | [`@react-pdf/renderer`](https://react-pdf.org) + `pdf-lib` |
-| Errors | [Sentry](https://sentry.io) |
 | Tests | [Vitest](https://vitest.dev) + Testing Library + jsdom |
 | Hosting | Vercel (frontend) + Convex Cloud (backend) |
 
@@ -430,7 +429,6 @@ open http://admin.localhost:3000/login
 | `GITHUB_TOKEN` | Raises the GitHub rate limit for star sync |
 | `ADMIN_EMAILS` | **Convex-side only.** Read by `admin:bootstrap` to promote the first administrators — see below |
 | `OWNER_EMAIL` | Where operator notifications are sent (defaults to `support@devrel.studio`) |
-| `SENTRY_DSN`, `NEXT_PUBLIC_SENTRY_DSN` | Error reporting |
 | `NEXT_PUBLIC_APP_URL`, `SITE_URL` | Absolute URLs where the origin cannot be inferred |
 | `REPORT_REDIRECT_TO` | Diverts every report email to one address — useful in staging |
 

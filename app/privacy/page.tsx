@@ -77,7 +77,6 @@ export default function PrivacyPage() {
           <li>Convex, for the database and server functions</li>
           <li>Vercel, for hosting</li>
           <li>Resend, for email</li>
-          <li>Sentry, for error reports</li>
         </ul>
       </Section>
 

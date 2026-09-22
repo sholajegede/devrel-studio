@@ -34,9 +34,6 @@ const publicRoutes = [
   // page renders a sign-in prompt itself rather than being bounced by Kinde,
   // which would lose the token from the URL.
   '/invite(.*)',
-  // Sentry's tunnel needs no entry here: it is set to /api/client-events in
-  // next.config.mjs, and the check below lets every non-auth /api path through
-  // before this list is consulted.
   // Crawler-facing files. These are generated routes rather than files in
   // /public, so they pass through this proxy — without them a crawler asking
   // for the sitemap gets bounced to the Kinde sign-in page.
