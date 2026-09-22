@@ -32,8 +32,28 @@ const DAY = 86_400_000
  * of traffic from one person is two uniques, and that is the honest reading of
  * a hash that deliberately does not persist.
  */
+/**
+ * What a row is called in the pages list, as somebody would type it.
+ *
+ * With the 'all' filter the three surfaces share one list, so a route alone is
+ * ambiguous: "/" is the landing page, a portfolio and every client dashboard.
+ * Each surface is named by its own address instead.
+ */
+function pageLabel(view: Doc<'pageViews'>): string {
+  const rest = view.path === '/' ? '' : view.path
+  if (view.surface === 'portfolio') return `/@${view.target}${rest}`
+  if (view.surface === 'dashboard') return `${view.target}.devrel.studio${rest}`
+  return view.path
+}
+
 export const traffic = query({
-  args: { days: v.optional(v.number()) },
+  args: {
+    days: v.optional(v.number()),
+    /** Which pages to count. 'all' is every page on every host. */
+    surface: v.optional(
+      v.union(v.literal('all'), v.literal('site'), v.literal('portfolio'), v.literal('dashboard')),
+    ),
+  },
   handler: async (ctx, args) => {
     await requireAdmin(ctx)
 
@@ -45,7 +65,8 @@ export const traffic = query({
       .withIndex('by_time', (q) => q.gte('at', since))
       .collect()
 
-    const site = views.filter((view) => view.surface === 'site')
+    const surface = args.surface ?? 'site'
+    const site = surface === 'all' ? views : views.filter((view) => view.surface === surface)
 
     const routes = new Map<string, { views: number; visitors: Set<string> }>()
     const referrers = new Map<string, number>()
@@ -56,10 +77,11 @@ export const traffic = query({
     for (const view of site) {
       visitors.add(view.visitorHash)
 
-      const route = routes.get(view.path) ?? { views: 0, visitors: new Set<string>() }
+      const label = pageLabel(view)
+      const route = routes.get(label) ?? { views: 0, visitors: new Set<string>() }
       route.views += 1
       route.visitors.add(view.visitorHash)
-      routes.set(view.path, route)
+      routes.set(label, route)
 
       if (view.referrer) referrers.set(view.referrer, (referrers.get(view.referrer) ?? 0) + 1)
       if (view.country) countries.set(view.country, (countries.get(view.country) ?? 0) + 1)
@@ -82,6 +104,7 @@ export const traffic = query({
 
     return {
       days,
+      surface,
       views: site.length,
       visitors: visitors.size,
       routes: [...routes.entries()]
@@ -101,6 +124,12 @@ export const traffic = query({
       elsewhere: {
         dashboards: views.filter((view) => view.surface === 'dashboard').length,
         portfolios: views.filter((view) => view.surface === 'portfolio').length,
+      },
+      /** Views on each surface in the window, whatever the filter. */
+      bySurface: {
+        site: views.filter((view) => view.surface === 'site').length,
+        portfolio: views.filter((view) => view.surface === 'portfolio').length,
+        dashboard: views.filter((view) => view.surface === 'dashboard').length,
       },
     }
   },
