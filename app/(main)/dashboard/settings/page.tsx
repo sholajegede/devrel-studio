@@ -115,7 +115,9 @@ function PortfolioSettings() {
     websiteUrl: '',
     githubUsername: '',
     twitterUsername: '',
+    redirectUrl: '',
   })
+  const [mode, setMode] = useState<'hosted' | 'redirect'>('hosted')
   const [isSaving, setIsSaving] = useState(false)
   const [copied, setCopied] = useState(false)
 
@@ -127,7 +129,9 @@ function PortfolioSettings() {
       websiteUrl: profile.websiteUrl ?? '',
       githubUsername: profile.githubUsername ?? '',
       twitterUsername: profile.twitterUsername ?? '',
+      redirectUrl: profile.portfolioRedirectUrl ?? '',
     })
+    setMode(profile.portfolioRedirectUrl ? 'redirect' : 'hosted')
   }, [profile])
 
   const trimmedHandle = form.handle.trim().toLowerCase().replace(/^@/, '')
@@ -158,9 +162,16 @@ function PortfolioSettings() {
     e.preventDefault()
     if (!profile) return
 
+    if (mode === 'redirect' && !form.redirectUrl.trim()) {
+      toast.error('Enter the address /@handle should send visitors to')
+      return
+    }
+
     setIsSaving(true)
     try {
+      const redirectUrl = mode === 'redirect' ? form.redirectUrl : ''
       await updatePortfolio({
+        redirectUrl,
         handle: trimmedHandle,
         bio: form.bio,
         websiteUrl: form.websiteUrl,
@@ -175,6 +186,11 @@ function PortfolioSettings() {
         websiteUrl: form.websiteUrl.trim() || undefined,
         githubUsername: form.githubUsername.trim().replace(/^@/, '') || undefined,
         twitterUsername: form.twitterUsername.trim().replace(/^@/, '') || undefined,
+        portfolioRedirectUrl: redirectUrl.trim()
+          ? /^[a-z]+:\/\//i.test(redirectUrl.trim())
+            ? redirectUrl.trim()
+            : `https://${redirectUrl.trim()}`
+          : undefined,
       })
 
       toast.success(
@@ -256,6 +272,48 @@ function PortfolioSettings() {
               </a>
             </div>
           )}
+
+          <div className="space-y-2">
+            <Label>Where /@{trimmedHandle || 'handle'} goes</Label>
+            <div className="grid gap-2 sm:grid-cols-2" role="radiogroup">
+              {([
+                ['hosted', 'Hosted on devrel.studio', 'Your published work, rendered here.'],
+                ['redirect', 'Redirect to my own site', 'Visits are counted, then sent on.'],
+              ] as const).map(([value, title, hint]) => (
+                <button
+                  key={value}
+                  type="button"
+                  role="radio"
+                  aria-checked={mode === value}
+                  onClick={() => setMode(value)}
+                  className={`rounded-lg border px-3 py-2.5 text-left transition-colors ${
+                    mode === value
+                      ? 'border-accent bg-accent/10'
+                      : 'border-border hover:bg-muted/50'
+                  }`}
+                >
+                  <div className="text-sm font-medium text-foreground">{title}</div>
+                  <div className="mt-0.5 text-xs text-muted-foreground">{hint}</div>
+                </button>
+              ))}
+            </div>
+            {mode === 'redirect' && (
+              <div className="space-y-1.5 pt-1">
+                <Input
+                  id="redirectUrl"
+                  value={form.redirectUrl}
+                  onChange={(e) => set('redirectUrl', e.target.value)}
+                  placeholder="https://yoursite.com"
+                  autoCapitalize="none"
+                  autoCorrect="off"
+                  spellCheck={false}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Each visit to /@{trimmedHandle || 'handle'} shows in Analytics before the redirect.
+                </p>
+              </div>
+            )}
+          </div>
 
           <div className="space-y-1.5">
             <Label htmlFor="bio">Bio</Label>

@@ -28,6 +28,7 @@ interface UserData {
   websiteUrl?: string;
   githubUsername?: string;
   twitterUsername?: string;
+  portfolioRedirectUrl?: string;
   // Billing — see convex/billing.ts
   plan?: string;
   planStatus?: string;

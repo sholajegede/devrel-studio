@@ -2,8 +2,10 @@ import { withAuth } from "@kinde-oss/kinde-auth-nextjs/middleware";
 import { NextResponse, NextRequest, NextFetchEvent } from 'next/server';
 import { adminHostFor, isAdminHost, isReservedSubdomain } from '@/lib/naming';
 import {
+  callerCity,
   callerCountry,
   callerIp,
+  describeUserAgent,
   hashSessionTokenEdge,
   isBot,
   isPrefetch,
@@ -320,7 +322,12 @@ function trackingTarget(
   return { surface: 'site', target: 'site', path: normaliseRoute(pathname) };
 }
 
-function trackView(req: NextRequest, event: NextFetchEvent, subdomain: string | null): void {
+function trackView(
+  req: NextRequest,
+  event: NextFetchEvent,
+  subdomain: string | null,
+  pathOverride?: string,
+): void {
   const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL;
   const secret = process.env.MANAGER_CODE_SECRET;
   // Without either of these there is nowhere to send a view, or no way to hash
@@ -338,6 +345,7 @@ function trackView(req: NextRequest, event: NextFetchEvent, subdomain: string | 
 
   const found = trackingTarget(req, subdomain);
   if (!found) return;
+  if (pathOverride) found.path = pathOverride;
 
   // Convex HTTP actions are served from .convex.site, not the .convex.cloud
   // origin the browser client uses.
@@ -370,6 +378,9 @@ function trackView(req: NextRequest, event: NextFetchEvent, subdomain: string | 
             visitorHash,
             sessionTokenHash,
             country: callerCountry(req.headers),
+            city: callerCity(req.headers),
+            ...describeUserAgent(userAgent),
+            campaign: campaignOf(req.nextUrl.searchParams),
             referrer: referrerHost(req.headers.get('referer'), hostname),
           }),
         });
@@ -379,6 +390,41 @@ function trackView(req: NextRequest, event: NextFetchEvent, subdomain: string | 
     })(),
   );
 }
+
+/** The campaign a link was tagged with, from utm_source or ref. */
+function campaignOf(params: URLSearchParams): string | undefined {
+  const value = (params.get('utm_source') ?? params.get('ref'))?.trim().toLowerCase();
+  return value ? value.slice(0, 60) : undefined;
+}
+
+// ─────────────────────────────────────────────
+// Portfolio redirects
+// ─────────────────────────────────────────────
+//
+// A DevRel can point /@handle at a portfolio they host elsewhere. The target
+// lives in Convex, so it costs one lookup per handle per minute per instance.
+
+const REDIRECT_TTL_MS = 60 * 1000;
+const redirectCache = new Map<string, { url: string | null; at: number }>();
+
+const resolvePortfolioRedirect = async (handle: string): Promise<string | null> => {
+  const cached = redirectCache.get(handle);
+  if (cached && Date.now() - cached.at < REDIRECT_TTL_MS) return cached.url;
+
+  const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL;
+  if (!convexUrl) return null;
+
+  try {
+    const endpoint = `${convexUrl.replace('.convex.cloud', '.convex.site')}/portfolio-redirect?handle=${encodeURIComponent(handle)}`;
+    const response = await fetch(endpoint, { signal: AbortSignal.timeout(2000) });
+    const url = response.ok ? ((await response.json())?.url ?? null) : null;
+    redirectCache.set(handle, { url, at: Date.now() });
+    return url;
+  } catch {
+    // A failed lookup serves the hosted portfolio rather than an error.
+    return null;
+  }
+};
 
 // ─────────────────────────────────────────────
 // Proxy
@@ -439,6 +485,15 @@ export default async function proxy(req: NextRequest, event: NextFetchEvent) {
   // route slot in the App Router, so the page itself lives at /portfolio/handle
   // and the pretty URL is a rewrite.
   if (pathname.startsWith('/@')) {
+    const [handle, ...rest] = pathname.slice(2).split('/');
+    if (handle && rest.filter(Boolean).length === 0) {
+      const target = await resolvePortfolioRedirect(handle.toLowerCase());
+      if (target) {
+        trackView(req, event, null, '/redirect');
+        return NextResponse.redirect(target, 307);
+      }
+    }
+
     trackView(req, event, null);
     const rewriteUrl = req.nextUrl.clone();
     rewriteUrl.pathname = `/portfolio/${pathname.slice(2)}`;

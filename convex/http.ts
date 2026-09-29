@@ -321,6 +321,14 @@ const handleTrack = httpAction(async (ctx, request) => {
       sessionTokenHash: body.sessionTokenHash || undefined,
       country: body.country || undefined,
       referrer: body.referrer || undefined,
+      campaign: typeof body.campaign === "string" ? body.campaign : undefined,
+      city: typeof body.city === "string" ? body.city : undefined,
+      device:
+        body.device === "mobile" || body.device === "tablet" || body.device === "desktop"
+          ? body.device
+          : undefined,
+      browser: typeof body.browser === "string" ? body.browser : undefined,
+      os: typeof body.os === "string" ? body.os : undefined,
     });
 
     return new Response(null, { status: 204, headers: cors });
@@ -333,6 +341,26 @@ const handleTrack = httpAction(async (ctx, request) => {
 });
 
 http.route({ path: "/track", method: "POST", handler: handleTrack });
+
+// ===== Portfolio redirects =====
+//
+// Read by proxy.ts for /@handle. Public: the target is where the handle
+// already sends every visitor.
+http.route({
+  path: "/portfolio-redirect",
+  method: "GET",
+  handler: httpAction(async (ctx, request) => {
+    const handle = new URL(request.url).searchParams.get("handle") ?? "";
+    const url = await ctx.runQuery(api.portfolio.redirectForHandle, { handle });
+    return new Response(JSON.stringify({ url }), {
+      status: 200,
+      headers: {
+        "content-type": "application/json",
+        "cache-control": "public, max-age=30",
+      },
+    });
+  }),
+});
 
 http.route({
   path: "/track",

@@ -19,6 +19,11 @@ export default defineSchema({
     websiteUrl: v.optional(v.string()),
     githubUsername: v.optional(v.string()),
     twitterUsername: v.optional(v.string()),
+    /**
+     * When set, /@handle sends visitors here instead of rendering the hosted
+     * portfolio. The visit is still counted before the redirect.
+     */
+    portfolioRedirectUrl: v.optional(v.string()),
 
     // ── Access ────────────────────────────────────────────────────────────────
     // Access is time-limited and granted by hand. Card payments are not
@@ -653,6 +658,13 @@ export default defineSchema({
     country: v.optional(v.string()),
     /** Bare hostname of the referrer — 'linkedin.com', never the full URL. */
     referrer: v.optional(v.string()),
+    /** utm_source or ref from the link that was opened. */
+    campaign: v.optional(v.string()),
+    /** City from the CDN edge. Absent on rows recorded before cities were kept. */
+    city: v.optional(v.string()),
+    device: v.optional(v.union(v.literal("mobile"), v.literal("tablet"), v.literal("desktop"))),
+    browser: v.optional(v.string()),
+    os: v.optional(v.string()),
 
     /** Milliseconds on the page, when the surface reported it on unload. */
     durationMs: v.optional(v.number()),
