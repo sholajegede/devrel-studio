@@ -134,7 +134,7 @@ export const listPublishedHandles = query({
     const listed: { handle: string; lastModified: string }[] = []
 
     for (const user of users) {
-      if (!user.handle) continue
+      if (!user.handle || user.portfolioRedirectUrl) continue
 
       const entries = await ctx.db
         .query('contentEntries')
@@ -183,7 +183,7 @@ export const listPortfolioIndex = query({
     }[] = []
 
     for (const user of users) {
-      if (!user.handle) continue
+      if (!user.handle || user.portfolioRedirectUrl) continue
 
       const entries = await ctx.db
         .query('contentEntries')
@@ -221,6 +221,53 @@ export const listPortfolioIndex = query({
     // Busiest portfolios first: an agent reading top-down should meet the
     // substantial ones before the two-entry ones.
     return listed.sort((a, b) => b.published - a.published)
+  },
+})
+
+// ── Redirects ─────────────────────────────────────────────────────────────────
+
+/**
+ * An absolute https URL, or undefined for an empty value.
+ *
+ * Only https is accepted. A redirect is an open door on our domain, so it must
+ * never point at a javascript: or data: URL, or back at devrel.studio itself.
+ */
+function normalizeRedirectUrl(raw: string): string | undefined {
+  const value = raw.trim()
+  if (!value) return undefined
+
+  let url: URL
+  try {
+    url = new URL(/^[a-z]+:\/\//i.test(value) ? value : `https://${value}`)
+  } catch {
+    throw new ConvexError('Enter a full web address, like https://yoursite.com')
+  }
+
+  if (url.protocol !== 'https:') {
+    throw new ConvexError('The redirect address must start with https://')
+  }
+  const host = url.hostname.toLowerCase()
+  if (host === 'devrel.studio' || host.endsWith('.devrel.studio')) {
+    throw new ConvexError('A portfolio cannot redirect back to devrel.studio')
+  }
+  if (!host.includes('.')) {
+    throw new ConvexError('Enter a full web address, like https://yoursite.com')
+  }
+
+  return url.toString().slice(0, 300)
+}
+
+/** ⚠ PUBLIC — where /@handle redirects, or null to serve the hosted page. */
+export const redirectForHandle = query({
+  args: { handle: v.string() },
+  handler: async (ctx, args) => {
+    const handle = normalizeHandle(args.handle)
+    if (!handle) return null
+    const user = await ctx.db
+      .query('users')
+      .withIndex('by_handle', (q) => q.eq('handle', handle))
+      .first()
+    return user?.portfolioRedirectUrl ?? null
   },
 })
 
@@ -266,6 +313,8 @@ export const updatePortfolio = mutation({
     websiteUrl: v.optional(v.string()),
     githubUsername: v.optional(v.string()),
     twitterUsername: v.optional(v.string()),
+    /** Empty clears it, which serves the hosted portfolio again. */
+    redirectUrl: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const user = await requireCurrentUser(ctx)
@@ -293,6 +342,10 @@ export const updatePortfolio = mutation({
     if (args.twitterUsername !== undefined) {
       patch.twitterUsername =
         args.twitterUsername.trim().replace(/^@/, '').slice(0, 60) || undefined
+    }
+
+    if (args.redirectUrl !== undefined) {
+      patch.portfolioRedirectUrl = normalizeRedirectUrl(args.redirectUrl)
     }
 
     await ctx.db.patch(user._id, patch)

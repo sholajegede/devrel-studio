@@ -216,3 +216,69 @@ export function normaliseRoute(pathname: string): string {
 
   return `/${cleaned.join('/')}`
 }
+
+/**
+ * The visitor's city, from Cloudflare's visitor location headers.
+ *
+ * Only Cloudflare's value is trusted. Every devrel.studio host is proxied, so
+ * Vercel's own city header names the Cloudflare edge, not the visitor.
+ */
+export function callerCity(headers: Headers): string | undefined {
+  const city = headers.get('cf-ipcity')?.trim();
+  if (city) return city.slice(0, 80);
+  if (headers.get('cf-connecting-ip')) return undefined;
+  const vercel = headers.get('x-vercel-ip-city');
+  if (!vercel) return undefined;
+  try {
+    return decodeURIComponent(vercel).slice(0, 80) || undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+export type DeviceSummary = {
+  device: 'mobile' | 'tablet' | 'desktop';
+  browser: string;
+  os: string;
+};
+
+/** Device class, browser and OS from a user agent. Coarse on purpose. */
+export function describeUserAgent(userAgent: string | null): DeviceSummary {
+  const ua = userAgent ?? '';
+
+  const device: DeviceSummary['device'] = /ipad|tablet|(android(?!.*mobile))/i.test(ua)
+    ? 'tablet'
+    : /mobi|iphone|ipod|android/i.test(ua)
+      ? 'mobile'
+      : 'desktop';
+
+  const os = /iphone|ipad|ipod/i.test(ua)
+    ? 'iOS'
+    : /android/i.test(ua)
+      ? 'Android'
+      : /mac os x|macintosh/i.test(ua)
+        ? 'macOS'
+        : /windows/i.test(ua)
+          ? 'Windows'
+          : /cros/i.test(ua)
+            ? 'ChromeOS'
+            : /linux/i.test(ua)
+              ? 'Linux'
+              : 'Other';
+
+  const browser = /edg\//i.test(ua)
+    ? 'Edge'
+    : /opr\/|opera/i.test(ua)
+      ? 'Opera'
+      : /samsungbrowser/i.test(ua)
+        ? 'Samsung Internet'
+        : /firefox|fxios/i.test(ua)
+          ? 'Firefox'
+          : /chrome|crios/i.test(ua)
+            ? 'Chrome'
+            : /safari/i.test(ua)
+              ? 'Safari'
+              : 'Other';
+
+  return { device, browser, os };
+}
