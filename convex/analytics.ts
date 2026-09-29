@@ -52,6 +52,11 @@ export const record = mutation({
     sessionTokenHash: v.optional(v.string()),
     country: v.optional(v.string()),
     referrer: v.optional(v.string()),
+    campaign: v.optional(v.string()),
+    city: v.optional(v.string()),
+    device: v.optional(v.union(v.literal('mobile'), v.literal('tablet'), v.literal('desktop'))),
+    browser: v.optional(v.string()),
+    os: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const target = args.target.toLowerCase()
@@ -132,6 +137,11 @@ export const record = mutation({
       visitorHash: args.visitorHash,
       country: args.country,
       referrer: args.referrer,
+      campaign: args.campaign?.slice(0, 60),
+      city: args.city?.slice(0, 80),
+      device: args.device,
+      browser: args.browser?.slice(0, 40),
+      os: args.os?.slice(0, 40),
       at: now,
     })
   },
@@ -310,8 +320,12 @@ function emptyOverview(days: number) {
       allTimeVisitors: 0,
       reportsRead: 0,
       since: null as number | null,
+      sessions: 0,
+      avgSessionMs: null as number | null,
+      bounceRate: null as number | null,
     },
-    series: [...emptyDays(now, days).keys()].map((date) => ({
+    pages: [] as { label: string; views: number; visitors: number; avgDurationMs: number | null }[],
+    series: [...(days <= 1 ? emptyHours(now) : emptyDays(now, days)).keys()].map((date) => ({
       date,
       views: 0,
       visitors: 0,
@@ -321,8 +335,25 @@ function emptyOverview(days: number) {
       byReferrer: empty,
       byCountry: empty,
       byPath: empty,
+      byClientName: empty,
+      byEntry: empty,
+      byCampaign: empty,
+      byCity: empty,
+      byDevice: empty,
+      byBrowser: empty,
+      byOs: empty,
     },
   }
+}
+
+/** One empty bucket per hour over the last 24, oldest first. */
+function emptyHours(now: number) {
+  const byHour = new Map<string, { views: number; visitors: Set<string> }>()
+  for (let i = 23; i >= 0; i--) {
+    const key = new Date(now - i * 60 * 60 * 1000).toISOString().slice(0, 13)
+    byHour.set(key, { views: 0, visitors: new Set<string>() })
+  }
+  return byHour
 }
 
 function uniqueBy<T>(rows: T[], key: (row: T) => string): number {
@@ -339,6 +370,56 @@ function tally<T>(rows: T[], key: (row: T) => string | undefined) {
   return [...counts.entries()]
     .map(([label, count]) => ({ label, count }))
     .sort((a, b) => b.count - a.count)
+}
+
+/** A new session starts after this long without a view from the visitor. */
+const SESSION_GAP_MS = 30 * 60 * 1000
+
+/** A view as somebody would type its address. */
+export function pageLabel(view: Pick<Doc<'pageViews'>, 'surface' | 'target' | 'path'>): string {
+  const rest = view.path === '/' ? '' : view.path
+  if (view.surface === 'portfolio') {
+    return view.path === '/redirect' ? `/@${view.target} → redirect` : `/@${view.target}${rest}`
+  }
+  if (view.surface === 'dashboard') return `${view.target}.devrel.studio${rest}`
+  return view.path
+}
+
+type Session = { visitorHash: string; views: Doc<'pageViews'>[] }
+
+/**
+ * Views grouped into visits: one visitor, no gap longer than SESSION_GAP_MS.
+ * Input may be in any order; each session's views come back oldest first.
+ */
+export function buildSessions(views: Doc<'pageViews'>[]): Session[] {
+  const byVisitor = new Map<string, Doc<'pageViews'>[]>()
+  for (const view of views) {
+    const list = byVisitor.get(view.visitorHash) ?? []
+    list.push(view)
+    byVisitor.set(view.visitorHash, list)
+  }
+
+  const sessions: Session[] = []
+  for (const [visitorHash, list] of byVisitor) {
+    list.sort((a, b) => a.at - b.at)
+    let current: Session | null = null
+    for (const view of list) {
+      const last = current?.views[current.views.length - 1]
+      if (!current || !last || view.at - last.at > SESSION_GAP_MS) {
+        current = { visitorHash, views: [] }
+        sessions.push(current)
+      }
+      current.views.push(view)
+    }
+  }
+  return sessions
+}
+
+/** Reported time across a session's views, or null when none reported. */
+function sessionDuration(session: Session): number | null {
+  const timed = session.views.filter((view) => typeof view.durationMs === 'number')
+  if (!timed.length) return null
+  return timed.reduce((sum, view) => sum + view.durationMs!, 0)
 }
 
 /**
@@ -368,9 +449,11 @@ export const overview = query({
     // Days are bucketed in UTC, which is what "views today · since midnight
     // UTC" in the tile means. Local-day bucketing would make the number move
     // when the DevRel travels.
-    const byDay = emptyDays(now, days)
+    // A one-day window is drawn by the hour; anything longer by the day.
+    const hourly = days <= 1
+    const byDay = hourly ? emptyHours(now) : emptyDays(now, days)
     for (const view of windowed) {
-      const key = new Date(view.at).toISOString().slice(0, 10)
+      const key = new Date(view.at).toISOString().slice(0, hourly ? 13 : 10)
       const bucket = byDay.get(key)
       if (!bucket) continue
       bucket.views += 1
@@ -384,7 +467,10 @@ export const overview = query({
     }))
 
     const todayKey = new Date(now).toISOString().slice(0, 10)
-    const today = series.find((point) => point.date === todayKey)
+    const today = {
+      views: windowed.filter((view) => new Date(view.at).toISOString().slice(0, 10) === todayKey)
+        .length,
+    }
 
     // Peak day is computed over all-time rather than the visible window, so the
     // tile does not silently reset when the range selector changes.
@@ -414,6 +500,35 @@ export const overview = query({
     const timed = windowed.filter((view) => typeof view.durationMs === 'number')
     const medianDwellMs = median(timed.map((view) => view.durationMs!))
 
+    const sessions = buildSessions(windowed)
+    const sessionTimes = sessions
+      .map(sessionDuration)
+      .filter((value): value is number => value !== null)
+    const bounced = sessions.filter((session) => session.views.length === 1).length
+
+    const pages = new Map<
+      string,
+      { views: number; visitors: Set<string>; timeMs: number; timed: number }
+    >()
+    for (const view of windowed) {
+      const label = pageLabel(view)
+      const page = pages.get(label) ?? { views: 0, visitors: new Set(), timeMs: 0, timed: 0 }
+      page.views += 1
+      page.visitors.add(view.visitorHash)
+      if (typeof view.durationMs === 'number') {
+        page.timeMs += view.durationMs
+        page.timed += 1
+      }
+      pages.set(label, page)
+    }
+
+    const clientNames = new Map<string, string>()
+    for (const view of windowedDashboard) {
+      if (!view.clientId || clientNames.has(view.target)) continue
+      const client = await ctx.db.get(view.clientId)
+      if (client) clientNames.set(view.target, client.company || client.name)
+    }
+
     return {
       days,
       tiles: {
@@ -441,13 +556,36 @@ export const overview = query({
         ).length,
 
         since: allTime.length ? allTime[allTime.length - 1].at : null,
+        sessions: sessions.length,
+        avgSessionMs: sessionTimes.length
+          ? Math.round(sessionTimes.reduce((a, b) => a + b, 0) / sessionTimes.length)
+          : null,
+        bounceRate: sessions.length ? bounced / sessions.length : null,
       },
+      pages: [...pages.entries()]
+        .map(([label, page]) => ({
+          label,
+          views: page.views,
+          visitors: page.visitors.size,
+          avgDurationMs: page.timed ? Math.round(page.timeMs / page.timed) : null,
+        }))
+        .sort((a, b) => b.views - a.views)
+        .slice(0, 30),
       series,
       breakdowns: {
         byClient: tally(windowedDashboard, (view) => view.target),
         byReferrer: tally(windowed, (view) => view.referrer ?? 'direct'),
         byCountry: tally(windowed, (view) => view.country),
         byPath: tally(windowedPortfolio, (view) => view.path),
+        byClientName: tally(windowedDashboard, (view) => clientNames.get(view.target) ?? view.target),
+        byEntry: tally(sessions, (session) => pageLabel(session.views[0])),
+        byCampaign: tally(windowed, (view) => view.campaign),
+        byCity: tally(windowed, (view) =>
+          view.city ? `${view.city}${view.country ? `, ${view.country}` : ''}` : undefined,
+        ),
+        byDevice: tally(windowed, (view) => view.device),
+        byBrowser: tally(windowed, (view) => view.browser),
+        byOs: tally(windowed, (view) => view.os),
       },
     }
   },
@@ -775,5 +913,56 @@ export const liveNow = query({
       count: uniqueBy(views, (view) => view.visitorHash),
       countries: [...new Set(views.map((view) => view.country).filter(Boolean))] as string[],
     }
+  },
+})
+
+/**
+ * Recent visits, newest first, each with the pages it went through.
+ *
+ * Built from the same rows as the attention log. The visitor label is a
+ * fragment of the daily hash, so it identifies a visit, never a person.
+ */
+export const recentSessions = query({
+  args: { limit: v.optional(v.number()) },
+  handler: async (ctx, args) => {
+    const seen = await viewer(ctx)
+    if (seen.state !== 'ok') return []
+    const context = seen.context
+
+    const limit = Math.min(args.limit ?? 30, 100)
+    const views = await ctx.db
+      .query('pageViews')
+      .withIndex('by_workspace_and_time', (q) => q.eq('workspaceId', context.workspaceId))
+      .order('desc')
+      .take(800)
+
+    const sessions = buildSessions(views)
+      .sort((a, b) => b.views[b.views.length - 1].at - a.views[a.views.length - 1].at)
+      .slice(0, limit)
+
+    return sessions.map((session) => {
+      const first = session.views[0]
+      const last = session.views[session.views.length - 1]
+      return {
+        id: first._id,
+        visitor: session.visitorHash.slice(0, 5).toUpperCase(),
+        manager: session.views.some((view) => view.identity === 'manager'),
+        country: first.country,
+        city: first.city,
+        device: first.device,
+        browser: first.browser,
+        os: first.os,
+        referrer: first.referrer,
+        campaign: first.campaign,
+        startedAt: first.at,
+        lastAt: last.at,
+        durationMs: sessionDuration(session),
+        steps: session.views.map((view) => ({
+          label: pageLabel(view),
+          at: view.at,
+          durationMs: view.durationMs,
+        })),
+      }
+    })
   },
 })

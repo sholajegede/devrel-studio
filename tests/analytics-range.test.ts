@@ -48,21 +48,22 @@ describe('overview', () => {
 })
 
 describe('the analytics page', () => {
-  // A tile reading "· 7d" while 90d is selected is the same bug wearing the
-  // label of the old one, even if the number underneath is now right.
-  it('names the selected range on every range-sensitive tile', () => {
-    for (const tile of ['Visitors', 'Manager opens', 'Median read']) {
-      expect(page).toContain(`label={\`${tile} · \${days}d\`}`)
-    }
+  // One control sets the range, and the query it drives feeds every tile,
+  // the chart and every list. No tile carries a range of its own.
+  it('drives the whole overview from the selected range', () => {
+    expect(page).toContain('api.analytics.overview, ready ? { days }')
   })
 
   it('leaves no hardcoded 7d label behind', () => {
     expect(page).not.toMatch(/·\s*7d/)
   })
 
-  it('reads the range-neutral tile fields', () => {
-    expect(page).toMatch(/tiles\.visitors \?\? tiles\.visitors7d/)
-    expect(page).toMatch(/tiles\.managerViews \?\? tiles\.managerViews7d/)
+  // The page and the Convex query deploy on separate commands, so a field the
+  // page reads can be briefly missing. A missing list renders empty.
+  it('guards lists the backend may not send yet', () => {
+    expect(page).toMatch(/overview\.pages \?\? \[\]/)
+    expect(page).toMatch(/overview\.breakdowns\.byEntry \?\? \[\]/)
+    expect(page).toMatch(/overview\.breakdowns\.byDevice \?\? \[\]/)
   })
 })
 
