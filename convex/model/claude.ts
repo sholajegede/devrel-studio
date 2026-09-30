@@ -14,6 +14,7 @@ export interface ClaudeArgs {
   system: string
   user: string
   maxTokens?: number
+  /** Kept for callers. Newer models reject the parameter, so it is not sent. */
   temperature?: number
   /** Allow this many web searches. Zero or absent means none. */
   searches?: number
@@ -38,7 +39,6 @@ export async function callClaude(args: ClaudeArgs): Promise<string> {
       body: JSON.stringify({
         model: blogModel(),
         max_tokens: args.maxTokens ?? 6000,
-        temperature: args.temperature ?? 0.4,
         system: args.system,
         messages,
         ...(args.searches ? { tools: [{ type: 'web_search_20250305', name: 'web_search', max_uses: args.searches }] } : {}),
