@@ -177,6 +177,8 @@ export const adminList = query({
       createdAt: post.createdAt,
       publishedAt: post.publishedAt,
       error: post.error,
+      updatedAt: post.updatedAt,
+      hasDraft: post.body.length >= 500,
       verified: post.claims.filter((claim) => claim.verdict === 'verified').length,
       flagged: post.claims.filter((claim) => claim.verdict !== 'verified').length,
       problems: post.problems.length,
@@ -206,6 +208,43 @@ export const adminDecide = mutation({
       await ctx.db.patch(post._id, { status: 'rejected', updatedAt: Date.now() })
       await ctx.scheduler.runAfter(0, internal.jobSync.pingSite, {})
     }
+  },
+})
+
+/**
+ * Tries a failed or stuck post again. A post that already has a draft keeps its
+ * title, text and research, and only the fact check runs again. A post that
+ * failed before any draft existed starts a new run.
+ */
+export const retry = mutation({
+  args: { id: v.id('blogPosts') },
+  handler: async (ctx, args) => {
+    await requireAdmin(ctx, 'owner')
+    const post = await ctx.db.get(args.id)
+    if (!post) throw new ConvexError('Not found')
+    const stuck = post.status === 'checking' && Date.now() - post.updatedAt > 12 * 60_000
+    if (post.status !== 'failed' && !stuck) throw new ConvexError('Only a failed or stuck post can be retried')
+
+    if (post.body.length >= 500) {
+      await ctx.db.patch(post._id, { status: 'checking', error: undefined, updatedAt: Date.now() })
+      await ctx.scheduler.runAfter(0, internal.blog.factCheck, { id: post._id })
+    } else {
+      await ctx.scheduler.runAfter(0, internal.blog.draftNext, { force: true })
+    }
+  },
+})
+
+/** Called when a check fails for a reason that usually passes on a second try. */
+export const scheduleRetry = internalMutation({
+  args: { id: v.id('blogPosts') },
+  handler: async (ctx, args) => {
+    const post = await ctx.db.get(args.id)
+    if (!post) return false
+    const attempts = post.attempts ?? 0
+    if (attempts >= 2) return false
+    await ctx.db.patch(post._id, { attempts: attempts + 1, status: 'checking', updatedAt: Date.now() })
+    await ctx.scheduler.runAfter(2 * 60_000, internal.blog.factCheck, { id: post._id })
+    return true
   },
 })
 
@@ -568,7 +607,11 @@ export const factCheck = internalAction({
       await deliver(ctx, args.id, token)
     } catch (error) {
       console.error('[blog] fact check failed:', error)
-      await ctx.runMutation(internal.blog.fail, { id: args.id, error: error instanceof Error ? error.message : String(error) })
+      const message = error instanceof Error ? error.message : String(error)
+      // Overload, rate limit and timeout errors usually pass on a second try.
+      const transient = /\b(429|5\d\d)\b|timeout|timed out|aborted|overloaded/i.test(message)
+      if (transient && (await ctx.runMutation(internal.blog.scheduleRetry, { id: args.id }))) return
+      await ctx.runMutation(internal.blog.fail, { id: args.id, error: message })
     }
   },
 })

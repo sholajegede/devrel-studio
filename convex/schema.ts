@@ -1068,6 +1068,7 @@ export default defineSchema({
     reviewTokenHash: v.optional(v.string()),
     emailSentAt: v.optional(v.number()),
     error: v.optional(v.string()),
+    attempts: v.optional(v.number()),
     createdAt: v.number(),
     updatedAt: v.number(),
     publishedAt: v.optional(v.number()),

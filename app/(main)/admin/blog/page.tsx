@@ -47,6 +47,7 @@ export default function AdminBlogPage() {
   const posts = useQuery(api.blog.adminList)
   const draftNow = useMutation(api.blog.draftNow)
   const resend = useMutation(api.blog.resendReview)
+  const retry = useMutation(api.blog.retry)
   const decide = useMutation(api.blog.adminDecide)
   const [openId, setOpenId] = useState<Id<'blogPosts'> | null>(null)
 
@@ -99,6 +100,11 @@ export default function AdminBlogPage() {
                       <Button asChild variant="outline" size="sm"><Link href={`/blog/${post.slug}`}>View</Link></Button>
                       <Button variant="ghost" size="sm" onClick={() => run('Unpublished', () => decide({ id: post.id, decision: 'unpublish' }))}>Unpublish</Button>
                     </>
+                  )}
+                  {(post.status === 'failed' || (post.status === 'checking' && Date.now() - post.updatedAt > 12 * 60_000)) && (
+                    <Button variant="outline" size="sm" onClick={() => run(post.hasDraft ? 'Checking again with the same draft' : 'Starting a new draft', () => retry({ id: post.id }))}>
+                      {post.hasDraft ? 'Retry the check' : 'Retry'}
+                    </Button>
                   )}
                   {post.status === 'pending' && (
                     <Button variant="outline" size="sm" onClick={() => run('Review email sent', () => resend({ id: post.id }))}>Email me the link again</Button>
