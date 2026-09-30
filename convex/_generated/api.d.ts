@@ -27,6 +27,8 @@ import type * as http from "../http.js";
 import type * as jobAlerts from "../jobAlerts.js";
 import type * as jobBoard from "../jobBoard.js";
 import type * as jobCv from "../jobCv.js";
+import type * as jobKit from "../jobKit.js";
+import type * as jobPro from "../jobPro.js";
 import type * as jobSync from "../jobSync.js";
 import type * as jobs from "../jobs.js";
 import type * as managerAccess from "../managerAccess.js";
@@ -71,6 +73,8 @@ declare const fullApi: ApiFromModules<{
   jobAlerts: typeof jobAlerts;
   jobBoard: typeof jobBoard;
   jobCv: typeof jobCv;
+  jobKit: typeof jobKit;
+  jobPro: typeof jobPro;
   jobSync: typeof jobSync;
   jobs: typeof jobs;
   managerAccess: typeof managerAccess;

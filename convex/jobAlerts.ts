@@ -5,10 +5,10 @@ import { internalAction, internalMutation, internalQuery, mutation, query } from
 import { getCurrentUser, requireCurrentUser } from './model/auth'
 import { matchesFilters } from './jobs'
 import { formatSalary } from '../lib/jobs/salary'
+import { alertLimit, canUseFrequency, proActive } from '../lib/jobs/pro'
 
-const MAX_ALERTS = 10
 const HOUR = 60 * 60 * 1000
-const MIN_GAP: Record<'daily' | 'weekly', number> = { daily: 20 * HOUR, weekly: 6.5 * 24 * HOUR }
+const MIN_GAP: Record<'instant' | 'daily' | 'weekly', number> = { instant: 0, daily: 20 * HOUR, weekly: 6.5 * 24 * HOUR }
 const MAX_JOBS_PER_EMAIL = 10
 
 const alertFields = {
@@ -19,7 +19,7 @@ const alertFields = {
   workplaces: v.array(v.string()),
   regions: v.array(v.string()),
   minSalaryUsd: v.optional(v.number()),
-  frequency: v.union(v.literal('daily'), v.literal('weekly')),
+  frequency: v.union(v.literal('instant'), v.literal('daily'), v.literal('weekly')),
 }
 
 export const list = query({
@@ -42,9 +42,13 @@ export const create = mutation({
       .query('jobAlerts')
       .withIndex('by_user', (q) => q.eq('userId', user._id))
       .collect()
-    if (existing.length >= MAX_ALERTS) {
-      throw new ConvexError(`You can keep up to ${MAX_ALERTS} alerts`)
+    const pro = proActive(user)
+    if (existing.length >= alertLimit(pro)) {
+      throw new ConvexError(
+        pro ? `You can keep up to ${alertLimit(true)} alerts` : `Free accounts keep up to ${alertLimit(false)} alerts. Jobs Pro raises this to ${alertLimit(true)}.`,
+      )
     }
+    if (!canUseFrequency(pro, args.frequency)) throw new ConvexError('Instant alerts are part of Jobs Pro')
     const name = args.name.trim().slice(0, 80)
     if (!name) throw new ConvexError('Give the alert a name')
     return ctx.db.insert('jobAlerts', {
@@ -62,10 +66,13 @@ export const update = mutation({
   args: {
     id: v.id('jobAlerts'),
     enabled: v.optional(v.boolean()),
-    frequency: v.optional(v.union(v.literal('daily'), v.literal('weekly'))),
+    frequency: v.optional(v.union(v.literal('instant'), v.literal('daily'), v.literal('weekly'))),
   },
   handler: async (ctx, args) => {
     const user = await requireCurrentUser(ctx)
+    if (args.frequency && !canUseFrequency(proActive(user), args.frequency)) {
+      throw new ConvexError('Instant alerts are part of Jobs Pro')
+    }
     const alert = await ctx.db.get(args.id)
     if (!alert || alert.userId !== user._id) throw new ConvexError('Not found')
     await ctx.db.patch(args.id, {
@@ -93,9 +100,11 @@ interface Digest {
   jobs: { title: string; company: string; location: string; pay?: string; slug: string }[]
 }
 
+const frequencyArg = v.optional(v.array(v.union(v.literal('instant'), v.literal('daily'), v.literal('weekly'))))
+
 export const collectDigests = internalQuery({
-  args: {},
-  handler: async (ctx): Promise<Digest[]> => {
+  args: { frequencies: frequencyArg },
+  handler: async (ctx, args): Promise<Digest[]> => {
     const now = Date.now()
     const digests: Digest[] = []
     const active: Doc<'jobs'>[] = await ctx.db
@@ -104,7 +113,7 @@ export const collectDigests = internalQuery({
       .order('desc')
       .take(1500)
 
-    for (const frequency of ['daily', 'weekly'] as const) {
+    for (const frequency of args.frequencies ?? (['daily', 'weekly'] as const)) {
       const alerts = await ctx.db
         .query('jobAlerts')
         .withIndex('by_frequency', (q) => q.eq('enabled', true).eq('frequency', frequency))
@@ -115,6 +124,7 @@ export const collectDigests = internalQuery({
         const since = alert.lastSentAt ?? alert.createdAt
         const user = await ctx.db.get(alert.userId)
         if (!user || user.pausedAt) continue
+        if (frequency === 'instant' && !proActive(user, now)) continue
 
         const text = alert.query?.trim().toLowerCase()
         const matches = active
@@ -167,10 +177,12 @@ export const markSent = internalMutation({
 })
 
 export const runAlerts = internalAction({
-  args: {},
-  handler: async (ctx): Promise<number> => {
+  args: { frequencies: frequencyArg },
+  handler: async (ctx, args): Promise<number> => {
     const site = (process.env.SITE_URL ?? 'https://devrel.studio').replace(/\/$/, '')
-    const digests: Digest[] = await ctx.runQuery(internal.jobAlerts.collectDigests, {})
+    const digests: Digest[] = await ctx.runQuery(internal.jobAlerts.collectDigests, {
+      frequencies: args.frequencies,
+    })
     let sent = 0
 
     for (const digest of digests) {

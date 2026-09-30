@@ -38,6 +38,8 @@ export default defineSchema({
     trialEndsAt: v.optional(v.number()),
     /** Paid access expiry. Absent means never granted. */
     accessUntil: v.optional(v.number()),
+    /** Jobs Pro pass expiry. Separate from the workspace plan above. */
+    jobsProUntil: v.optional(v.number()),
     /** Why access was granted — what they paid, in what currency, when. */
     accessNote: v.optional(v.string()),
 
@@ -790,7 +792,15 @@ export default defineSchema({
   }).index("by_slug_and_bucket", ["slug", "bucket"]),
   // ── Jobs board ────────────────────────────────────────────────────────────
   jobSources: defineTable({
-    kind: v.union(v.literal("greenhouse"), v.literal("lever"), v.literal("ashby")),
+    kind: v.union(
+      v.literal("greenhouse"),
+      v.literal("lever"),
+      v.literal("ashby"),
+      v.literal("remoteok"),
+      v.literal("wwr"),
+      v.literal("hn"),
+      v.literal("reddit"),
+    ),
     slug: v.string(),
     name: v.string(),
     active: v.boolean(),
@@ -931,11 +941,46 @@ export default defineSchema({
     workplaces: v.array(v.string()),
     regions: v.array(v.string()),
     minSalaryUsd: v.optional(v.number()),
-    frequency: v.union(v.literal("daily"), v.literal("weekly")),
+    frequency: v.union(v.literal("instant"), v.literal("daily"), v.literal("weekly")),
     enabled: v.boolean(),
     lastSentAt: v.optional(v.number()),
     createdAt: v.number(),
   })
     .index("by_user", ["userId"])
     .index("by_frequency", ["enabled", "frequency"]),
+
+  // Application kits: a tailored CV summary, bullets and cover note per role.
+  // Counting these rows is how the three free tailorings are metered.
+  jobKits: defineTable({
+    userId: v.id("users"),
+    jobId: v.optional(v.id("jobs")),
+    jobSlug: v.optional(v.string()),
+    title: v.string(),
+    company: v.string(),
+    status: v.union(v.literal("pending"), v.literal("ready"), v.literal("failed")),
+    summary: v.optional(v.string()),
+    bullets: v.optional(v.array(v.string())),
+    coverNote: v.optional(v.string()),
+    gaps: v.optional(v.array(v.string())),
+    /** Style problems that survived the repair pass. Shown to the user. */
+    flags: v.optional(v.array(v.string())),
+    error: v.optional(v.string()),
+    createdAt: v.number(),
+  })
+    .index("by_user", ["userId"])
+    .index("by_user_and_job", ["userId", "jobId"]),
+
+  // Jobs Pro purchase requests, settled by hand like the workspace plans.
+  jobProRequests: defineTable({
+    userId: v.id("users"),
+    email: v.string(),
+    name: v.optional(v.string()),
+    currency: v.string(),
+    amount: v.number(),
+    months: v.number(),
+    status: v.union(v.literal("open"), v.literal("granted"), v.literal("declined"), v.literal("cancelled")),
+    createdAt: v.number(),
+  })
+    .index("by_user", ["userId"])
+    .index("by_status", ["status"]),
 });

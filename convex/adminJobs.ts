@@ -5,7 +5,15 @@ import { getAdmin, requireAdmin } from './model/admin'
 
 const SLUG = /^[a-z0-9][a-z0-9._-]{0,60}$/i
 
-const kindValidator = v.union(v.literal('greenhouse'), v.literal('lever'), v.literal('ashby'))
+const kindValidator = v.union(
+  v.literal('greenhouse'),
+  v.literal('lever'),
+  v.literal('ashby'),
+  v.literal('remoteok'),
+  v.literal('wwr'),
+  v.literal('hn'),
+  v.literal('reddit'),
+)
 
 export const overview = query({
   args: {},
@@ -120,5 +128,44 @@ export const addSource = mutation({
     })
     await ctx.scheduler.runAfter(0, internal.jobSync.syncSource, { sourceId })
     return sourceId
+  },
+})
+
+// ── Jobs Pro requests ─────────────────────────────────────────────────────────
+
+export const proRequests = query({
+  args: {},
+  handler: async (ctx) => {
+    if (!(await getAdmin(ctx))) return null
+    const open = await ctx.db
+      .query('jobProRequests')
+      .withIndex('by_status', (q) => q.eq('status', 'open'))
+      .collect()
+    return open.sort((a, b) => b.createdAt - a.createdAt)
+  },
+})
+
+/** Opens the pass after a transfer clears. Extends from the current expiry if one is running. */
+export const grantPro = mutation({
+  args: { requestId: v.id('jobProRequests') },
+  handler: async (ctx, args) => {
+    await requireAdmin(ctx, 'owner')
+    const request = await ctx.db.get(args.requestId)
+    if (!request || request.status !== 'open') throw new ConvexError('Request is not open')
+    const user = await ctx.db.get(request.userId)
+    if (!user) throw new ConvexError('Account no longer exists')
+    const now = Date.now()
+    const start = Math.max(now, user.jobsProUntil ?? 0)
+    await ctx.db.patch(user._id, { jobsProUntil: start + request.months * 30 * 24 * 60 * 60 * 1000 })
+    await ctx.db.patch(request._id, { status: 'granted' })
+  },
+})
+
+export const declinePro = mutation({
+  args: { requestId: v.id('jobProRequests') },
+  handler: async (ctx, args) => {
+    await requireAdmin(ctx, 'owner')
+    const request = await ctx.db.get(args.requestId)
+    if (request && request.status === 'open') await ctx.db.patch(request._id, { status: 'declined' })
   },
 })
