@@ -2,6 +2,7 @@ import type { MetadataRoute } from 'next'
 import { ConvexHttpClient } from 'convex/browser'
 import { api } from '@/convex/_generated/api'
 import { siteOrigin } from '@/lib/site'
+import { FAMILIES } from '@/lib/jobs/taxonomy'
 
 // Regenerated on the same cadence as the portfolios themselves. A sitemap that
 // is an hour stale is fine; one that blocks a deploy because Convex is briefly
@@ -18,19 +19,52 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${origin}/demo`, changeFrequency: 'monthly', priority: 0.7 },
     { url: `${origin}/privacy`, changeFrequency: 'yearly', priority: 0.3 },
     { url: `${origin}/terms`, changeFrequency: 'yearly', priority: 0.3 },
+    { url: `${origin}/jobs`, changeFrequency: 'hourly', priority: 0.9 },
+    { url: `${origin}/jobs/salaries`, changeFrequency: 'daily', priority: 0.8 },
+    { url: `${origin}/jobs/companies`, changeFrequency: 'daily', priority: 0.7 },
+    { url: `${origin}/jobs/remote`, changeFrequency: 'daily', priority: 0.8 },
+    ...FAMILIES.map((family) => ({
+      url: `${origin}/jobs/roles/${family.id}`,
+      changeFrequency: 'daily' as const,
+      priority: 0.8,
+    })),
   ]
 
   const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL
   if (!convexUrl) return staticRoutes
 
   try {
-    const handles = await new ConvexHttpClient(convexUrl).query(
-      api.portfolio.listPublishedHandles,
-      {},
-    )
+    const convex = new ConvexHttpClient(convexUrl)
+    const handles = await convex.query(api.portfolio.listPublishedHandles, {})
+
+    const jobRoutes: MetadataRoute.Sitemap = []
+    try {
+      const [jobs, stats] = await Promise.all([
+        convex.query(api.jobs.sitemapEntries, {}),
+        convex.query(api.jobs.stats, {}),
+      ])
+      for (const job of jobs) {
+        jobRoutes.push({
+          url: `${origin}/jobs/${job.slug}`,
+          lastModified: new Date(job.lastVerifiedAt),
+          changeFrequency: 'daily',
+          priority: 0.6,
+        })
+      }
+      for (const company of stats?.byCompany ?? []) {
+        jobRoutes.push({
+          url: `${origin}/jobs/companies/${company.slug}`,
+          changeFrequency: 'daily',
+          priority: 0.6,
+        })
+      }
+    } catch (error) {
+      console.error('[sitemap] could not list jobs:', error)
+    }
 
     return [
       ...staticRoutes,
+      ...jobRoutes,
       ...handles.map((entry) => ({
         // The canonical address is the pretty one — /portfolio/<handle> is an
         // internal rewrite target and should never be the URL that gets indexed.

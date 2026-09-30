@@ -47,6 +47,9 @@ export async function GET() {
     field('Site', origin),
     field('Portfolios', `${origin}/@<handle>`),
     field('Per-portfolio llms.txt', `${origin}/@<handle>/llms.txt`),
+    field('DevRel jobs board', `${origin}/jobs`),
+    field('Jobs llms.txt', `${origin}/jobs/llms.txt`),
+    field('Jobs JSON API', `${origin}/api/jobs`),
   )
 
   const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL

@@ -201,7 +201,12 @@ export function normaliseRoute(pathname: string): string {
   const segments = pathname.split('/').filter(Boolean)
   if (segments.length === 0) return '/'
 
+  const hubs = ['salaries', 'remote', 'feed.xml', 'llms.txt']
   const cleaned = segments.map((segment, index) => {
+    if (segments[0] === 'jobs') {
+      if (index === 1 && !hubs.includes(segment) && segment !== 'roles' && segment !== 'companies') return ':job'
+      if (index === 2 && segments[1] === 'companies') return ':company'
+    }
     // A Convex document id: lowercase alphanumerics, long, and containing at
     // least one digit — which is what separates one from a word like
     // "dashboard" or a slug like "acme-industries".

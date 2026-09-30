@@ -26,6 +26,7 @@ export function MarketingFooter() {
                 { href: '/#features',     label: 'Features' },
                 { href: '/#how-it-works', label: 'How it works' },
                 { href: '/pricing',       label: 'Pricing' },
+                { href: '/jobs',          label: 'DevRel jobs' },
               ].map(({ href, label }) => (
                 <li key={label}>
                   <Link href={href} className="text-sm text-white/40 hover:text-white transition-colors">{label}</Link>
