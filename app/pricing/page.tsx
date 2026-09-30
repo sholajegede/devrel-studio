@@ -27,11 +27,13 @@ import {
   type CurrencyCode,
 } from '@/lib/currency'
 import { CurrencyPicker } from '@/components/marketing/currency-picker'
+import { JobsPricing } from '@/components/marketing/jobs-pricing'
+import { PRO_MONTHS, PRO_PRICE } from '@/lib/jobs/pro'
 
 export const metadata: Metadata = {
   title: 'Pricing · DevRel Studio',
   description:
-    'DevRel Studio pricing. Three plans, billed monthly and sold in terms of 1, 3, 6 or 12 months. Prices show in your local currency. 14 days free.',
+    'DevRel Studio pricing. Three client-reporting plans sold in terms of 1, 3, 6 or 12 months, a free DevRel job board, and Jobs Pro for 12 months in one payment. Prices show in your local currency. 14 days free.',
 }
 
 // ─── Plan presentation ────────────────────────────────────────────────────────
@@ -85,8 +87,20 @@ function limitLabel(limit: number | null): string {
 
 const FAQ = [
   {
+    q: 'Is the job board free?',
+    a: 'Yes. Browsing, filtering, saving roles, the tracker, CV upload with role matching, two email alerts and three tailored application kits cost nothing.',
+  },
+  {
+    q: 'What does Jobs Pro cost, and what does it add?',
+    a: `One payment for ${PRO_MONTHS} months: ${formatPrice(PRO_PRICE.USD, 'USD')}, ${formatPrice(PRO_PRICE.GBP, 'GBP')} or ${formatPrice(PRO_PRICE.NGN, 'NGN')}. It adds unlimited tailored CV and cover note kits (up to 60 a month), instant alerts, up to 50 saved alerts, pay benchmarks for your exact role, level and region, and a hiring view. It is separate from the client-reporting plans.`,
+  },
+  {
+    q: 'How do tailored applications avoid sounding machine-written?',
+    a: 'Each kit is written only from your CV and the work you have published, then checked against a list of stock phrases and unsupported numbers before you see it. You still read and edit it before you send anything.',
+  },
+  {
     q: 'How does payment work?',
-    a: 'You email us the plan and the number of months. We send transfer details. Access opens when the payment lands. Card payments are not available yet, because Stripe needs a US company and we run this from Nigeria.',
+    a: 'You request a plan, or Jobs Pro, and say how many months you want. We send transfer details. Access opens when the payment lands. Card payments are not available yet, because Stripe needs a US company and we run this from Nigeria.',
   },
   {
     q: 'What happens when my access runs out?',
@@ -218,7 +232,8 @@ export default async function PricingPage({
         </h1>
         <p className="mx-auto mt-5 max-w-lg text-[15px] leading-relaxed text-muted-foreground">
           Start free for 14 days. No card. After that you buy the months you want.
-          Longer terms cost less.
+          Longer terms cost less. The DevRel job board is free, and Jobs Pro is a separate
+          one-off pass for a year.
         </p>
 
         <CurrencyPicker current={currency} />
@@ -285,6 +300,8 @@ export default async function PricingPage({
           </div>
         </div>
       </section>
+
+      <JobsPricing currency={currency} />
 
       {/* Comparison */}
       <section className="border-t border-border bg-card/40 py-24">

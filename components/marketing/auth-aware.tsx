@@ -9,6 +9,7 @@ import {
   DEFAULT_CURRENCY,
   type CurrencyCode,
 } from '@/lib/currency'
+import { PRO_MONTHS, PRO_PRICE } from '@/lib/jobs/pro'
 
 // Session and currency resolve in the browser so marketing pages stay static.
 
@@ -43,7 +44,8 @@ export function LocalPriceAnswer() {
     <>
       Starter is {price('starter')} a month, Pro is {price('pro')} and Agency is{' '}
       {price('agency')}. You buy 1, 3, 6 or 12 months at a time, and longer terms cost
-      less. The first 14 days are free and need no card.
+      less. The first 14 days are free and need no card. The DevRel job board is free, and Jobs Pro
+      is {formatPrice(PRO_PRICE[currency], currency)} once for {PRO_MONTHS} months.
     </>
   )
 }

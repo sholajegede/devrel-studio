@@ -7,7 +7,7 @@ export const metadata: Metadata = {
 }
 
 // These mirror the commercial promises made on the pricing page — monthly
-// pricing sold in terms, manual payment, 14-day refund. If that copy changes,
+// pricing sold in terms, Jobs Pro as a 12-month pass, manual payment, 14-day refund. If that copy changes,
 // this has to change with it. Needs review by someone qualified before being
 // relied on.
 
@@ -15,7 +15,7 @@ export default function TermsPage() {
   return (
     <LegalPage
       title="Terms of Service"
-      updated="17 August 2026"
+      updated="30 September 2026"
       intro="These terms cover buying and using DevRel Studio. Where the wording is unclear, the reading that favours you applies."
     >
       <Section heading="What you are buying">
@@ -27,6 +27,21 @@ export default function TermsPage() {
         <p>
           We handle payment directly, not through a card processor. You tell us the plan and
           the term. We send transfer details. Access opens when the payment arrives.
+        </p>
+      </Section>
+
+      <Section heading="The job board and Jobs Pro">
+        <p>
+          The DevRel job board is free. Jobs Pro is a separate pass that we sell for twelve
+          months in one payment. It adds tailored CVs and cover notes, instant alerts, pay
+          benchmarks and a hiring view. Tailored kits are limited to 60 a month. Free accounts get
+          three.
+        </p>
+        <p>
+          Kits are written from the CV and the published work you give us. Read every line
+          before you send it. You are responsible for what you submit to an employer. We list
+          jobs from public sources and do not guarantee that a role is still open or that an
+          employer will reply.
         </p>
       </Section>
 

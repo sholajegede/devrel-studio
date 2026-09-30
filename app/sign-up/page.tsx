@@ -10,6 +10,7 @@ const PLAN_PERKS = [
   'One client workspace, up to 10 entries',
   'All six content categories',
   'A live dashboard your client can open',
+  'The DevRel job board is free, always',
   'Nothing to cancel when it ends',
 ]
 

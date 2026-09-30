@@ -36,6 +36,7 @@ import {
 } from '@/components/ui/accordion'
 import { AdminTour, AdminTourTriggerButton, TourVariant } from '@/components/admin-onboarding-tour'
 import { SectionLoader } from '@/components/brand/brand-loader'
+import { PRO_MONTHS, PRO_PRICE } from '@/lib/jobs/pro'
 
 // Presentation only — prices, limits and features come from convex/model/plans,
 // which is the same definition the server enforces against.
@@ -51,6 +52,7 @@ const FAQ_ITEMS = [
   { q: 'What happens when access runs out?', a: 'Nothing is deleted. Your content stays and your clients’ dashboards stay online. You just cannot add or edit until access is extended.' },
   { q: 'Does extending early lose me time?', a: 'No. A new term is added to the end of your current window, never in place of it.' },
   { q: 'What’s your refund policy?', a: 'Full refund within 14 days of a payment, no questions asked. Email support@devrel.studio.' },
+  { q: 'Is Jobs Pro part of these plans?', a: 'No. Jobs Pro is a separate pass for the DevRel job board: one payment for 12 months, paid the same way. Comped accounts include it.' },
   { q: 'Need a larger team?', a: 'The Agency plan includes 5 seats. Contact us directly for larger teams.' },
 ]
 
@@ -356,6 +358,32 @@ function BillingPageContent() {
               Contact us <ExternalLink className="h-3 w-3" />
             </Link>
           </p>
+        </SettingSection>
+
+        <Separator />
+
+        {/* Jobs Pro */}
+        <SettingSection
+          title="Jobs Pro"
+          description="A separate pass for the DevRel job board. It does not change your plan."
+        >
+          <Card>
+            <CardContent className="flex flex-wrap items-center justify-between gap-4 p-6">
+              <div>
+                <p className="text-sm font-medium text-foreground">
+                  {formatPrice(PRO_PRICE[currency], currency)} once, for {PRO_MONTHS} months
+                </p>
+                <p className="mt-1 max-w-md text-sm text-muted-foreground">
+                  Tailored CVs and cover notes, instant alerts, pay benchmarks for your role and level, and a hiring view.
+                </p>
+              </div>
+              <Link href="/dashboard/jobs/pro">
+                <Button size="sm" variant="outline" className="gap-1.5">
+                  See Jobs Pro <ArrowRight className="h-3.5 w-3.5" />
+                </Button>
+              </Link>
+            </CardContent>
+          </Card>
         </SettingSection>
 
         <Separator />

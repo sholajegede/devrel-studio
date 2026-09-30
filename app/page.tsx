@@ -417,6 +417,41 @@ function Testimonial() {
   )
 }
 
+// ─── Jobs ─────────────────────────────────────────────────────────────────────
+
+function JobsBand() {
+  return (
+    <section className="border-t border-border py-24">
+      <div className="mx-auto max-w-4xl px-6 text-center">
+        <Eyebrow>The DevRel job board</Eyebrow>
+        <h2 className="mt-3 text-3xl font-semibold tracking-[-0.02em] text-foreground sm:text-4xl">
+          Every DevRel role, then the proof to get it
+        </h2>
+        <p className="mx-auto mt-4 max-w-2xl text-[15px] leading-relaxed text-muted-foreground">
+          Advocate, DevRel engineer, developer success, community and docs roles from company careers pages, refreshed
+          three times a day. Track every application, and turn the work you have published into a CV and cover note
+          for each role. The board is free. Jobs Pro is one payment for a year.
+        </p>
+        <div className="mt-8 flex flex-col items-center justify-center gap-2.5 sm:flex-row">
+          <Link
+            href="/jobs"
+            className="inline-flex h-11 items-center gap-1.5 rounded-lg bg-foreground px-5 text-sm font-medium text-background hover:opacity-90"
+          >
+            Browse DevRel jobs
+            <ArrowRight className="h-3.5 w-3.5" />
+          </Link>
+          <Link
+            href="/pricing#jobs"
+            className="inline-flex h-11 items-center rounded-lg border border-border px-5 text-sm font-medium text-foreground hover:bg-muted"
+          >
+            See Jobs Pro pricing
+          </Link>
+        </div>
+      </div>
+    </section>
+  )
+}
+
 // ─── FAQ ──────────────────────────────────────────────────────────────────────
 
 function faqItems(): { q: string; a: React.ReactNode }[] {
@@ -429,6 +464,7 @@ function faqItems(): { q: string; a: React.ReactNode }[] {
   { q: 'What is your refund policy?',                  a: 'Email us within 14 days of a payment and we refund it. We do not ask why.' },
   { q: 'Do clients need an account?',                  a: 'No. The client dashboard is a read-only URL. It works in any browser. You choose whether it needs an access code.' },
   { q: 'Can multiple people use one account?',         a: 'The Agency plan includes 5 seats with admin, editor and viewer roles. Starter and Pro are single-user.' },
+  { q: 'Is the job board free?',                      a: 'Yes. Browse, filter, save roles, track applications, upload your CV for role matching and set two email alerts at no cost. Jobs Pro is an optional one-off pass for a year that adds unlimited tailored CVs and cover notes, instant alerts, pay benchmarks and a hiring view.' },
   { q: 'What content does DevRel Studio track?',       a: 'Six categories: Written, Video, Event, Podcast, Package and Demo. Each one records the number that suits it.' },
   ]
 }
@@ -517,6 +553,7 @@ export default function LandingPage() {
       <FeatureBento />
       <ContentCategories />
       <HowItWorks />
+      <JobsBand />
       <Testimonial />
       <FAQ />
       <CTA />
