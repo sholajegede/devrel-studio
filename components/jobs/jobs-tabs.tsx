@@ -8,7 +8,9 @@ const TABS = [
   { href: '/dashboard/jobs', label: 'Discover', exact: true },
   { href: '/dashboard/jobs/tracker', label: 'Tracker' },
   { href: '/dashboard/jobs/alerts', label: 'Alerts' },
+  { href: '/dashboard/jobs/market', label: 'Market' },
   { href: '/dashboard/jobs/profile', label: 'CV & preferences' },
+  { href: '/dashboard/jobs/pro', label: 'Pro' },
 ]
 
 export function JobsHeader({ title, description, children }: { title: string; description: string; children?: React.ReactNode }) {

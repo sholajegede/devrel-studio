@@ -15,7 +15,7 @@ export default function PrivacyPage() {
   return (
     <LegalPage
       title="Privacy Policy"
-      updated="17 August 2026"
+      updated="30 September 2026"
       intro="DevRel Studio tracks content you produce for clients. This page says what it stores, why we store it, and who else can see it."
     >
       <Section heading="What we collect">
@@ -33,6 +33,14 @@ export default function PrivacyPage() {
           <strong className="text-foreground">Payment records.</strong> We store which plan you
           bought and when your access ends. We handle payments by bank transfer, so we never
           hold a card number.
+        </p>
+        <p>
+          <strong className="text-foreground">Job board data.</strong> If you use the job board
+          we store the CV you upload or paste, the preferences you set, and the roles you track.
+          Only you can see them. You can delete your CV at any time from the CV and preferences
+          page. When you ask for a tailored application, your CV text, the role listing and the
+          titles of your published work are sent to Anthropic to write it. We do not use your CV
+          for anything else.
         </p>
         <p>
           <strong className="text-foreground">Technical logs.</strong> Errors and timing data,
@@ -77,6 +85,7 @@ export default function PrivacyPage() {
           <li>Convex, for the database and server functions</li>
           <li>Vercel, for hosting</li>
           <li>Resend, for email</li>
+          <li>Anthropic, for writing tailored CVs and cover notes</li>
         </ul>
       </Section>
 

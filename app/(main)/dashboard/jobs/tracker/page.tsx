@@ -407,6 +407,11 @@ function DetailBody({ row, onClose }: { row: Application; onClose: () => void })
               <Link href={`/jobs/${row.listing.slug}`}>View listing</Link>
             </Button>
           )}
+          {row.listing?.slug && (
+            <Button asChild variant="outline" size="sm">
+              <Link href={`/dashboard/jobs/kit/${row.listing.slug}`}>Tailor CV</Link>
+            </Button>
+          )}
           {row.url && (
             <Button asChild variant="outline" size="sm">
               <a href={row.url} target="_blank" rel="noopener noreferrer">

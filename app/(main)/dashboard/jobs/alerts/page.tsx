@@ -43,6 +43,7 @@ function describe(alert: {
 function AlertsInner() {
   const params = useSearchParams()
   const alerts = useQuery(api.jobAlerts.list)
+  const pro = useQuery(api.jobPro.status)?.pro === true
   const create = useMutation(api.jobAlerts.create)
   const update = useMutation(api.jobAlerts.update)
   const remove = useMutation(api.jobAlerts.remove)
@@ -54,7 +55,7 @@ function AlertsInner() {
   const [workplaces, setWorkplaces] = useState<string[]>(csv(params.get('w')))
   const [regions, setRegions] = useState<string[]>(csv(params.get('r')))
   const [min, setMin] = useState(params.get('min') ?? '')
-  const [frequency, setFrequency] = useState<'daily' | 'weekly'>('daily')
+  const [frequency, setFrequency] = useState<'instant' | 'daily' | 'weekly'>('daily')
   const [busy, setBusy] = useState(false)
 
   const toggle = (list: string[], set: (next: string[]) => void, id: string) =>
@@ -139,10 +140,17 @@ function AlertsInner() {
             <Input inputMode="numeric" placeholder="Minimum yearly pay in USD" value={min} onChange={(e) => setMin(e.target.value.replace(/[^0-9]/g, ''))} aria-label="Minimum pay" />
             <select
               value={frequency}
-              onChange={(e) => setFrequency(e.target.value as 'daily' | 'weekly')}
+              onChange={(e) => setFrequency(e.target.value as 'instant' | 'daily' | 'weekly')}
               aria-label="Frequency"
               className="h-9 rounded-md border border-border bg-background px-2 text-sm"
             >
+              {pro ? (
+                <option value="instant">Instant, as soon as a role is posted</option>
+              ) : (
+                <option value="instant" disabled>
+                  Instant (Jobs Pro)
+                </option>
+              )}
               <option value="daily">Daily</option>
               <option value="weekly">Weekly</option>
             </select>
@@ -172,7 +180,7 @@ function AlertsInner() {
                   <p className="truncate font-medium text-foreground">{alert.name}</p>
                   <p className="truncate text-xs text-muted-foreground">{describe(alert)}</p>
                   <p className="text-xs text-muted-foreground">
-                    {alert.frequency === 'daily' ? 'Daily' : 'Weekly'}
+                    {alert.frequency === 'instant' ? 'Instant' : alert.frequency === 'daily' ? 'Daily' : 'Weekly'}
                     {alert.lastSentAt ? ` · last sent ${new Date(alert.lastSentAt).toLocaleDateString()}` : ''}
                   </p>
                 </div>

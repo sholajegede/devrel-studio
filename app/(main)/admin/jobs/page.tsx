@@ -18,8 +18,11 @@ export default function AdminJobsPage() {
   const refreshStats = useMutation(api.adminJobs.refreshStatsNow)
   const setActive = useMutation(api.adminJobs.setActive)
   const addSource = useMutation(api.adminJobs.addSource)
+  const proRequests = useQuery(api.adminJobs.proRequests)
+  const grantPro = useMutation(api.adminJobs.grantPro)
+  const declinePro = useMutation(api.adminJobs.declinePro)
 
-  const [kind, setKind] = useState<'greenhouse' | 'ashby' | 'lever'>('greenhouse')
+  const [kind, setKind] = useState<'greenhouse' | 'ashby' | 'lever' | 'remoteok' | 'wwr' | 'hn' | 'reddit'>('greenhouse')
   const [slug, setSlug] = useState('')
   const [name, setName] = useState('')
 
@@ -60,6 +63,30 @@ export default function AdminJobsPage() {
         </div>
       </div>
 
+      {proRequests && proRequests.length > 0 && (
+        <Card className="p-4">
+          <p className="mb-3 text-sm font-medium">Jobs Pro requests</p>
+          <ul className="space-y-2 text-sm">
+            {proRequests.map((request) => (
+              <li key={request._id} className="flex flex-wrap items-center justify-between gap-2">
+                <span>
+                  {request.name ? `${request.name}, ` : ''}
+                  {request.email}: {request.amount.toLocaleString('en-US')} {request.currency} for {request.months} months
+                </span>
+                <span className="flex gap-2">
+                  <Button size="sm" onClick={() => run('Pass opened', () => grantPro({ requestId: request._id }))}>
+                    Payment received, grant
+                  </Button>
+                  <Button size="sm" variant="ghost" onClick={() => run('Declined', () => declinePro({ requestId: request._id }))}>
+                    Decline
+                  </Button>
+                </span>
+              </li>
+            ))}
+          </ul>
+        </Card>
+      )}
+
       <Card className="p-4">
         <p className="mb-3 text-sm font-medium">Add a feed</p>
         <div className="flex flex-wrap gap-2">
@@ -72,6 +99,10 @@ export default function AdminJobsPage() {
             <option value="greenhouse">Greenhouse</option>
             <option value="ashby">Ashby</option>
             <option value="lever">Lever</option>
+            <option value="remoteok">RemoteOK tag</option>
+            <option value="wwr">We Work Remotely feed</option>
+            <option value="hn">Hacker News (hiring or freelancer)</option>
+            <option value="reddit">Reddit subreddit</option>
           </select>
           <Input className="w-48" placeholder="board slug" value={slug} onChange={(e) => setSlug(e.target.value)} aria-label="Board slug" />
           <Input className="w-48" placeholder="Company name" value={name} onChange={(e) => setName(e.target.value)} aria-label="Company name" />
