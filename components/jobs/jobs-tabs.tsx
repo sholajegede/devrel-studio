@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import { JobsTour } from '@/components/jobs/jobs-tour'
+import { JobsAnalytics } from '@/components/jobs/jobs-analytics'
 
 const TABS = [
   { href: '/dashboard/jobs', label: 'Discover', exact: true },
@@ -18,6 +19,7 @@ export function JobsHeader({ title, description, children }: { title: string; de
   const pathname = usePathname()
   return (
     <div className="mb-6">
+      <JobsAnalytics />
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold text-foreground">{title}</h1>

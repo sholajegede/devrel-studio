@@ -1,4 +1,5 @@
 'use client'
+import { track } from '@/lib/jobs/track'
 
 import { useMemo, useState } from 'react'
 import Link from 'next/link'
@@ -61,7 +62,11 @@ function pct(value: number | null): string {
 export default function TrackerPage() {
   const rows = useQuery(api.jobBoard.applications) as Application[] | null | undefined
   const setStage = useMutation(api.jobBoard.setStage)
-  const [openId, setOpenId] = useState<Id<'jobApplications'> | null>(null)
+  const [openId, setOpenIdRaw] = useState<Id<'jobApplications'> | null>(null)
+  const setOpenId = (id: Id<'jobApplications'> | null) => {
+    if (id) track('tracker_open')
+    setOpenIdRaw(id)
+  }
   const [adding, setAdding] = useState(false)
   const [dragId, setDragId] = useState<string | null>(null)
   const [overColumn, setOverColumn] = useState<string | null>(null)
@@ -74,6 +79,7 @@ export default function TrackerPage() {
     if (!row || columnOf(row.stage) === column) return
     try {
       await setStage({ id: id as Id<'jobApplications'>, stage: stageForColumn(column) })
+      track('tracker_move', { label: `to ${column}` })
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Could not move')
     }
@@ -206,7 +212,7 @@ export default function TrackerPage() {
                           event.dataTransfer.effectAllowed = 'move'
                           setDragId(row._id)
                         }}
-                        onMove={(stage) => setStage({ id: row._id, stage })}
+                        onMove={(stage) => { track('tracker_move', { label: `to ${stage} (menu)` }); return setStage({ id: row._id, stage }) }}
                       />
                       </div>
                     ))}

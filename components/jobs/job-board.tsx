@@ -16,6 +16,8 @@ import { COUNTRY_OPTIONS, REGIONS } from '@/lib/jobs/locations'
 import { scoreJob, type MatchProfile } from '@/lib/jobs/match'
 import { FAMILIES, SENIORITIES } from '@/lib/jobs/taxonomy'
 import { pluralise } from '@/lib/jobs/ui'
+import { track } from '@/lib/jobs/track'
+import { normaliseTerm } from '@/lib/jobs/analytics'
 
 export interface BoardResult {
   total: number
@@ -55,6 +57,25 @@ const POSTED = [
 
 const csv = (value: string | null) => (value ? value.split(',').filter(Boolean) : [])
 
+const FILTER_NAMES: Record<string, string> = {
+  f: 'role type', s: 'level', w: 'workplace', e: 'job type', r: 'region', k: 'skill',
+  min: 'minimum pay', pay: 'only with pay', d: 'posted', open: 'hide closed to me',
+}
+
+/** Says what changed between two sets of filters, for analytics. */
+function trackFilterChange(before: URLSearchParams, after: URLSearchParams) {
+  for (const key of Object.keys(FILTER_NAMES)) {
+    const was = new Set(csv(before.get(key)))
+    const now = new Set(csv(after.get(key)))
+    for (const value of now) if (!was.has(value)) track('filter_on', { label: `${FILTER_NAMES[key]}: ${value}` })
+    for (const value of was) if (!now.has(value)) track('filter_off', { label: `${FILTER_NAMES[key]}: ${value}` })
+  }
+  const adjBefore = before.get('adj') === '1'
+  const adjAfter = after.get('adj') === '1'
+  if (adjBefore !== adjAfter) track(adjAfter ? 'adjacent_on' : 'adjacent_off')
+  if ((before.get('sort') ?? '') !== (after.get('sort') ?? '')) track('sort_change', { label: after.get('sort') ?? 'default' })
+}
+
 export function JobBoard({
   initial,
   stats,
@@ -77,7 +98,11 @@ export function JobBoard({
   const params = useSearchParams()
   const personal = mode === 'dashboard'
 
-  const [country, setCountry] = useCountry(profile?.country)
+  const [country, setCountryRaw] = useCountry(profile?.country)
+  const setCountry = (code: string | undefined) => {
+    setCountryRaw(code)
+    track('country_set', { label: code ?? 'cleared' })
+  }
   const [text, setText] = useState(params.get('q') ?? '')
   const [limit, setLimit] = useState(PAGE)
   const [filtersOpen, setFiltersOpen] = useState(false)
@@ -88,6 +113,7 @@ export function JobBoard({
   const update = (mutate: (next: URLSearchParams) => void) => {
     const next = new URLSearchParams(params.toString())
     mutate(next)
+    trackFilterChange(params, next)
     const query = next.toString()
     router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false })
   }
@@ -177,6 +203,19 @@ export function JobBoard({
 
   const visible = personal ? scored.slice(0, limit) : scored
   const total = result?.total ?? 0
+
+  // What people look for, and what they cannot find.
+  const reported = useRef('')
+  useEffect(() => {
+    if (!live) return
+    const term = normaliseTerm(params.get('q') ?? '')
+    const signature = `${term}|${filterKey}|${live.total}`
+    if (reported.current === signature) return
+    reported.current = signature
+    if (term) track('search', { label: term, n: live.total })
+    if (live.total === 0 && (term || hasFilters)) track('no_results', { label: term || filterKey.slice(0, 100) || 'filters' })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [live?.total, filterKey])
   const canMore = personal ? scored.length > limit : Boolean(result?.hasMore)
   const linkBase = '/jobs'
 
@@ -396,7 +435,10 @@ export function JobBoard({
               className="pl-9"
             />
           </div>
-          <Button variant="outline" className="lg:hidden" onClick={() => setFiltersOpen((open) => !open)}>
+          <Button variant="outline" className="lg:hidden" onClick={() => {
+            if (!filtersOpen) track('filters_open')
+            setFiltersOpen((open) => !open)
+          }}>
             <SlidersHorizontal className="h-4 w-4" />
             Filters
           </Button>
@@ -422,7 +464,7 @@ export function JobBoard({
           </p>
           <div className="flex items-center gap-2">
             {hasFilters && (
-              <Button variant="ghost" size="sm" onClick={() => { setText(''); router.replace(pathname, { scroll: false }) }}>
+              <Button variant="ghost" size="sm" onClick={() => { track('clear_filters'); setText(''); router.replace(pathname, { scroll: false }) }}>
                 <X className="h-3.5 w-3.5" />
                 Clear filters
               </Button>
@@ -478,7 +520,7 @@ export function JobBoard({
 
         {canMore && (
           <div className="mt-6 flex justify-center">
-            <Button variant="outline" onClick={() => setLimit((current) => current + PAGE)}>
+            <Button variant="outline" onClick={() => { track('load_more', { n: limit + PAGE }); setLimit((current) => current + PAGE) }}>
               Show more roles
             </Button>
           </div>

@@ -6,6 +6,7 @@ import { getCurrentUser, requireCurrentUser } from './model/auth'
 import { analyseCv } from '../lib/jobs/cv'
 import { isStageId } from '../lib/jobs/stages'
 import { isFamilyId, isSeniorityId } from '../lib/jobs/taxonomy'
+import { logServerEvent } from './model/jobEvents'
 
 const MAX_CV_BYTES = 5 * 1024 * 1024
 const MAX_SKILLS = 60
@@ -71,6 +72,7 @@ export const saveProfile = mutation({
     if (args.minSalaryUsd !== undefined && (args.minSalaryUsd < 0 || args.minSalaryUsd > 2_000_000)) {
       throw new ConvexError('Enter a yearly figure in US dollars')
     }
+    await logServerEvent(ctx, user._id, { event: 'profile_saved', label: `${args.skills.length} skills` })
     await upsertProfile(ctx, user._id, {
       skills: cleanList(args.skills, MAX_SKILLS),
       families: args.families.filter(isFamilyId),
@@ -109,6 +111,7 @@ export const attachCv = mutation({
       await ctx.storage.delete(existing.cvStorageId)
     }
 
+    await logServerEvent(ctx, user._id, { event: 'cv_upload', label: (/\.([a-z0-9]{2,5})$/i.exec(args.fileName)?.[1] ?? 'file').toLowerCase(), n: meta.size })
     await upsertProfile(ctx, user._id, {
       cvStorageId: args.storageId,
       cvFileName: args.fileName.slice(0, 120),
@@ -152,9 +155,11 @@ export const applyCvText = internalMutation({
 
     if (args.text.trim().length < 80) {
       await ctx.db.patch(existing._id, { cvStatus: 'unreadable', updatedAt: Date.now() })
+      await logServerEvent(ctx, args.userId, { event: 'cv_failed', label: 'unreadable' })
       return
     }
     await ctx.db.patch(existing._id, { ...analysisPatch(args.text), updatedAt: Date.now() })
+    await logServerEvent(ctx, args.userId, { event: 'cv_parsed', n: args.text.length })
   },
 })
 
@@ -168,6 +173,7 @@ export const setCvText = mutation({
       .withIndex('by_user', (q) => q.eq('userId', user._id))
       .first()
     if (existing?.cvStorageId) await ctx.storage.delete(existing.cvStorageId)
+    await logServerEvent(ctx, user._id, { event: 'cv_text_saved', n: args.text.length })
     await upsertProfile(ctx, user._id, {
       ...analysisPatch(args.text),
       cvStorageId: undefined,
@@ -185,6 +191,7 @@ export const removeCv = mutation({
       .withIndex('by_user', (q) => q.eq('userId', user._id))
       .first()
     if (!existing) return
+    await logServerEvent(ctx, user._id, { event: 'cv_removed' })
     if (existing.cvStorageId) await ctx.storage.delete(existing.cvStorageId)
     await ctx.db.patch(existing._id, {
       cvStorageId: undefined,
@@ -282,6 +289,7 @@ export const addManual = mutation({
     const url = args.url?.trim()
     if (url && !/^https?:\/\//i.test(url)) throw new ConvexError('Links start with https://')
     await ensureRoom(ctx, user._id)
+    await logServerEvent(ctx, user._id, { event: 'tracker_add', label: stage })
 
     const now = Date.now()
     return ctx.db.insert('jobApplications', {

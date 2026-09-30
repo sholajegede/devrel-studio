@@ -4,6 +4,7 @@ import { QueryCtx, mutation, query } from './_generated/server'
 import { enforceRateLimit } from './model/rateLimit'
 import { eligibility } from '../lib/jobs/locations'
 import { FAMILY_BY_ID } from '../lib/jobs/taxonomy'
+import { logServerEvent } from './model/jobEvents'
 
 const DEFAULT_LIMIT = 40
 const MAX_LIMIT = 500
@@ -242,6 +243,7 @@ export const recordClick = mutation({
       .first()
     if (!job) throw new ConvexError('Not found')
     await ctx.db.patch(job._id, { clicks: (job.clicks ?? 0) + 1 })
+    await logServerEvent(ctx, undefined, { event: 'apply_redirect', slug: job.slug, company: job.companySlug })
     return job.applyUrl
   },
 })

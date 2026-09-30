@@ -4,6 +4,7 @@ import { Doc, Id } from './_generated/dataModel'
 import {
   internalAction,
   internalMutation,
+  MutationCtx,
   internalQuery,
 } from './_generated/server'
 import {
@@ -307,6 +308,7 @@ export const applyResult = internalMutation({
     const seen = new Set<string>()
     let created = 0
     let updated = 0
+    let reactivated = 0
 
     for (const job of args.jobs) {
       seen.add(job.externalId)
@@ -360,6 +362,7 @@ export const applyResult = internalMutation({
         updated++
       } else if (existing.status === 'expired') {
         await ctx.db.patch(existing._id, { status: 'active', expiredAt: undefined, lastVerifiedAt: now })
+        reactivated++
       } else if (now - existing.lastVerifiedAt > VERIFY_AFTER_MS) {
         await ctx.db.patch(existing._id, { lastVerifiedAt: now })
       }
@@ -385,8 +388,37 @@ export const applyResult = internalMutation({
       relevantCount: args.jobs.length,
     })
 
+    if (created + updated + expired + reactivated > 0) await ctx.scheduler.runAfter(0, internal.jobSync.recountStats, {})
+
     return { created, updated, expired }
   },
+})
+
+async function writeStats(ctx: MutationCtx): Promise<number> {
+  const active = await ctx.db
+    .query('jobs')
+    .withIndex('by_status_and_posted', (q) => q.eq('status', 'active'))
+    .collect()
+
+  const stats = computeStats(active, Date.now())
+  const existing = await ctx.db
+    .query('jobStats')
+    .withIndex('by_key', (q) => q.eq('key', 'current'))
+    .first()
+
+  if (existing) await ctx.db.replace(existing._id, { key: 'current', ...stats })
+  else await ctx.db.insert('jobStats', { key: 'current', ...stats })
+  return stats.total
+}
+
+/**
+ * The counts on the board come from this snapshot. It is rewritten whenever a
+ * feed changes the set of live roles, so the number in the page header and the
+ * number beside each filter match what the list shows.
+ */
+export const recountStats = internalMutation({
+  args: {},
+  handler: async (ctx) => writeStats(ctx),
 })
 
 export const refreshStats = internalMutation({
@@ -394,21 +426,9 @@ export const refreshStats = internalMutation({
   handler: async (ctx) => {
     // New roles are in by now: tell Pro accounts straight away.
     await ctx.scheduler.runAfter(0, internal.jobAlerts.runAlerts, { frequencies: ['instant'] })
-    const active = await ctx.db
-      .query('jobs')
-      .withIndex('by_status_and_posted', (q) => q.eq('status', 'active'))
-      .collect()
-
-    const stats = computeStats(active, Date.now())
-    const existing = await ctx.db
-      .query('jobStats')
-      .withIndex('by_key', (q) => q.eq('key', 'current'))
-      .first()
-
-    if (existing) await ctx.db.replace(existing._id, { key: 'current', ...stats })
-    else await ctx.db.insert('jobStats', { key: 'current', ...stats })
+    const total = await writeStats(ctx)
     await ctx.scheduler.runAfter(0, internal.jobSync.pingSite, {})
-    return stats.total
+    return total
   },
 })
 

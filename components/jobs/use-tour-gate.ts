@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useConvexAuth, useMutation, useQuery } from 'convex/react'
 import { api } from '@/convex/_generated/api'
+import { track } from '@/lib/jobs/track'
 import {
   EMPTY_MEMORY,
   readBrowserMemory,
@@ -56,18 +57,25 @@ export function useTourGate(tour: TourId) {
   )
 
   const onStart = useCallback(() => {
+    track('tour_start', { label: tour })
     const next = { runs: (browser?.runs ?? 0) + 1, done: browser?.done ?? false }
     setBrowser(next)
     writeBrowserMemory(tour, next)
     send('start')
   }, [browser, tour, send])
 
-  const onDone = useCallback(() => {
+  const onDone = useCallback((finished: boolean) => {
+    track(finished ? 'tour_done' : 'tour_skip', { label: tour })
     const next = { runs: browser?.runs ?? 0, done: true }
     setBrowser(next)
     writeBrowserMemory(tour, next)
     send('done')
   }, [browser, tour, send])
 
-  return { ready, shouldAuto, onStart, onDone }
+  const onStep = useCallback((step: number, total: number) => {
+    track('tour_step', { label: `${tour} step ${String(step + 1).padStart(2, '0')} of ${total}` })
+  }, [tour])
+  const onReplay = useCallback(() => track('tour_replay', { label: tour }), [tour])
+
+  return { ready, shouldAuto, onStart, onDone, onStep, onReplay }
 }

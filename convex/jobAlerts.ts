@@ -6,6 +6,7 @@ import { getCurrentUser, requireCurrentUser } from './model/auth'
 import { matchesFilters } from './jobs'
 import { formatSalary } from '../lib/jobs/salary'
 import { alertLimit, canUseFrequency, proActive } from '../lib/jobs/pro'
+import { logServerEvent } from './model/jobEvents'
 
 const HOUR = 60 * 60 * 1000
 const MIN_GAP: Record<'instant' | 'daily' | 'weekly', number> = { instant: 0, daily: 20 * HOUR, weekly: 6.5 * 24 * HOUR }
@@ -51,6 +52,7 @@ export const create = mutation({
     if (!canUseFrequency(pro, args.frequency)) throw new ConvexError('Instant alerts are part of Jobs Pro')
     const name = args.name.trim().slice(0, 80)
     if (!name) throw new ConvexError('Give the alert a name')
+    await logServerEvent(ctx, user._id, { event: 'alert_created', label: args.frequency })
     return ctx.db.insert('jobAlerts', {
       ...args,
       userId: user._id,
@@ -88,6 +90,7 @@ export const remove = mutation({
     const user = await requireCurrentUser(ctx)
     const alert = await ctx.db.get(args.id)
     if (!alert || alert.userId !== user._id) throw new ConvexError('Not found')
+    await logServerEvent(ctx, user._id, { event: 'alert_removed' })
     await ctx.db.delete(args.id)
   },
 })

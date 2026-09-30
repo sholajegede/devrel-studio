@@ -7,6 +7,7 @@ import { toast } from 'sonner'
 import { api } from '@/convex/_generated/api'
 import { Id } from '@/convex/_generated/dataModel'
 import { Button } from '@/components/ui/button'
+import { track } from '@/lib/jobs/track'
 
 export function SaveButton({
   jobId,
@@ -24,7 +25,7 @@ export function SaveButton({
   if (!isAuthenticated) {
     return (
       <Button asChild variant="outline" size={label ? 'sm' : 'icon-sm'} aria-label="Sign in to save this role">
-        <Link href="/sign-up">
+        <Link href="/sign-up" onClick={() => track('save_signin_click')}>
           <Bookmark className="h-4 w-4" />
           {label && 'Save to tracker'}
         </Link>
@@ -51,6 +52,7 @@ export function SaveButton({
       onClick={async () => {
         try {
           await save({ jobId: jobId as Id<'jobs'> })
+          track('save', { label: label ? 'role page' : 'list' })
           toast.success('Saved to your tracker')
         } catch (error) {
           toast.error(error instanceof Error ? error.message : 'Could not save')

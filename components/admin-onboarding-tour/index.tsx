@@ -164,7 +164,12 @@ interface AdminTourProps {
   autoStart?: boolean;
   onTourControlReady?: (controls: { startTour: () => void }) => void;
   /** When set, this decides whether the tour starts by itself and records what happens. */
-  gate?: { ready: boolean; shouldAuto: boolean; onStart: () => void; onDone: () => void };
+  gate?: {
+    ready: boolean; shouldAuto: boolean;
+    onStart: () => void; onDone: (finished: boolean) => void;
+    onStep?: (step: number, total: number, title: string) => void;
+    onReplay?: () => void;
+  };
 }
 
 export function AdminTour({ variant, onComplete, autoStart = false, onTourControlReady, gate }: AdminTourProps) {
@@ -180,13 +185,13 @@ export function AdminTour({ variant, onComplete, autoStart = false, onTourContro
   const tooltipRef = useRef<HTMLDivElement>(null);
   const timerRef   = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const startTour = useCallback(() => { setStep(0); setVisible(false); setIsActive(true); }, []);
+  const gateRef = useRef(gate);
+  gateRef.current = gate;
+  const startTour = useCallback(() => { gateRef.current?.onReplay?.(); setStep(0); setVisible(false); setIsActive(true); }, []);
 
   useEffect(() => { onTourControlReady?.({ startTour }); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, []);
 
   const autoFired = useRef(false);
-  const gateRef = useRef(gate);
-  gateRef.current = gate;
   const gateReady = gate?.ready ?? false;
   const gateAuto = gate?.shouldAuto ?? false;
 
@@ -200,6 +205,11 @@ export function AdminTour({ variant, onComplete, autoStart = false, onTourContro
     const done = localStorage.getItem(STORAGE_KEY);
     if (autoStart && !done) setTimeout(() => setIsActive(true), 700);
   }, [autoStart, STORAGE_KEY, gateReady, gateAuto]);
+
+  useEffect(() => {
+    if (isActive) gateRef.current?.onStep?.(step, STEPS.length, STEPS[step]?.title ?? '');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isActive, step]);
 
   const computePosition = useCallback(() => {
     const current = STEPS[step];
@@ -257,10 +267,10 @@ export function AdminTour({ variant, onComplete, autoStart = false, onTourContro
 
   const complete = useCallback(() => {
     localStorage.setItem(STORAGE_KEY, "true");
-    gateRef.current?.onDone();
+    gateRef.current?.onDone(step >= STEPS.length - 1);
     setIsActive(false); setStep(0); setVisible(false);
     onComplete?.();
-  }, [onComplete, STORAGE_KEY]);
+  }, [onComplete, STORAGE_KEY, step, STEPS.length]);
 
   const next = useCallback(() => {
     if (step < STEPS.length - 1) { setVisible(false); setTimeout(() => setStep((s) => s + 1), 160); } else { complete(); }

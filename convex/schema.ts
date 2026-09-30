@@ -994,4 +994,42 @@ export default defineSchema({
     done: v.boolean(),
     updatedAt: v.number(),
   }).index("by_subject_and_tour", ["subject", "tour"]),
+
+  // ── Job board analytics ─────────────────────────────────────────────────────
+  //
+  // Raw events are kept for two weeks, for the live feed and for checking a
+  // counter against what really happened. Counters are kept for good. Visitors
+  // are a random id from the browser: no IP address and no name is stored.
+  jobEvents: defineTable({
+    ts: v.number(),
+    event: v.string(),
+    visitor: v.string(),
+    userId: v.optional(v.id("users")),
+    path: v.string(),
+    slug: v.optional(v.string()),
+    company: v.optional(v.string()),
+    label: v.optional(v.string()),
+    n: v.optional(v.number()),
+    device: v.optional(v.string()),
+    country: v.optional(v.string()),
+  }).index("by_visitor_and_ts", ["visitor", "ts"]),
+
+  // One row per thing counted. `bucket` is a day for kind "all" and the Monday
+  // of the week for every other kind, which keeps a long report to a few
+  // thousand rows.
+  jobMetrics: defineTable({
+    kind: v.string(),
+    bucket: v.string(),
+    event: v.string(),
+    dim: v.string(),
+    count: v.number(),
+  })
+    .index("by_key", ["kind", "bucket", "event", "dim"])
+    .index("by_kind_and_bucket", ["kind", "bucket"]),
+
+  // "Seen this visitor today / this week / ever" markers, so a visitor is
+  // counted once per period. Pruned after 100 days.
+  jobVisitorSeen: defineTable({
+    key: v.string(),
+  }).index("by_key", ["key"]),
 });

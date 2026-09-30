@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { EligibilityPanel } from '@/components/jobs/detail-client'
 import { JobCard, Monogram } from '@/components/jobs/job-card'
 import { SaveButton } from '@/components/jobs/save-button'
+import { ShareButtons } from '@/components/jobs/share-buttons'
 import { Crumbs, JobsShell, JsonLd } from '@/components/jobs/shell'
 import { textToBlocks } from '@/lib/jobs/html'
 import { breadcrumbLd, jobMetaDescription, jobPostingLd, jobTitleTag } from '@/lib/jobs/seo'
@@ -169,6 +170,7 @@ export default async function JobPage({ params }: { params: Promise<{ slug: stri
               </Button>
             )}
             <SaveButton jobId={job._id} label />
+            <ShareButtons slug={job.slug} title={job.title} company={job.companyName} />
 
             <dl className="space-y-2 pt-2 text-sm">
               <div className="flex justify-between gap-3">

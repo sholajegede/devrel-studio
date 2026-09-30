@@ -5,6 +5,7 @@ import { serialiseLd } from '@/lib/jobs/seo'
 import type { CardJob } from '@/components/jobs/job-card'
 import { Monogram } from '@/components/jobs/job-card'
 import { payLabel, timeAgo } from '@/lib/jobs/ui'
+import { JobsAnalytics } from '@/components/jobs/jobs-analytics'
 
 export function JsonLd({ data }: { data: unknown }) {
   return <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serialiseLd(data) }} />
@@ -13,6 +14,7 @@ export function JsonLd({ data }: { data: unknown }) {
 export function JobsShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen bg-background">
+      <JobsAnalytics />
       <MarketingNav />
       <main className="mx-auto max-w-7xl px-6 py-10">{children}</main>
       <MarketingFooter />

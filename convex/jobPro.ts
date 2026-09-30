@@ -5,6 +5,7 @@ import { mutation, query, QueryCtx } from './_generated/server'
 import { getCurrentUser, requireCurrentUser } from './model/auth'
 import { benchmarkFor, hiringSignals, type InsightJob } from '../lib/jobs/insights'
 import { PRO_MONTHS, PRO_PRICE, proActive, tailorGate } from '../lib/jobs/pro'
+import { logServerEvent } from './model/jobEvents'
 
 const MONTH_MS = 30 * 24 * 60 * 60 * 1000
 
@@ -68,6 +69,7 @@ export const requestPro = mutation({
     const user = await requireCurrentUser(ctx)
     if (proActive(user)) throw new ConvexError('You already have Jobs Pro')
     const amount = PRO_PRICE[args.currency]
+    await logServerEvent(ctx, user._id, { event: 'pro_requested', label: args.currency.toLowerCase() })
     const existing = await ctx.db
       .query('jobProRequests')
       .withIndex('by_user', (q) => q.eq('userId', user._id))

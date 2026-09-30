@@ -7,6 +7,7 @@ import { kitUsage } from './jobPro'
 import { buildPrompt, kitText, parseKit, proofLines, repairPrompt, type KitOutput, type ProofItem } from '../lib/jobs/kit'
 import { proActive, tailorGate } from '../lib/jobs/pro'
 import { findSlop, ungroundedNumbers } from '../lib/jobs/slop'
+import { logServerEvent } from './model/jobEvents'
 
 const ENDPOINT = 'https://api.anthropic.com/v1/messages'
 
@@ -43,6 +44,7 @@ export const request = mutation({
       .first()
     if (existing && existing.status === 'pending' && now - existing.createdAt < 2 * 60 * 1000) return existing._id
 
+    await logServerEvent(ctx, user._id, { event: 'kit_requested', slug: job.slug, company: job.companySlug, label: proActive(user, now) ? 'pro' : 'free' })
     const id = await ctx.db.insert('jobKits', {
       userId: user._id,
       jobId: job._id,
@@ -94,7 +96,7 @@ export const context = internalQuery({
   handler: async (ctx, args): Promise<KitContext | null> => {
     const kit = await ctx.db.get(args.kitId)
     if (!kit || !kit.jobId) return null
-    const job = await ctx.db.get(kit.jobId)
+    const job = kit.jobId ? await ctx.db.get(kit.jobId) : null
     if (!job) return null
     const description = await ctx.db
       .query('jobDescriptions')
@@ -160,6 +162,11 @@ export const save = internalMutation({
   },
   handler: async (ctx, { kitId, ...rest }) => {
     await ctx.db.patch(kitId, { ...rest, status: 'ready' })
+    const kit = await ctx.db.get(kitId)
+    if (kit) {
+      const job = kit.jobId ? await ctx.db.get(kit.jobId) : null
+      await logServerEvent(ctx, kit.userId, { event: 'kit_done', slug: kit.jobSlug, company: job?.companySlug, n: rest.flags.length })
+    }
   },
 })
 
@@ -167,6 +174,11 @@ export const fail = internalMutation({
   args: { kitId: v.id('jobKits'), error: v.string() },
   handler: async (ctx, args) => {
     await ctx.db.patch(args.kitId, { status: 'failed', error: args.error.slice(0, 300) })
+    const kit = await ctx.db.get(args.kitId)
+    if (kit) {
+      const job = kit.jobId ? await ctx.db.get(kit.jobId) : null
+      await logServerEvent(ctx, kit.userId, { event: 'kit_failed', slug: kit.jobSlug, company: job?.companySlug, label: args.error.slice(0, 60) })
+    }
   },
 })
 

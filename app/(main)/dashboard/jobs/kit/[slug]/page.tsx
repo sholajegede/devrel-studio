@@ -4,6 +4,7 @@ import { use, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useMutation, useQuery } from 'convex/react'
 import { Check, Copy, Loader2 } from 'lucide-react'
+import { track } from '@/lib/jobs/track'
 import { toast } from 'sonner'
 import { api } from '@/convex/_generated/api'
 import { Button } from '@/components/ui/button'
@@ -20,6 +21,7 @@ function CopyButton({ text, label }: { text: string; label: string }) {
       onClick={async () => {
         try {
           await navigator.clipboard.writeText(text)
+          track('kit_copied', { label: label.toLowerCase() })
           setDone(true)
           setTimeout(() => setDone(false), 1500)
         } catch {

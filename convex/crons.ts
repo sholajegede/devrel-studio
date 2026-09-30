@@ -95,6 +95,13 @@ crons.cron(
 // Expired listings stay readable for thirty days, so a link that was shared or
 // saved explains itself. After that they are deleted along with their text.
 crons.daily(
+  'prune job analytics',
+  { hourUTC: 4, minuteUTC: 10 },
+  internal.jobAnalytics.prune,
+  {},
+)
+
+crons.daily(
   'prune expired jobs',
   { hourUTC: 3, minuteUTC: 45 },
   internal.jobSync.pruneExpired,

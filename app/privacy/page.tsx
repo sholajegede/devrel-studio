@@ -85,6 +85,17 @@ export default function PrivacyPage() {
         </p>
       </Section>
 
+      <Section heading="Job board usage">
+        <p>
+          On the job board we count visits, searches, filters, clicks, copies and the steps of
+          the tour, so we can see what is useful and what is confusing. Each browser gets a
+          random ID. It holds no name and no email address, and we do not store your IP address
+          with it. We keep the country your request came from. Events from a signed-in account,
+          such as saving a role or asking for a tailored CV, are linked to that account. Detailed
+          events are deleted after 14 days. Only totals stay.
+        </p>
+      </Section>
+
       <Section heading="Sub-processors">
         <p>
           These services process data for us. Each one does a single job:
