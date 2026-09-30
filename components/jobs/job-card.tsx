@@ -32,7 +32,6 @@ export interface CardJob {
   summary: string
   postedAt: number
   status: string
-  moreLocations?: number
 }
 
 export function Monogram({ name, size = 40 }: { name: string; size?: number }) {
@@ -128,7 +127,6 @@ export function JobCard({
           <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2.5 py-1 text-muted-foreground">
             <MapPin className="h-3 w-3" />
             {job.locationLabel}
-            {job.moreLocations ? ` +${job.moreLocations} more` : ''}
           </span>
           <span className="rounded-full bg-muted px-2.5 py-1 text-muted-foreground">
             {WORKPLACE_LABEL[job.workplace] ?? job.workplace}

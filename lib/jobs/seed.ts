@@ -58,7 +58,6 @@ const aggregators: SeedSource[] = [
   { kind: 'wwr', slug: 'remote-customer-support-jobs', name: 'We Work Remotely support' },
   { kind: 'hn', slug: 'hiring', name: 'Hacker News: Who is hiring' },
   { kind: 'hn', slug: 'freelancer', name: 'Hacker News: Freelancer' },
-  { kind: 'reddit', slug: 'forhire', name: 'Reddit r/forhire' },
 ]
 
 export const SEED_SOURCES: SeedSource[] = [

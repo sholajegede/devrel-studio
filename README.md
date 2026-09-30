@@ -110,7 +110,7 @@ The host is **not** the security boundary — every query behind these pages res
 
 **Free, public, and built to be crawled.** Every page is static or ISR, so search engines and AI crawlers get real HTML. Filtering runs client-side against Convex.
 
-- **Sources.** About 130 companies on Greenhouse, Ashby and Lever (`lib/jobs/seed.ts`), plus aggregators that carry contract work: RemoteOK, We Work Remotely, the Hacker News "Who is hiring" and "Freelancer?" threads, and r/forhire (needs Reddit credentials; silent without them). Fetched at 06:00, 14:00 and 22:00 UTC. A role that disappears from its feed is marked expired, and deleted 30 days later.
+- **Sources.** About 130 companies on Greenhouse, Ashby and Lever (`lib/jobs/seed.ts`), plus aggregators that carry contract work: RemoteOK, We Work Remotely, the Hacker News "Who is hiring" and "Freelancer?" threads, with r/forhire supported but off by default (add a `reddit` feed and Reddit credentials to turn it on). Fetched at 06:00, 14:00 and 22:00 UTC. A role that disappears from its feed is marked expired, and deleted 30 days later.
 - **Classification.** Nine role families (seven core DevRel: advocacy, DevRel engineering, developer success and support, community, technical content and docs, education, programs; two adjacent: developer marketing and internal DX), nine levels, workplace, remote scope, and an eligibility engine that answers "is this open to me in Nigeria?". Pay is normalised to annual USD.
 - **Public pages.** `/jobs`, role hubs, companies, salaries, remote, contract and freelance, and one page per role with `JobPosting` JSON-LD. Apply links go through `/jobs/out/[slug]`, which counts the click and adds `utm_source=devrel.studio`. Company logos load by domain with a monogram fallback.
 - **Personal side — `/dashboard/jobs`.** *Discover* ranks roles against your CV. *Tracker* is a drag-and-drop board with stages, notes, next steps, and follow-up nudges. *Alerts* email new matches. *CV and preferences* takes a PDF or pasted text, read once for skills, focus and level. *Market* and *Pro* are described below.
@@ -498,7 +498,7 @@ open http://admin.localhost:3000/login
 | `NEXT_PUBLIC_APP_URL`, `SITE_URL` | Absolute URLs where the origin cannot be inferred |
 | `JOBS_REVALIDATE_SECRET` | Set on **both** Convex and Vercel. Lets Convex refresh `/jobs` after each sync |
 | `ANTHROPIC_API_KEY`, `JOBS_AI_MODEL` | **Convex-side.** Tailored CVs and cover notes. `JOBS_AI_MODEL` defaults to `claude-sonnet-4-5` |
-| `REDDIT_CLIENT_ID`, `REDDIT_CLIENT_SECRET` | **Convex-side.** Turns on the r/forhire source |
+| `REDDIT_CLIENT_ID`, `REDDIT_CLIENT_SECRET` | **Convex-side, optional.** Only needed if you add a r/forhire feed |
 | `NEXT_PUBLIC_LOGO_DEV_TOKEN` | Sharper company logos from logo.dev; the default is Google's favicon service |
 | `REPORT_REDIRECT_TO` | Diverts every report email to one address — useful in staging |
 

@@ -144,20 +144,10 @@ export const list = query({
       rows.sort((a, b) => b.postedAt - a.postedAt)
     }
 
-    // The same role posted for several offices shows once, with a count.
-    const seen = new Map<string, { job: Doc<'jobs'>; more: number }>()
-    for (const job of rows) {
-      const key = `${job.companySlug}|${job.title.trim().toLowerCase()}`
-      const entry = seen.get(key)
-      if (entry) entry.more += 1
-      else seen.set(key, { job, more: 0 })
-    }
-    const merged = [...seen.values()]
-
     return {
-      total: merged.length,
-      hasMore: merged.length > limit,
-      items: merged.slice(0, limit).map(({ job, more }) => ({ ...toCard(job), moreLocations: more })),
+      total: rows.length,
+      hasMore: rows.length > limit,
+      items: rows.slice(0, limit).map(toCard),
     }
   },
 })
