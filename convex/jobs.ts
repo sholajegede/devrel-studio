@@ -78,7 +78,7 @@ type Filters = {
 export function matchesFilters(job: Doc<'jobs'>, filters: Filters, now: number): boolean {
   if (filters.families?.length) {
     if (!filters.families.includes(job.family)) return false
-  } else if (!filters.includeAdjacent && !FAMILY_BY_ID[job.family as keyof typeof FAMILY_BY_ID]?.core) {
+  } else if (!filters.includeAdjacent && !filters.q?.trim() && !filters.company && !FAMILY_BY_ID[job.family as keyof typeof FAMILY_BY_ID]?.core) {
     return false
   }
   if (filters.seniority?.length && !filters.seniority.includes(job.seniority)) return false

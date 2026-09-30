@@ -141,6 +141,13 @@ const RULES: Rule[] = [
     test: /developer success|developer support|developer care|developer operations|api support|developer (solutions?|customer) engineer|solutions? engineer.*developer|developer.*solutions? engineer/,
   },
   {
+    // External-facing leadership of developer experience is DevRel leadership.
+    // Internal productivity and platform leads stay in the adjacent DX family.
+    family: 'advocacy',
+    role: 'Head of Developer Experience',
+    test: /(head|vp|director|chief)[, ]+(of )?developer experience(?!.*(productivity|platform|infrastructure|tooling|engineering))|developer experience (head|director)/,
+  },
+  {
     family: 'advocacy',
     role: 'Head of DevRel',
     test: /(head|vp|director|chief).*(developer relations|devrel|developer advocacy|developer ecosystem)|(developer relations|devrel).*(head|director)/,

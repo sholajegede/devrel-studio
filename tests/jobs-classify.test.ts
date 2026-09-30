@@ -310,3 +310,14 @@ describe('jobPostingLd', () => {
     expect(descriptionHtml('• <b>x</b>')).toBe('<ul><li>&lt;b&gt;x&lt;/b&gt;</li></ul>')
   })
 })
+
+describe('developer experience leadership', () => {
+  it('counts external head of developer experience as DevRel', () => {
+    expect(classifyTitle('Head of Developer Experience')?.family).toBe('advocacy')
+    expect(classifyTitle('Director, Developer Experience')?.family).toBe('advocacy')
+  })
+  it('keeps internal developer productivity adjacent', () => {
+    expect(classifyTitle('Head of Developer Productivity')?.family).toBe('dx')
+    expect(classifyTitle('Director of Developer Experience, Platform Engineering')?.family).toBe('dx')
+  })
+})
