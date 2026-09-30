@@ -502,7 +502,7 @@ open http://admin.localhost:3000/login
 | `NEXT_PUBLIC_APP_URL`, `SITE_URL` | Absolute URLs where the origin cannot be inferred |
 | `JOBS_REVALIDATE_SECRET` | Set on **both** Convex and Vercel. Lets Convex refresh `/jobs` after each sync |
 | `TOURS_SECRET` | Set on **both** Convex and Vercel (`openssl rand -hex 32`). Hashes visitor IPs so the job board tour is remembered across browsers. Without it the tour falls back to browser and account memory |
-| `BLOG_REVIEW_EMAIL`, `BLOG_AI_MODEL` | **Convex-side.** Where review emails go (default `me@sholajegede.com`) and the model for blog drafts (falls back to `JOBS_AI_MODEL`). The blog also needs web search enabled for the Anthropic API key's organisation, plus `RESEND_API_KEY` and `SITE_URL` |
+| `BLOG_REVIEW_EMAIL`, `BLOG_AI_MODEL` | **Convex-side.** Where review emails go (default `me@sholajegede.com`) and the model for blog drafts (defaults to `claude-sonnet-5-5`). The blog also needs web search enabled for the Anthropic API key's organisation, plus `RESEND_API_KEY` and `SITE_URL` |
 | `ANTHROPIC_API_KEY`, `JOBS_AI_MODEL` | **Convex-side.** Tailored CVs and cover notes. `JOBS_AI_MODEL` defaults to `claude-sonnet-4-5` |
 | `REDDIT_CLIENT_ID`, `REDDIT_CLIENT_SECRET` | **Convex-side, optional.** Only needed if you add a r/forhire feed |
 | `NEXT_PUBLIC_LOGO_DEV_TOKEN` | Sharper company logos from logo.dev; the default is Google's favicon service |

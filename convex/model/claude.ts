@@ -20,7 +20,7 @@ export interface ClaudeArgs {
 }
 
 export function blogModel(): string {
-  return process.env.BLOG_AI_MODEL ?? process.env.JOBS_AI_MODEL ?? 'claude-sonnet-4-5'
+  return process.env.BLOG_AI_MODEL ?? 'claude-sonnet-5-5'
 }
 
 export async function callClaude(args: ClaudeArgs): Promise<string> {
