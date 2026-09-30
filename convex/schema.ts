@@ -1032,4 +1032,48 @@ export default defineSchema({
   jobVisitorSeen: defineTable({
     key: v.string(),
   }).index("by_key", ["key"]),
+
+  // ── Blog ────────────────────────────────────────────────────────────────────
+  //
+  // Three posts a week are drafted, fact-checked and emailed for review. Only a
+  // published post is public. The review link holds a random token; only its
+  // hash is stored.
+  blogPosts: defineTable({
+    slug: v.string(),
+    title: v.string(),
+    description: v.string(),
+    keyword: v.string(),
+    body: v.string(),
+    faq: v.array(v.object({ q: v.string(), a: v.string() })),
+    // drafting: being written. checking: fact check running. pending: waiting
+    // for a person. published, rejected, failed.
+    status: v.string(),
+    kind: v.optional(v.string()),
+    angle: v.optional(v.string()),
+    whyNow: v.optional(v.string()),
+    research: v.optional(v.string()),
+    sources: v.array(v.object({ title: v.string(), url: v.string() })),
+    claims: v.array(
+      v.object({
+        claim: v.string(),
+        verdict: v.string(),
+        sourceUrl: v.optional(v.string()),
+        note: v.optional(v.string()),
+      }),
+    ),
+    problems: v.array(v.string()),
+    words: v.number(),
+    readingMinutes: v.number(),
+    runDay: v.string(),
+    reviewTokenHash: v.optional(v.string()),
+    emailSentAt: v.optional(v.number()),
+    error: v.optional(v.string()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+    publishedAt: v.optional(v.number()),
+    reviewedAt: v.optional(v.number()),
+  })
+    .index("by_slug", ["slug"])
+    .index("by_status_and_published", ["status", "publishedAt"])
+    .index("by_run_day", ["runDay"]),
 });

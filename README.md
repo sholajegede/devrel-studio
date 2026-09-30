@@ -115,6 +115,7 @@ The host is **not** the security boundary — every query behind these pages res
 - **Public pages.** `/jobs`, role hubs, companies, salaries, remote, contract and freelance, and one page per role with `JobPosting` JSON-LD. Apply links go through `/jobs/out/[slug]`, which counts the click and adds `utm_source=devrel.studio`. Company logos load by domain with a monogram fallback.
 - **Personal side — `/dashboard/jobs`.** *Discover* ranks roles against your CV. *Tracker* is a drag-and-drop board with stages, notes, next steps, and follow-up nudges. *Alerts* email new matches. *CV and preferences* takes a PDF or pasted text, read once for skills, focus and level. *Market* and *Pro* are described below.
 - **Admin — `/admin/jobs`.** Feed health, sync now, add a feed, most-clicked roles, and Jobs Pro requests to grant.
+- **Blog — `devrel.studio/blog`, `/admin/blog`.** Monday, Wednesday and Friday a cron (`blog:draftNext`) chooses a topic from Hacker News, dev.to, the job board's own data and a standing backlog, skipping anything already written. It researches with web search, writes in the house style (`lib/blog/prompts.ts`), runs style checks (`lib/blog/draft.ts`, which reuses the slop list from the CV kits), then `blog:factCheck` checks every claim against the web and rewrites what fails. The draft is emailed to `BLOG_REVIEW_EMAIL` with a link to `/blog/review/<id>?t=<token>` where it can be edited, published or rejected. Only a hash of the token is stored. Diagrams are SVG from the model and are sanitised twice, on publish and on render. `/admin/blog` lists every post, starts a draft on demand and can email a fresh link.
 - **Job analytics — `/admin/jobs/analytics`.** Visitors, sessions, searches (and the ones that found nothing), filters, the adjacent toggle, role views, apply clicks, saves, copied links, shares, CVs, tailored kits, alerts, Jobs Pro, every tour step, top roles and companies, referrers, countries and a live feed. The browser queues events and posts them to `/api/jobs/track`, which forwards them to `jobAnalytics.ingest` with `MANAGER_CODE_SECRET`. Counters are kept for good (`jobMetrics`: days for totals, whole weeks for lists); raw events and visitor markers are deleted after 14 and 100 days by a daily cron. The event list lives in `lib/jobs/analytics.ts`.
 
 Everything is deterministic except the tailored applications, which call the Anthropic API.
@@ -357,7 +358,7 @@ Idempotent: a second run is silent rather than filling the audit trail.
 
 ## Background jobs
 
-Ten crons in `convex/crons.ts`:
+Crons in `convex/crons.ts`:
 
 | Job | Cadence | Purpose |
 |---|---|---|
@@ -371,6 +372,8 @@ Ten crons in `convex/crons.ts`:
 | Refresh job stats | 25 minutes after each sync | Recompute market stats, refresh `/jobs`, send instant alerts to Pro users |
 | Prune expired jobs | Daily 03:45 UTC | Delete roles that closed more than 30 days ago |
 | Send job alerts | Daily 07:30 UTC | Daily and weekly digests, only when there is something new |
+| Draft blog post | Mon, Wed, Fri 05:00 UTC | Pick a topic, research, write, fact-check, email for review |
+| Prune job analytics | Daily 04:10 UTC | Raw events after 14 days, visitor markers after 100 |
 
 ## Machine-readable surfaces
 
@@ -499,6 +502,7 @@ open http://admin.localhost:3000/login
 | `NEXT_PUBLIC_APP_URL`, `SITE_URL` | Absolute URLs where the origin cannot be inferred |
 | `JOBS_REVALIDATE_SECRET` | Set on **both** Convex and Vercel. Lets Convex refresh `/jobs` after each sync |
 | `TOURS_SECRET` | Set on **both** Convex and Vercel (`openssl rand -hex 32`). Hashes visitor IPs so the job board tour is remembered across browsers. Without it the tour falls back to browser and account memory |
+| `BLOG_REVIEW_EMAIL`, `BLOG_AI_MODEL` | **Convex-side.** Where review emails go (default `me@sholajegede.com`) and the model for blog drafts (falls back to `JOBS_AI_MODEL`). The blog also needs web search enabled for the Anthropic API key's organisation, plus `RESEND_API_KEY` and `SITE_URL` |
 | `ANTHROPIC_API_KEY`, `JOBS_AI_MODEL` | **Convex-side.** Tailored CVs and cover notes. `JOBS_AI_MODEL` defaults to `claude-sonnet-4-5` |
 | `REDDIT_CLIENT_ID`, `REDDIT_CLIENT_SECRET` | **Convex-side, optional.** Only needed if you add a r/forhire feed |
 | `NEXT_PUBLIC_LOGO_DEV_TOKEN` | Sharper company logos from logo.dev; the default is Google's favicon service |

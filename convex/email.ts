@@ -699,3 +699,59 @@ export const sendJobAlert = internalAction({
     })
   },
 })
+
+/** A drafted blog post, for a person to read before anything is published. */
+export const sendBlogReview = internalAction({
+  args: {
+    to: v.string(),
+    title: v.string(),
+    description: v.string(),
+    keyword: v.string(),
+    whyNow: v.optional(v.string()),
+    words: v.number(),
+    verified: v.number(),
+    unsupported: v.number(),
+    wrong: v.number(),
+    problems: v.array(v.string()),
+    flagged: v.array(v.object({ claim: v.string(), verdict: v.string(), note: v.optional(v.string()) })),
+    opening: v.string(),
+    reviewUrl: v.string(),
+  },
+  handler: async (_ctx, args): Promise<SendResult> => {
+    const total = args.verified + args.unsupported + args.wrong
+    const flaggedRows = args.flagged
+      .map(
+        (item) => `<tr><td style="padding:8px 0;border-bottom:1px solid #edf2f7;font-size:14px;line-height:1.5;">
+          <strong style="color:${item.verdict === 'wrong' ? '#c53030' : '#b7791f'};">${escapeHtml(item.verdict)}</strong>
+          ${escapeHtml(item.claim)}${item.note ? `<div style="color:#718096;font-size:13px;margin-top:2px;">${escapeHtml(item.note)}</div>` : ''}
+        </td></tr>`,
+      )
+      .join('')
+    const problemList = args.problems.map((problem) => `<li style="margin-bottom:4px;">${escapeHtml(problem)}</li>`).join('')
+
+    return await send({
+      to: args.to,
+      subject: `Review: ${args.title}`,
+      html: layout(`
+        <p style="margin:0 0 6px;font-size:13px;color:#718096;">Blog draft to review</p>
+        <p style="margin:0 0 12px;font-size:19px;font-weight:600;line-height:1.35;">${escapeHtml(args.title)}</p>
+        <p style="margin:0 0 14px;font-size:15px;line-height:1.6;color:#4a5568;">${escapeHtml(args.description)}</p>
+        <p style="margin:0 0 18px;font-size:13px;line-height:1.7;color:#718096;">
+          Search phrase: ${escapeHtml(args.keyword)} · ${args.words} words${args.whyNow ? `<br>Why now: ${escapeHtml(args.whyNow)}` : ''}
+        </p>
+        <p style="margin:0 0 6px;font-size:14px;font-weight:600;">Fact check</p>
+        <p style="margin:0 0 14px;font-size:14px;line-height:1.6;">
+          ${args.verified} of ${total} claims verified${args.unsupported ? `, ${args.unsupported} unsupported` : ''}${args.wrong ? `, ${args.wrong} wrong` : ''}.
+        </p>
+        ${flaggedRows ? `<table style="width:100%;border-collapse:collapse;margin:0 0 18px;">${flaggedRows}</table>` : ''}
+        ${problemList ? `<p style="margin:0 0 6px;font-size:14px;font-weight:600;">Style checks still failing</p><ul style="margin:0 0 18px;padding-left:18px;font-size:14px;line-height:1.5;">${problemList}</ul>` : ''}
+        <blockquote style="margin:0 0 22px;padding:14px 16px;background:#f7fafc;border-left:3px solid #38b2ac;border-radius:0 8px 8px 0;font-size:14px;line-height:1.6;">${escapeHtml(args.opening)}</blockquote>
+        <p style="margin:0 0 14px;">${button(args.reviewUrl, 'Read, edit and decide')}</p>
+        <p style="margin:0;font-size:12px;line-height:1.6;color:#718096;">
+          Nothing is published until you choose Publish on that page. The link works for you only.
+        </p>
+      `),
+      text: `Blog draft to review\n\n${args.title}\n${args.description}\n\nSearch phrase: ${args.keyword}. ${args.words} words.\nFact check: ${args.verified} of ${total} claims verified, ${args.unsupported} unsupported, ${args.wrong} wrong.\n${args.flagged.map((item) => `- [${item.verdict}] ${item.claim}${item.note ? ` (${item.note})` : ''}`).join('\n')}\n\nRead, edit and decide: ${args.reviewUrl}\n\nNothing is published until you choose Publish.`,
+    })
+  },
+})

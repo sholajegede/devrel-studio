@@ -25,6 +25,7 @@ import type * as demo from "../demo.js";
 import type * as email from "../email.js";
 import type * as http from "../http.js";
 import type * as jobAlerts from "../jobAlerts.js";
+import type * as blog from "../blog.js";
 import type * as jobAnalytics from "../jobAnalytics.js";
 import type * as jobBoard from "../jobBoard.js";
 import type * as jobCv from "../jobCv.js";
@@ -74,6 +75,7 @@ declare const fullApi: ApiFromModules<{
   email: typeof email;
   http: typeof http;
   jobAlerts: typeof jobAlerts;
+  blog: typeof blog;
   jobAnalytics: typeof jobAnalytics;
   jobBoard: typeof jobBoard;
   jobCv: typeof jobCv;

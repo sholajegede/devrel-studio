@@ -25,12 +25,12 @@ export default function robots(): MetadataRoute.Robots {
         // them out of the crawl avoids a wall of soft-404s in Search Console.
         // /portfolio/* is the rewrite target for /@handle; only the pretty URL
         // should ever be indexed, or the same page competes with itself.
-        disallow: ['/dashboard/', '/api/', '/sign-in', '/sign-up', '/portfolio/', '/jobs/out/'],
+        disallow: ['/dashboard/', '/api/', '/sign-in', '/sign-up', '/portfolio/', '/jobs/out/', '/blog/review/'],
       },
       {
         userAgent: ['GPTBot', 'ChatGPT-User', 'OAI-SearchBot', 'ClaudeBot', 'Claude-User', 'Claude-SearchBot', 'PerplexityBot', 'Google-Extended', 'Applebot-Extended'],
         allow: ['/', '/api/jobs', '/jobs/llms.txt', '/llms.txt'],
-        disallow: ['/dashboard/', '/sign-in', '/sign-up', '/portfolio/', '/jobs/out/'],
+        disallow: ['/dashboard/', '/sign-in', '/sign-up', '/portfolio/', '/jobs/out/', '/blog/review/'],
       },
     ],
     sitemap: `${origin}/sitemap.xml`,

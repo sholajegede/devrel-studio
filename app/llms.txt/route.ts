@@ -50,6 +50,8 @@ export async function GET() {
     field('DevRel jobs board', `${origin}/jobs`),
     field('Jobs llms.txt', `${origin}/jobs/llms.txt`),
     field('Jobs JSON API', `${origin}/api/jobs`),
+    field('Blog', `${origin}/blog`),
+    field('Blog RSS', `${origin}/blog/feed.xml`),
     field('Pricing', `${origin}/pricing`),
     field('Pricing summary', 'Client-reporting plans from $29 a month (Starter), $59 (Pro), $119 (Agency). Job board is free. Jobs Pro is $49 once for 12 months. 14-day free trial, no card.'),
   )

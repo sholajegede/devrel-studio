@@ -17,6 +17,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Not found' }, { status: 404 })
   }
   revalidatePath('/jobs', 'layout')
+  revalidatePath('/blog', 'layout')
   revalidatePath('/sitemap.xml')
   return NextResponse.json({ ok: true })
 }

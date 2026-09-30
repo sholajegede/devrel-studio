@@ -21,6 +21,7 @@ import {
   Wallet,
   Briefcase,
   BarChart3,
+  PenLine,
 } from 'lucide-react'
 
 // ── The admin console ─────────────────────────────────────────────────────────
@@ -78,6 +79,7 @@ const GROUPS: { label: string; items: Item[] }[] = [
       { href: '/admin/traffic', label: 'Traffic', icon: Activity },
       { href: '/admin/jobs', label: 'Jobs', icon: Briefcase, exact: true },
       { href: '/admin/jobs/analytics', label: 'Job analytics', icon: BarChart3 },
+      { href: '/admin/blog', label: 'Blog', icon: PenLine },
     ],
   },
   {

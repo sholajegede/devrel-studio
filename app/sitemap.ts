@@ -24,6 +24,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${origin}/jobs/companies`, changeFrequency: 'daily', priority: 0.7 },
     { url: `${origin}/jobs/remote`, changeFrequency: 'daily', priority: 0.8 },
     { url: `${origin}/jobs/contract`, changeFrequency: 'daily', priority: 0.8 },
+    { url: `${origin}/blog`, changeFrequency: 'weekly', priority: 0.7 },
     ...FAMILIES.map((family) => ({
       url: `${origin}/jobs/roles/${family.id}`,
       changeFrequency: 'daily' as const,
@@ -63,9 +64,19 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       console.error('[sitemap] could not list jobs:', error)
     }
 
+    const blogRoutes: MetadataRoute.Sitemap = []
+    try {
+      for (const post of await convex.query(api.blog.list, {})) {
+        blogRoutes.push({ url: `${origin}/blog/${post.slug}`, lastModified: new Date(post.publishedAt), changeFrequency: 'monthly', priority: 0.7 })
+      }
+    } catch (error) {
+      console.error('[sitemap] could not list blog posts:', error)
+    }
+
     return [
       ...staticRoutes,
       ...jobRoutes,
+      ...blogRoutes,
       ...handles.map((entry) => ({
         // The canonical address is the pretty one — /portfolio/<handle> is an
         // internal rewrite target and should never be the URL that gets indexed.

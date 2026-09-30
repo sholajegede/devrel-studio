@@ -94,6 +94,15 @@ crons.cron(
 
 // Expired listings stay readable for thirty days, so a link that was shared or
 // saved explains itself. After that they are deleted along with their text.
+// Blog drafts: Monday, Wednesday and Friday at 05:00 UTC, so the review email
+// is waiting at the start of the day in Lagos.
+crons.cron(
+  'draft blog post',
+  '0 5 * * 1,3,5',
+  internal.blog.draftNext,
+  {},
+)
+
 crons.daily(
   'prune job analytics',
   { hourUTC: 4, minuteUTC: 10 },
