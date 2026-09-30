@@ -39,6 +39,12 @@ const WORKPLACES = [
   { id: 'hybrid', label: 'Hybrid' },
   { id: 'onsite', label: 'On-site' },
 ]
+const EMPLOYMENT = [
+  { id: 'full-time', label: 'Full-time' },
+  { id: 'contract', label: 'Contract and freelance' },
+  { id: 'part-time', label: 'Part-time' },
+  { id: 'internship', label: 'Internship' },
+]
 const PAY_STEPS = [0, 80_000, 100_000, 130_000, 160_000, 200_000]
 const POSTED = [
   { id: '0', label: 'Any time' },
@@ -56,6 +62,7 @@ export function JobBoard({
   profile,
   lockedFamily,
   lockedCompany,
+  lockedEmployment,
 }: {
   initial?: BoardResult
   stats?: BoardStats | null
@@ -63,6 +70,7 @@ export function JobBoard({
   profile?: (MatchProfile & { headline?: string }) | null
   lockedFamily?: string
   lockedCompany?: string
+  lockedEmployment?: string
 }) {
   const router = useRouter()
   const pathname = usePathname()
@@ -109,6 +117,7 @@ export function JobBoard({
   const families = lockedFamily ? [lockedFamily] : csv(params.get('f'))
   const seniority = csv(params.get('s'))
   const workplaces = csv(params.get('w'))
+  const employment = lockedEmployment ? [lockedEmployment] : csv(params.get('e'))
   const regions = csv(params.get('r'))
   const skills = csv(params.get('k'))
   const minPay = Number(params.get('min') ?? 0)
@@ -122,6 +131,7 @@ export function JobBoard({
     families.length > 0 && !lockedFamily ||
     seniority.length > 0 ||
     workplaces.length > 0 ||
+    (employment.length > 0 && !lockedEmployment) ||
     regions.length > 0 ||
     skills.length > 0 ||
     minPay > 0 ||
@@ -135,6 +145,7 @@ export function JobBoard({
     families: families.length ? families : undefined,
     seniority: seniority.length ? seniority : undefined,
     workplaces: workplaces.length ? workplaces : undefined,
+    employment: employment.length ? employment : undefined,
     regions: regions.length ? regions : undefined,
     skills: skills.length ? skills : undefined,
     country: hideClosed ? country : undefined,
@@ -251,6 +262,19 @@ export function JobBoard({
           />
         ))}
       </Group>
+
+      {!lockedEmployment && (
+        <Group title="Job type">
+          {EMPLOYMENT.map((type) => (
+            <Check
+              key={type.id}
+              active={employment.includes(type.id)}
+              label={type.label}
+              onChange={() => toggleIn('e', type.id)}
+            />
+          ))}
+        </Group>
+      )}
 
       <Group title="Region">
         {REGIONS.map((region) => (
@@ -421,7 +445,19 @@ export function JobBoard({
               href={`${linkBase}/${job.slug}`}
               country={country}
               match={match}
-              action={<SaveButton jobId={job._id} />}
+              action={
+                <>
+                  {personal && (
+                    <Link
+                      href={`/dashboard/jobs/kit/${job.slug}`}
+                      className="rounded-md border border-border px-2 py-1 text-xs text-foreground hover:border-accent hover:text-accent"
+                    >
+                      Tailor CV
+                    </Link>
+                  )}
+                  <SaveButton jobId={job._id} />
+                </>
+              }
             />
           ))}
 

@@ -1,9 +1,11 @@
 import { parseStructuredSalary, type SalaryRange } from './salary'
 
-export type SourceKind = 'greenhouse' | 'lever' | 'ashby'
+export type SourceKind = 'greenhouse' | 'lever' | 'ashby' | 'remoteok' | 'wwr' | 'hn' | 'reddit'
 
 export interface RawJob {
   externalId: string
+  /** Set by aggregators, where every listing has its own employer. */
+  company?: string | null
   title: string
   locations: string[]
   isRemote?: boolean | null

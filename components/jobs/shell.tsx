@@ -71,6 +71,7 @@ export function HubLinks() {
     { href: '/jobs/salaries', label: 'Salaries' },
     { href: '/jobs/companies', label: 'Companies hiring' },
     { href: '/jobs/remote', label: 'Remote roles' },
+    { href: '/jobs/contract', label: 'Contract and freelance' },
   ]
   return (
     <div className="flex flex-wrap gap-2">

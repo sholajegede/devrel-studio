@@ -48,6 +48,7 @@ export const filterArgs = {
   families: v.optional(v.array(v.string())),
   seniority: v.optional(v.array(v.string())),
   workplaces: v.optional(v.array(v.string())),
+  employment: v.optional(v.array(v.string())),
   regions: v.optional(v.array(v.string())),
   skills: v.optional(v.array(v.string())),
   country: v.optional(v.string()),
@@ -63,6 +64,7 @@ type Filters = {
   families?: string[]
   seniority?: string[]
   workplaces?: string[]
+  employment?: string[]
   regions?: string[]
   skills?: string[]
   country?: string
@@ -81,6 +83,7 @@ export function matchesFilters(job: Doc<'jobs'>, filters: Filters, now: number):
   }
   if (filters.seniority?.length && !filters.seniority.includes(job.seniority)) return false
   if (filters.workplaces?.length && !filters.workplaces.includes(job.workplace)) return false
+  if (filters.employment?.length && !filters.employment.includes(job.employmentType)) return false
   if (filters.regions?.length && !filters.regions.some((region) => job.regions.includes(region))) return false
   if (filters.skills?.length && !filters.skills.every((skill) => job.skills.includes(skill))) return false
   if (filters.salaryOnly && job.salaryMaxUsd === undefined) return false
@@ -141,10 +144,20 @@ export const list = query({
       rows.sort((a, b) => b.postedAt - a.postedAt)
     }
 
+    // The same role posted for several offices shows once, with a count.
+    const seen = new Map<string, { job: Doc<'jobs'>; more: number }>()
+    for (const job of rows) {
+      const key = `${job.companySlug}|${job.title.trim().toLowerCase()}`
+      const entry = seen.get(key)
+      if (entry) entry.more += 1
+      else seen.set(key, { job, more: 0 })
+    }
+    const merged = [...seen.values()]
+
     return {
-      total: rows.length,
-      hasMore: rows.length > limit,
-      items: rows.slice(0, limit).map(toCard),
+      total: merged.length,
+      hasMore: merged.length > limit,
+      items: merged.slice(0, limit).map(({ job, more }) => ({ ...toCard(job), moreLocations: more })),
     }
   },
 })

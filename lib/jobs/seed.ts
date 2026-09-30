@@ -48,7 +48,21 @@ const lever: [string, string][] = [
   ['sysdig', 'Sysdig'],
 ]
 
+// Aggregators carry many employers, and most of the contract work. The name is
+// only a label here: each listing brings its own company.
+const aggregators: SeedSource[] = [
+  { kind: 'remoteok', slug: 'developer-relations', name: 'RemoteOK' },
+  { kind: 'remoteok', slug: 'developer-advocate', name: 'RemoteOK advocates' },
+  { kind: 'remoteok', slug: 'technical-writer', name: 'RemoteOK writers' },
+  { kind: 'wwr', slug: 'all', name: 'We Work Remotely' },
+  { kind: 'wwr', slug: 'remote-customer-support-jobs', name: 'We Work Remotely support' },
+  { kind: 'hn', slug: 'hiring', name: 'Hacker News: Who is hiring' },
+  { kind: 'hn', slug: 'freelancer', name: 'Hacker News: Freelancer' },
+  { kind: 'reddit', slug: 'forhire', name: 'Reddit r/forhire' },
+]
+
 export const SEED_SOURCES: SeedSource[] = [
+  ...aggregators,
   ...greenhouse.map(([slug, name]) => ({ kind: 'greenhouse' as const, slug, name })),
   ...ashby.map(([slug, name]) => ({ kind: 'ashby' as const, slug, name })),
   ...lever.map(([slug, name]) => ({ kind: 'lever' as const, slug, name })),

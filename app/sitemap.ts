@@ -23,6 +23,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${origin}/jobs/salaries`, changeFrequency: 'daily', priority: 0.8 },
     { url: `${origin}/jobs/companies`, changeFrequency: 'daily', priority: 0.7 },
     { url: `${origin}/jobs/remote`, changeFrequency: 'daily', priority: 0.8 },
+    { url: `${origin}/jobs/contract`, changeFrequency: 'daily', priority: 0.8 },
     ...FAMILIES.map((family) => ({
       url: `${origin}/jobs/roles/${family.id}`,
       changeFrequency: 'daily' as const,

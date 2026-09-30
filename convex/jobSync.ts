@@ -7,6 +7,18 @@ import {
   internalQuery,
 } from './_generated/server'
 import {
+  HN_ITEM,
+  HN_THREADS,
+  REDDIT_LISTING,
+  REMOTEOK_URL,
+  WWR_URL,
+  parseHnComments,
+  parseHnThreadIds,
+  parseReddit,
+  parseRemoteOk,
+  parseWwr,
+} from '../lib/jobs/aggregators'
+import {
   ASHBY_LIST,
   GREENHOUSE_DETAIL,
   GREENHOUSE_LIST,
@@ -70,6 +82,44 @@ async function getJson(url: string): Promise<unknown> {
   return response.json()
 }
 
+async function getText(url: string): Promise<string> {
+  const response = await fetch(url, {
+    headers: { 'User-Agent': USER_AGENT },
+    signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+  })
+  if (!response.ok) throw new Error(`${response.status} from ${new URL(url).host}`)
+  return response.text()
+}
+
+/** App-only token. Without credentials the Reddit source stays quiet rather than failing. */
+async function redditToken(): Promise<string | null> {
+  const id = process.env.REDDIT_CLIENT_ID
+  const secret = process.env.REDDIT_CLIENT_SECRET
+  if (!id || !secret) return null
+  const response = await fetch('https://www.reddit.com/api/v1/access_token', {
+    method: 'POST',
+    headers: {
+      Authorization: `Basic ${btoa(`${id}:${secret}`)}`,
+      'Content-Type': 'application/x-www-form-urlencoded',
+      'User-Agent': USER_AGENT,
+    },
+    body: 'grant_type=client_credentials',
+    signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+  })
+  if (!response.ok) throw new Error(`${response.status} from reddit.com`)
+  const data = (await response.json()) as { access_token?: string }
+  return data.access_token ?? null
+}
+
+async function fetchHn(slug: string): Promise<RawJob[]> {
+  const freelancer = slug === 'freelancer'
+  const search = await getJson(HN_THREADS(freelancer ? 'Freelancer? Seeking freelancer?' : 'Who is hiring?'))
+  const ids = parseHnThreadIds(search, freelancer ? /seeking freelancer/i : /who is hiring/i)
+  const jobs: RawJob[] = []
+  for (const id of ids) jobs.push(...parseHnComments(await getJson(HN_ITEM(id)), freelancer ? 'freelancer' : 'hiring'))
+  return jobs
+}
+
 async function mapLimit<T, R>(items: T[], limit: number, fn: (item: T) => Promise<R>): Promise<R[]> {
   const results: R[] = []
   let cursor = 0
@@ -88,6 +138,29 @@ async function fetchSource(
 ): Promise<{ total: number; raw: RawJob[] }> {
   if (source.kind === 'ashby') {
     const raw = parseAshby(await getJson(ASHBY_LIST(source.slug)))
+    return { total: raw.length, raw }
+  }
+  if (source.kind === 'remoteok') {
+    const raw = parseRemoteOk(await getJson(REMOTEOK_URL(source.slug)))
+    return { total: raw.length, raw }
+  }
+  if (source.kind === 'wwr') {
+    const raw = parseWwr(await getText(WWR_URL(source.slug)))
+    return { total: raw.length, raw }
+  }
+  if (source.kind === 'hn') {
+    const raw = await fetchHn(source.slug)
+    return { total: raw.length, raw }
+  }
+  if (source.kind === 'reddit') {
+    const token = await redditToken()
+    if (!token) return { total: 0, raw: [] }
+    const response = await fetch(REDDIT_LISTING(source.slug), {
+      headers: { Authorization: `Bearer ${token}`, 'User-Agent': USER_AGENT },
+      signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+    })
+    if (!response.ok) throw new Error(`${response.status} from reddit.com`)
+    const raw = parseReddit(await response.json(), source.slug)
     return { total: raw.length, raw }
   }
   if (source.kind === 'lever') {
@@ -170,10 +243,12 @@ export const syncSource = internalAction({
 
     try {
       const { total, raw } = await fetchSource(source)
-      const company = { name: source.name, slug: slugify(source.name) }
       const now = Date.now()
       const jobs = raw
-        .map((job) => normalizeJob(job, company, now))
+        .map((job) => {
+          const name = job.company?.trim() || source.name
+          return normalizeJob(job, { name, slug: slugify(name) }, now)
+        })
         .filter((job): job is NormalizedJob => job !== null)
 
       await ctx.runMutation(internal.jobSync.applyResult, {
@@ -317,6 +392,8 @@ export const applyResult = internalMutation({
 export const refreshStats = internalMutation({
   args: {},
   handler: async (ctx) => {
+    // New roles are in by now: tell Pro accounts straight away.
+    await ctx.scheduler.runAfter(0, internal.jobAlerts.runAlerts, { frequencies: ['instant'] })
     const active = await ctx.db
       .query('jobs')
       .withIndex('by_status_and_posted', (q) => q.eq('status', 'active'))
