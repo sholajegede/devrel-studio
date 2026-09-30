@@ -1,12 +1,11 @@
 import Link from 'next/link'
 import { Badge } from '@/components/ui/badge'
 import { MapPin, Wallet } from 'lucide-react'
+import { CompanyLogo } from '@/components/jobs/company-logo'
 import { eligibility, countryName, type Eligibility, type RemoteScope, type Workplace } from '@/lib/jobs/locations'
 import { matchLabel } from '@/lib/jobs/match'
 import {
   WORKPLACE_LABEL,
-  initials,
-  monogramHue,
   payLabel,
   seniorityLabel,
   timeAgo,
@@ -33,24 +32,11 @@ export interface CardJob {
   summary: string
   postedAt: number
   status: string
+  moreLocations?: number
 }
 
 export function Monogram({ name, size = 40 }: { name: string; size?: number }) {
-  const hue = monogramHue(name)
-  return (
-    <div
-      aria-hidden
-      className="flex shrink-0 items-center justify-center rounded-lg text-xs font-semibold"
-      style={{
-        width: size,
-        height: size,
-        background: `hsl(${hue} 55% 92%)`,
-        color: `hsl(${hue} 45% 28%)`,
-      }}
-    >
-      {initials(name)}
-    </div>
-  )
+  return <CompanyLogo name={name} size={size} />
 }
 
 export function EligibilityChip({ job, country }: { job: CardJob; country?: string }) {
@@ -105,18 +91,26 @@ export function JobCard({
   action?: React.ReactNode
 }) {
   const pay = payLabel(job)
+  const fresh = Date.now() - job.postedAt < 3 * 24 * 60 * 60 * 1000
   return (
-    <article className="group relative flex gap-4 rounded-xl border border-border bg-card p-4 transition-colors hover:border-foreground/20">
-      <Monogram name={job.companyName} />
+    <article className="group relative flex gap-4 rounded-2xl border border-border bg-card p-5 shadow-[0_1px_0_rgba(0,0,0,0.02)] transition-all duration-200 hover:-translate-y-0.5 hover:border-accent/40 hover:shadow-lg hover:shadow-black/5">
+      <Monogram name={job.companyName} size={48} />
       <div className="min-w-0 flex-1">
-        <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-1">
+        <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-2">
           <div className="min-w-0">
-            <h3 className="truncate text-[15px] font-semibold text-foreground">
-              <Link href={href} className="after:absolute after:inset-0">
+            <p className="flex items-center gap-2 text-sm text-muted-foreground">
+              {job.companyName}
+              {fresh && (
+                <span className="inline-flex items-center gap-1 rounded-full bg-accent/10 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-accent">
+                  New
+                </span>
+              )}
+            </p>
+            <h3 className="mt-0.5 text-base font-semibold leading-snug text-foreground">
+              <Link href={href} className="after:absolute after:inset-0 group-hover:text-accent">
                 {job.title}
               </Link>
             </h3>
-            <p className="mt-0.5 text-sm text-muted-foreground">{job.companyName}</p>
           </div>
           <div className="relative z-10 flex items-center gap-2">
             {match && <MatchPill score={match.score} />}
@@ -124,27 +118,32 @@ export function JobCard({
           </div>
         </div>
 
-        <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
-          <span className="inline-flex items-center gap-1">
-            <MapPin className="h-3 w-3" />
-            {job.locationLabel}
-          </span>
-          <span>{WORKPLACE_LABEL[job.workplace] ?? job.workplace}</span>
-          <span>{seniorityLabel(job.seniority)}</span>
+        <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
           {pay && (
-            <span className="inline-flex items-center gap-1 font-medium text-foreground">
+            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2.5 py-1 font-medium text-emerald-700 dark:text-emerald-400">
               <Wallet className="h-3 w-3" />
               {pay}
             </span>
           )}
-          <span>{timeAgo(job.postedAt)}</span>
+          <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2.5 py-1 text-muted-foreground">
+            <MapPin className="h-3 w-3" />
+            {job.locationLabel}
+            {job.moreLocations ? ` +${job.moreLocations} more` : ''}
+          </span>
+          <span className="rounded-full bg-muted px-2.5 py-1 text-muted-foreground">
+            {WORKPLACE_LABEL[job.workplace] ?? job.workplace}
+          </span>
+          <span className="rounded-full bg-muted px-2.5 py-1 text-muted-foreground">
+            {seniorityLabel(job.seniority)}
+          </span>
+          <span className="ml-auto text-muted-foreground">{timeAgo(job.postedAt)}</span>
         </div>
 
         {(job.skills.length > 0 || country) && (
-          <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
+          <div className="mt-3 flex flex-wrap items-center gap-1.5">
             <EligibilityChip job={job} country={country} />
             {job.skills.slice(0, 4).map((skill) => (
-              <Badge key={skill} variant="secondary" className="font-normal">
+              <Badge key={skill} variant="outline" className="font-normal text-muted-foreground">
                 {skill}
               </Badge>
             ))}

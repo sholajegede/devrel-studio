@@ -27,12 +27,31 @@ export default async function JobsPage() {
       <JsonLd data={faqLd(faq)} />
       {initial && <JsonLd data={itemListLd(origin, 'DevRel jobs', initial.items)} />}
 
-      <header className="mb-8 max-w-3xl">
-        <h1 className="text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
-          DevRel jobs
-        </h1>
-        <p className="mt-3 text-base leading-relaxed text-muted-foreground">{marketSummary(stats)}</p>
-        <div className="mt-5">
+      <header className="relative mb-10 overflow-hidden rounded-3xl border border-border bg-gradient-to-br from-accent/10 via-background to-background px-6 py-10 sm:px-10 sm:py-12">
+        <div aria-hidden className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-accent/15 blur-3xl" />
+        <div className="relative max-w-3xl">
+          <p className="text-sm font-medium text-accent">Updated three times a day</p>
+          <h1 className="mt-2 text-4xl font-semibold tracking-tight text-foreground sm:text-5xl">
+            Every DevRel job, in one place
+          </h1>
+          <p className="mt-4 text-base leading-relaxed text-muted-foreground">{marketSummary(stats)}</p>
+        </div>
+        {stats && stats.total > 0 && (
+          <dl className="relative mt-8 grid grid-cols-2 gap-3 sm:grid-cols-4">
+            {[
+              { label: 'Open roles', value: stats.total.toLocaleString('en-US') },
+              { label: 'Companies hiring', value: stats.byCompany.length.toLocaleString('en-US') },
+              { label: 'Remote', value: `${Math.round((stats.remote / stats.total) * 100)}%` },
+              { label: 'Posted this week', value: stats.postedThisWeek.toLocaleString('en-US') },
+            ].map((item) => (
+              <div key={item.label} className="rounded-2xl border border-border bg-card/70 p-4 backdrop-blur">
+                <dd className="text-2xl font-semibold tabular-nums text-foreground">{item.value}</dd>
+                <dt className="text-xs text-muted-foreground">{item.label}</dt>
+              </div>
+            ))}
+          </dl>
+        )}
+        <div className="relative mt-6">
           <HubLinks />
         </div>
       </header>
