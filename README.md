@@ -4,18 +4,21 @@
 
 A developer advocate logs each piece of work they ship — a post, a talk, a package, a demo. DevRel Studio turns that log into three things at once: a private workspace for the advocate, a live branded dashboard for every client, and a public portfolio of everything they have ever published. No exports, no slide decks, no month-end scramble.
 
+It also runs **a DevRel job board** at [devrel.studio/jobs](https://devrel.studio/jobs): every developer-relations role pulled from company careers pages three times a day, with a tracker, alerts, CV matching and, for paying users, tailored applications built from the work already logged here.
+
 Live at **[devrel.studio](https://devrel.studio)**. See a real client dashboard at **[devrel.studio/demo](https://devrel.studio/demo)**.
 
 ## Contents
 
 - [DevRel Studio](#devrel-studio)
   - [Contents](#contents)
-  - [The four surfaces](#the-four-surfaces)
+  - [The five surfaces](#the-five-surfaces)
   - [Features](#features)
     - [Advocate workspace — `devrel.studio/dashboard`](#advocate-workspace--devrelstudiodashboard)
     - [Client dashboard — `<slug>.devrel.studio`](#client-dashboard--slugdevrelstudio)
     - [Public portfolio — `devrel.studio/@handle`](#public-portfolio--devrelstudiohandle)
     - [Admin console — `admin.devrel.studio`](#admin-console--admindevrelstudio)
+    - [Job board — `devrel.studio/jobs`](#job-board--devrelstudiojobs)
   - [How the hosts work](#how-the-hosts-work)
   - [Tech stack](#tech-stack)
   - [Project structure](#project-structure)
@@ -32,6 +35,7 @@ Live at **[devrel.studio](https://devrel.studio)**. See a real client dashboard 
   - [Background jobs](#background-jobs)
   - [Machine-readable surfaces](#machine-readable-surfaces)
   - [Plans and access](#plans-and-access)
+    - [Jobs Pro](#jobs-pro)
   - [Getting started](#getting-started)
     - [Prerequisites](#prerequisites)
     - [1. Install](#1-install)
@@ -48,9 +52,9 @@ Live at **[devrel.studio](https://devrel.studio)**. See a real client dashboard 
   - [Scripts](#scripts)
   - [License](#license)
 
-## The four surfaces
+## The five surfaces
 
-The single most useful thing to understand about this codebase is that it serves **four different audiences on three different hosts**, from one Next.js app. `proxy.ts` is what decides which.
+The single most useful thing to understand about this codebase is that it serves **five different audiences on three different hosts**, from one Next.js app. `proxy.ts` is what decides which.
 
 | Surface | Address | Who opens it | Auth |
 |---|---|---|---|
@@ -58,6 +62,7 @@ The single most useful thing to understand about this codebase is that it serves
 | **Client dashboard** | `<slug>.devrel.studio`, or the client's own domain | The client being reported to — no account | Access code, or public |
 | **Public portfolio** | `devrel.studio/@handle` | Anyone; search engines; agents | None |
 | **Admin console** | `admin.devrel.studio` | Whoever operates the platform | Kinde session **+** admin role |
+| **Job board** | `devrel.studio/jobs` | Anyone; search engines; agents. The personal side lives in `/dashboard/jobs` | None to browse; Kinde to save, track or tailor |
 
 These are genuinely separate. An admin has no implicit access to anyone's client data. A client manager has no account at all. A portfolio is world-readable and deliberately excludes anything a client commissioned.
 
@@ -70,11 +75,12 @@ These are genuinely separate. An admin has no implicit access to anyone's client
 | **Overview** | Live counters (published, in progress, views, downloads, attendees), a six-month published-vs-in-progress chart, month-by-month content with category and status filters, and a getting-started checklist |
 | **All Content** | Every entry across every client: keyword search, category / status / platform / client filters, saved views, bulk actions, CSV import and export, keyboard shortcuts |
 | **Pipeline** | The forward-looking view — what is in flight, due, or slipped, as lanes over the existing `status` values |
-| **Analytics** | Who actually opened the work: views and dwell time across client dashboards and the public portfolio, referrers, countries, and per-page depth |
+| **Analytics** | Who actually opened the work: visitors, sessions, bounce rate and dwell time across client dashboards and the public portfolio, with referrers, campaigns (`utm_source` and `ref`), entry pages, countries, cities, devices, recent sessions, and a live "reading now" count |
 | **Clients** | Full CRUD for engagements — retainer rate with full rate history, contract type, pause/resume, access codes, logo upload (light *and* dark), brand colour, and a custom domain |
 | **Reports** | Monthly client reports: written notes and targets, PDF export, per-client recipients, and a schedule (day, hour, timezone) that sends them automatically |
 | **Members** | Invite teammates into a workspace by email with a role (Admin, Editor, Viewer); seat limits enforced by plan |
-| **Billing** | Plan, access window, term pricing, and upgrade paths |
+| **Jobs** | Discover with CV match, a kanban tracker, alerts, CV and preferences, Market (pay and hiring) and Jobs Pro — see [Job board](#job-board--devrelstudiojobs) |
+| **Billing** | Plan, access window, term pricing, upgrade paths, and the Jobs Pro pass |
 | **Settings** | Profile, portfolio handle and bio, social links, account pause |
 
 ### Client dashboard — `<slug>.devrel.studio`
@@ -99,6 +105,18 @@ These are genuinely separate. An admin has no implicit access to anyone's client
 Its own origin, so cookies, storage and any future edge rule stop at the boundary. Overview, accounts, workspaces, revenue and access windows, traffic, content, access requests, abuse signals, an audit log, and read-only impersonation for support.
 
 The host is **not** the security boundary — every query behind these pages resolves the caller through `requireAdmin` server-side.
+
+### Job board — `devrel.studio/jobs`
+
+**Free, public, and built to be crawled.** Every page is static or ISR, so search engines and AI crawlers get real HTML. Filtering runs client-side against Convex.
+
+- **Sources.** About 130 companies on Greenhouse, Ashby and Lever (`lib/jobs/seed.ts`), plus aggregators that carry contract work: RemoteOK, We Work Remotely, the Hacker News "Who is hiring" and "Freelancer?" threads, and r/forhire (needs Reddit credentials; silent without them). Fetched at 06:00, 14:00 and 22:00 UTC. A role that disappears from its feed is marked expired, and deleted 30 days later.
+- **Classification.** Nine role families (seven core DevRel: advocacy, DevRel engineering, developer success and support, community, technical content and docs, education, programs; two adjacent: developer marketing and internal DX), nine levels, workplace, remote scope, and an eligibility engine that answers "is this open to me in Nigeria?". Pay is normalised to annual USD.
+- **Public pages.** `/jobs`, role hubs, companies, salaries, remote, contract and freelance, and one page per role with `JobPosting` JSON-LD. Apply links go through `/jobs/out/[slug]`, which counts the click and adds `utm_source=devrel.studio`. Company logos load by domain with a monogram fallback.
+- **Personal side — `/dashboard/jobs`.** *Discover* ranks roles against your CV. *Tracker* is a drag-and-drop board with stages, notes, next steps, and follow-up nudges. *Alerts* email new matches. *CV and preferences* takes a PDF or pasted text, read once for skills, focus and level. *Market* and *Pro* are described below.
+- **Admin — `/admin/jobs`.** Feed health, sync now, add a feed, most-clicked roles, and Jobs Pro requests to grant.
+
+Everything is deterministic except the tailored applications, which call the Anthropic API.
 
 ## How the hosts work
 
@@ -133,6 +151,8 @@ Worth knowing:
 | Auth | [Kinde](https://kinde.com) (`@kinde-oss/kinde-auth-nextjs` 2) |
 | Payments | [Stripe](https://stripe.com) — optional; the app runs fully without keys |
 | Email | [Resend](https://resend.com), via Convex actions |
+| AI | [Anthropic API](https://docs.anthropic.com), called from Convex, for tailored CVs and cover notes only |
+| CV parsing | [`unpdf`](https://github.com/unjs/unpdf), in a Convex Node action |
 | PDF | [`@react-pdf/renderer`](https://react-pdf.org) + `pdf-lib` |
 | Tests | [Vitest](https://vitest.dev) + Testing Library + jsdom |
 | Hosting | Vercel (frontend) + Convex Cloud (backend) |
@@ -146,13 +166,15 @@ devrel_studio/
 │   │   ├── dashboard/           # Advocate workspace (Kinde-protected)
 │   │   │   ├── page.tsx           overview · add/ · edit/[id]/ · content/
 │   │   │   ├── pipeline/          analytics/ · clients/ · reports/
-│   │   │   └── members/           billing/ · settings/
+│   │   │   ├── members/           billing/ · settings/
+│   │   │   └── jobs/              discover · tracker/ · alerts/ · market/ · profile/ · pro/ · kit/[slug]/
 │   │   ├── admin/               # Platform console, served on admin.devrel.studio
 │   │   └── login/               # The console's own front door
 │   ├── (subdomain)/
 │   │   └── [subdomain]/         # Client dashboard — layout.tsx holds the access gate
 │   │       ├── page.tsx           report/ · reports/ · llms.txt/
 │   │       └── opengraph-image.tsx
+│   ├── jobs/                    # Public job board: list, role pages, hubs, apply redirect, feed, llms.txt
 │   ├── portfolio/[handle]/      # Public portfolio (rewrite target for /@handle)
 │   ├── api/                     # auth · billing/checkout · export-report
 │   │                            # manager-access · members · portfolio/revalidate · track
@@ -165,7 +187,8 @@ devrel_studio/
 │   ├── dashboard/ admin/        # Workspace and console UI
 │   ├── subdomain/               # Access gate, report view
 │   ├── analytics/               # Dwell-time beacon
-│   ├── marketing/ invite/       # Nav, footer, invitation flow
+│   ├── jobs/                    # Job board UI: board, cards, logos, tabs
+│   ├── marketing/ invite/       # Nav, footer, invitation flow, pricing blocks
 │   └── ui/                      # shadcn/ui library
 │
 ├── convex/
@@ -181,16 +204,22 @@ devrel_studio/
 │   ├── billing.ts trials.ts     # Plans, access windows, trial notices
 │   ├── sync.ts email.ts         # npm/GitHub stat refresh; Resend actions
 │   ├── crons.ts http.ts         # Scheduled jobs; webhooks and ingest
+│   ├── jobSync.ts jobs.ts       # Feed sync, expiry, public reads
+│   ├── jobBoard.ts jobCv.ts     # Profiles, CV parsing, tracker
+│   ├── jobAlerts.ts jobKit.ts   # Alerts (incl. instant), tailored application kits
+│   ├── jobPro.ts adminJobs.ts   # Jobs Pro access, benchmarks, hiring view, admin console
 │   └── migrations.ts
 │
 ├── lib/                         # Framework-free helpers, shared by app and convex
+│   ├── jobs/                    # Pure job-board logic: taxonomy, locations, salary, CV, match,
+│   │                            # tracker stats, SEO, sources, Pro gate, style checks
 │   ├── metrics.ts               # Which number belongs to which category
 │   ├── naming.ts                # Slug/handle rules and the reserved lists
 │   ├── llms-txt.ts report.ts    # Generated text surfaces
 │   ├── view-tracking.ts         # Edge-safe hashing, bot and prefetch rules
 │   └── manager-auth.ts stripe.ts retainer.ts schedule.ts …
 │
-├── tests/                       # Vitest suites (21 files)
+├── tests/                       # Vitest suites
 └── proxy.ts                     # Host routing, auth gate, view tracking
 ```
 
@@ -207,6 +236,18 @@ devrel_studio/
 | `/@handle` | Public | Portfolio (rewrites to `/portfolio/handle`) |
 | `/invite/[token]` | Public | Workspace invitation |
 | `/dashboard/**` | Kinde | The advocate workspace |
+
+### Job board — `devrel.studio/jobs`
+
+| Route | Access | Description |
+|---|---|---|
+| `/jobs` | Public | All roles, with filters |
+| `/jobs/[slug]` | Public | One role, with pay benchmark and `JobPosting` JSON-LD |
+| `/jobs/roles/[family]` `/jobs/companies` `/jobs/companies/[company]` | Public | Hub pages |
+| `/jobs/salaries` `/jobs/remote` `/jobs/contract` | Public | Pay data, remote roles, contract and freelance roles |
+| `/jobs/out/[slug]` | Public | Counts the click, then redirects to the employer |
+| `/jobs/feed.xml` `/jobs/llms.txt` | Public | RSS and an agent index |
+| `/dashboard/jobs/**` | Kinde | Discover, tracker, alerts, market, CV and preferences, Pro, kit |
 
 ### Client host — `<slug>.devrel.studio` or a custom domain
 
@@ -231,6 +272,8 @@ devrel_studio/
 | `/api/members/invite`, `/api/members/accept` | Workspace invitations |
 | `/api/billing/checkout` | Stripe checkout session (when configured) |
 | `/api/export-report` | Server-rendered PDF |
+| `/api/jobs` | Public JSON for the job board (CORS on, cached 15 minutes) |
+| `/api/jobs/revalidate` | Convex calls this after each sync; guarded by `JOBS_REVALIDATE_SECRET` |
 | `/api/track/duration` | Dwell-time beacon |
 | `/api/portfolio/revalidate` | Refresh the caller's own portfolio (Kinde-gated `revalidatePath`) |
 
@@ -240,7 +283,7 @@ devrel_studio/
 
 ## Data model
 
-Sixteen tables in `convex/schema.ts`.
+Sixteen core tables in `convex/schema.ts`, plus nine for the job board (below).
 
 | Table | Purpose |
 |---|---|
@@ -254,6 +297,9 @@ Sixteen tables in `convex/schema.ts`.
 | `accessRequests` | Requests to view a gated dashboard |
 | `adminAuditLog` · `impersonationSessions` | Console accountability |
 | `publicWriteAttempts` | Abuse signal on unauthenticated surfaces |
+| `jobSources` · `jobs` · `jobDescriptions` · `jobStats` | Feeds, listings (with a search index), full descriptions, and cached market stats |
+| `jobProfiles` · `jobApplications` · `jobAlerts` | A user's CV and preferences, tracked roles with stage history, and saved alerts |
+| `jobKits` · `jobProRequests` | Tailored application kits (also how free uses are counted) and Jobs Pro purchase requests |
 
 ### `contentEntries`
 
@@ -310,7 +356,7 @@ Idempotent: a second run is silent rather than filling the audit trail.
 
 ## Background jobs
 
-Six crons in `convex/crons.ts`:
+Ten crons in `convex/crons.ts`:
 
 | Job | Cadence | Purpose |
 |---|---|---|
@@ -320,6 +366,10 @@ Six crons in `convex/crons.ts`:
 | Prune old page views | Daily 03:30 UTC | Views are kept one year |
 | Send weekly digests | Mondays 08:00 UTC | Skipped entirely for a quiet week |
 | Prune orphaned uploads | Daily 04:15 UTC | Logos uploaded but never saved |
+| Sync job sources | 06:00, 14:00, 22:00 UTC | Fetch every feed, add new roles, expire missing ones |
+| Refresh job stats | 25 minutes after each sync | Recompute market stats, refresh `/jobs`, send instant alerts to Pro users |
+| Prune expired jobs | Daily 03:45 UTC | Delete roles that closed more than 30 days ago |
+| Send job alerts | Daily 07:30 UTC | Daily and weekly digests, only when there is something new |
 
 ## Machine-readable surfaces
 
@@ -329,6 +379,8 @@ Alongside `sitemap.xml`, `robots.txt` and generated OpenGraph cards, the app pub
 |---|---|
 | `/llms.txt` | Directory of every published portfolio |
 | `/@handle/llms.txt` | One advocate's published work, grouped by category |
+| `/jobs/llms.txt` | The job board: what it covers, and how to read the JSON API |
+| `/api/jobs` | Current roles as JSON |
 | `<slug>.devrel.studio/llms.txt` | A client dashboard — only when the advocate marked it public; otherwise a stub |
 
 The rule they obey: **an llms.txt says exactly what the HTML page at the same URL already says, and nothing more.** Entries are projected field by field, never spread, so `notes` and `trackingLink` cannot surface. Customer-authored text is flattened to a single line and leading markdown markers are escaped — a bio may describe itself, not the file it sits in.
@@ -349,6 +401,20 @@ Priced per month, **sold in blocks** rather than renewed monthly.
 Terms: 1 month (0%), 3 months (10%), 6 months (15%), 12 months (20% off). Trial is 14 days.
 
 Access is a **timestamp**, not a subscription — which makes selling a month, a year or a perpetual licence the same field with a different number in it. `convex/model/plans.ts` is the one definition of what each plan allows, imported by both the enforcing mutations and the pricing UI, so the two cannot drift.
+
+### Jobs Pro
+
+A separate pass for the job board, sold as **one payment for 12 months** through the same manual transfer flow ($49, £39 or ₦75,000). It is not part of the plans above; comped accounts include it.
+
+| | Free | Jobs Pro |
+|---|---|---|
+| Browse, filter, tracker, CV match | Yes | Yes |
+| Tailored CV bullets and cover note | 3 in total | Up to 60 a month |
+| Saved alerts | 2, daily or weekly | Up to 50, including instant |
+| Pay benchmarks for your role, level and region | Market median only | Yes |
+| Hiring view (repeat hirers, longest-open roles) | No | Yes |
+
+Tailored kits are written from the user's CV and the published work logged in DevRel Studio, then checked against a list of stock phrases and any number not found in the source, with one repair pass. Limits live in `lib/jobs/pro.ts`; the Convex gate and the pricing UI read the same file. The owner opens a pass from `/admin/jobs` after a transfer clears.
 
 Stripe is wired but optional. Without keys, `billingIsConfigured()` is false and the billing page says so rather than the app failing to boot.
 
@@ -430,9 +496,13 @@ open http://admin.localhost:3000/login
 | `ADMIN_EMAILS` | **Convex-side only.** Read by `admin:bootstrap` to promote the first administrators — see below |
 | `OWNER_EMAIL` | Where operator notifications are sent (defaults to `support@devrel.studio`) |
 | `NEXT_PUBLIC_APP_URL`, `SITE_URL` | Absolute URLs where the origin cannot be inferred |
+| `JOBS_REVALIDATE_SECRET` | Set on **both** Convex and Vercel. Lets Convex refresh `/jobs` after each sync |
+| `ANTHROPIC_API_KEY`, `JOBS_AI_MODEL` | **Convex-side.** Tailored CVs and cover notes. `JOBS_AI_MODEL` defaults to `claude-sonnet-4-5` |
+| `REDDIT_CLIENT_ID`, `REDDIT_CLIENT_SECRET` | **Convex-side.** Turns on the r/forhire source |
+| `NEXT_PUBLIC_LOGO_DEV_TOKEN` | Sharper company logos from logo.dev; the default is Google's favicon service |
 | `REPORT_REDIRECT_TO` | Diverts every report email to one address — useful in staging |
 
-Convex functions read their own environment (`npx convex env set …`), which is separate from Vercel's. `MANAGER_CODE_SECRET`, `RESEND_API_KEY` and `GITHUB_TOKEN` need to be set in **both** places; `ADMIN_EMAILS` belongs on Convex only.
+Convex functions read their own environment (`npx convex env set …`), which is separate from Vercel's. `MANAGER_CODE_SECRET`, `RESEND_API_KEY`, `GITHUB_TOKEN` and `JOBS_REVALIDATE_SECRET` need to be set in **both** places; `ADMIN_EMAILS` belongs on Convex only.
 
 ## Testing
 
@@ -443,7 +513,7 @@ npm run typecheck  # tsc --noEmit
 npm run lint
 ```
 
-Twenty-one suites, 505 tests, all passing. Concentrated where a mistake is expensive rather than spread evenly: access control and admin authorisation, impersonation, view-tracking correctness and write contention, metric roll-ups, retainer rate history, report scheduling across timezones, PDF rendering, CSV import, and naming rules.
+Concentrated where a mistake is expensive rather than spread evenly: access control and admin authorisation, impersonation, view-tracking correctness and write contention, metric roll-ups, retainer rate history, report scheduling across timezones, PDF rendering, CSV import, naming rules, and the job board: title classification, locations and eligibility, salary parsing, CV analysis and matching, tracker stats, Jobs Pro gating, style checks, and every source parser.
 
 ## Deployment
 
@@ -467,6 +537,8 @@ Order matters. Deploying the frontend first means new code calling functions tha
 4. Add a **wildcard DNS record** (`*.devrel.studio`) and a wildcard certificate, or no client subdomain resolves
 5. If the apex is proxied by a CDN, make sure subdomains are not — and check the CDN's managed `robots.txt`
 6. Run `npx convex deploy`
+7. Job board, first time: set `JOBS_REVALIDATE_SECRET` and `SITE_URL` on Convex and the secret on Vercel, then `npx convex run --prod jobSync:seedSources` and `npx convex run --prod jobSync:syncAll`
+8. For tailored applications, set `ANTHROPIC_API_KEY` on Convex
 
 ## Scripts
 
