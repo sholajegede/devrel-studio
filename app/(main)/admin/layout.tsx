@@ -19,6 +19,7 @@ import {
   ShieldCheck,
   Users,
   Wallet,
+  Briefcase,
 } from 'lucide-react'
 
 // ── The admin console ─────────────────────────────────────────────────────────
@@ -74,6 +75,7 @@ const GROUPS: { label: string; items: Item[] }[] = [
     items: [
       { href: '/admin/content', label: 'Content', icon: FileText },
       { href: '/admin/traffic', label: 'Traffic', icon: Activity },
+      { href: '/admin/jobs', label: 'Jobs', icon: Briefcase },
     ],
   },
   {
