@@ -642,3 +642,60 @@ export const sendAccessRequest = internalAction({
     return toOwner
   },
 })
+
+const escapeHtml = (value: string) =>
+  value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+
+export const sendJobAlert = internalAction({
+  args: {
+    email: v.string(),
+    firstName: v.optional(v.string()),
+    alertName: v.string(),
+    jobs: v.array(
+      v.object({
+        title: v.string(),
+        company: v.string(),
+        location: v.string(),
+        pay: v.optional(v.string()),
+        url: v.string(),
+      }),
+    ),
+    boardUrl: v.string(),
+    manageUrl: v.string(),
+  },
+  handler: async (_ctx, args): Promise<SendResult> => {
+    const greeting = args.firstName ? `Hi ${escapeHtml(args.firstName)},` : 'Hi,'
+    const count = args.jobs.length
+    const noun = count === 1 ? 'role' : 'roles'
+
+    const rows = args.jobs
+      .map(
+        (job) => `<tr>
+          <td style="padding:10px 0;border-bottom:1px solid #edf2f7;">
+            <a href="${job.url}" style="font-size:15px;font-weight:600;color:#1a1a1a;text-decoration:none;">${escapeHtml(job.title)}</a>
+            <div style="font-size:13px;color:#718096;margin-top:2px;">${escapeHtml(job.company)} · ${escapeHtml(job.location)}${job.pay ? ` · ${escapeHtml(job.pay)}` : ''}</div>
+          </td>
+        </tr>`,
+      )
+      .join('')
+
+    return await send({
+      to: args.email,
+      subject: `${count} new DevRel ${noun}: ${args.alertName}`,
+      html: layout(`
+        <p style="margin:0 0 14px;font-size:15px;line-height:1.6;">${greeting}</p>
+        <p style="margin:0 0 14px;font-size:15px;line-height:1.6;">
+          ${count} new ${noun} matched your alert <strong>${escapeHtml(args.alertName)}</strong>.
+        </p>
+        <table style="width:100%;border-collapse:collapse;margin:0 0 22px;">${rows}</table>
+        <p style="margin:0 0 22px;">${button(args.boardUrl, 'See all matches')}</p>
+        <p style="margin:0;font-size:13px;line-height:1.6;color:#718096;">
+          You get this when something new matches. <a href="${args.manageUrl}" style="color:#718096;">Change or stop this alert</a>.
+        </p>
+      `),
+      text: `${count} new ${noun} matched your alert "${args.alertName}".\n\n${args.jobs
+        .map((job) => `${job.title} — ${job.company}, ${job.location}${job.pay ? `, ${job.pay}` : ''}\n${job.url}`)
+        .join('\n\n')}\n\nAll matches: ${args.boardUrl}\nManage alerts: ${args.manageUrl}`,
+    })
+  },
+})

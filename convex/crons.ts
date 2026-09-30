@@ -73,4 +73,39 @@ crons.daily(
   {},
 )
 
+// Employers' own feeds, three times a day.
+//
+// 06:00, 14:00 and 22:00 UTC put a fresh pull ahead of working hours in
+// Lagos, London and the US east coast. Sources are staggered inside the run, so
+// the twenty-five minute gap before the stats refresh is generous.
+crons.cron(
+  'sync job sources',
+  '0 6,14,22 * * *',
+  internal.jobSync.syncAll,
+  {},
+)
+
+crons.cron(
+  'refresh job stats',
+  '25 6,14,22 * * *',
+  internal.jobSync.refreshStats,
+  {},
+)
+
+// Expired listings stay readable for thirty days, so a link that was shared or
+// saved explains itself. After that they are deleted along with their text.
+crons.daily(
+  'prune expired jobs',
+  { hourUTC: 3, minuteUTC: 45 },
+  internal.jobSync.pruneExpired,
+  {},
+)
+
+crons.cron(
+  'send job alerts',
+  '30 7 * * *',
+  internal.jobAlerts.runAlerts,
+  {},
+)
+
 export default crons

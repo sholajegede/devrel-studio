@@ -788,4 +788,154 @@ export default defineSchema({
     lastFailureAt: v.number(),
     lockedUntil: v.optional(v.number()),
   }).index("by_slug_and_bucket", ["slug", "bucket"]),
+  // ── Jobs board ────────────────────────────────────────────────────────────
+  jobSources: defineTable({
+    kind: v.union(v.literal("greenhouse"), v.literal("lever"), v.literal("ashby")),
+    slug: v.string(),
+    name: v.string(),
+    active: v.boolean(),
+    lastSyncedAt: v.optional(v.number()),
+    lastOk: v.optional(v.boolean()),
+    lastError: v.optional(v.string()),
+    totalFetched: v.optional(v.number()),
+    relevantCount: v.optional(v.number()),
+    failures: v.number(),
+    createdAt: v.number(),
+  })
+    .index("by_active", ["active"])
+    .index("by_kind_and_slug", ["kind", "slug"]),
+
+  jobs: defineTable({
+    sourceId: v.id("jobSources"),
+    externalId: v.string(),
+    slug: v.string(),
+    title: v.string(),
+    role: v.string(),
+    family: v.string(),
+    seniority: v.string(),
+    employmentType: v.string(),
+    workplace: v.string(),
+    remoteScope: v.optional(v.string()),
+    locationLabel: v.string(),
+    locations: v.array(v.string()),
+    countries: v.array(v.string()),
+    regions: v.array(v.string()),
+    companyName: v.string(),
+    companySlug: v.string(),
+    salaryMin: v.optional(v.number()),
+    salaryMax: v.optional(v.number()),
+    salaryCurrency: v.optional(v.string()),
+    salaryMinUsd: v.optional(v.number()),
+    salaryMaxUsd: v.optional(v.number()),
+    skills: v.array(v.string()),
+    topics: v.array(v.string()),
+    summary: v.string(),
+    applyUrl: v.string(),
+    postedAt: v.number(),
+    firstSeenAt: v.number(),
+    lastVerifiedAt: v.number(),
+    status: v.union(v.literal("active"), v.literal("expired")),
+    expiredAt: v.optional(v.number()),
+    groupKey: v.string(),
+    contentHash: v.string(),
+    searchText: v.string(),
+    clicks: v.optional(v.number()),
+  })
+    .index("by_slug", ["slug"])
+    .index("by_source_and_external", ["sourceId", "externalId"])
+    .index("by_source_and_status", ["sourceId", "status"])
+    .index("by_status_and_posted", ["status", "postedAt"])
+    .index("by_company_and_status", ["companySlug", "status", "postedAt"])
+    .index("by_group", ["groupKey"])
+    .searchIndex("search_text", {
+      searchField: "searchText",
+      filterFields: ["status", "family", "workplace", "seniority"],
+    }),
+
+  jobDescriptions: defineTable({
+    jobId: v.id("jobs"),
+    text: v.string(),
+  }).index("by_job", ["jobId"]),
+
+  jobStats: defineTable({
+    key: v.string(),
+    updatedAt: v.number(),
+    total: v.number(),
+    byFamily: v.array(v.object({ id: v.string(), count: v.number() })),
+    bySeniority: v.array(v.object({ id: v.string(), count: v.number() })),
+    byWorkplace: v.array(v.object({ id: v.string(), count: v.number() })),
+    byRegion: v.array(v.object({ id: v.string(), count: v.number() })),
+    byCompany: v.array(
+      v.object({ slug: v.string(), name: v.string(), count: v.number() }),
+    ),
+    bySkill: v.array(v.object({ id: v.string(), count: v.number() })),
+    salaries: v.array(
+      v.object({
+        family: v.string(),
+        seniority: v.string(),
+        n: v.number(),
+        p25: v.number(),
+        median: v.number(),
+        p75: v.number(),
+      }),
+    ),
+    postedThisWeek: v.number(),
+    withSalary: v.number(),
+    remote: v.number(),
+  }).index("by_key", ["key"]),
+
+  jobProfiles: defineTable({
+    userId: v.id("users"),
+    cvStorageId: v.optional(v.id("_storage")),
+    cvFileName: v.optional(v.string()),
+    cvText: v.optional(v.string()),
+    cvStatus: v.optional(v.string()),
+    skills: v.array(v.string()),
+    families: v.array(v.string()),
+    seniority: v.optional(v.string()),
+    workplaces: v.array(v.string()),
+    country: v.optional(v.string()),
+    minSalaryUsd: v.optional(v.number()),
+    headline: v.optional(v.string()),
+    yearsExperience: v.optional(v.number()),
+    updatedAt: v.number(),
+  }).index("by_user", ["userId"]),
+
+  jobApplications: defineTable({
+    userId: v.id("users"),
+    jobId: v.optional(v.id("jobs")),
+    title: v.string(),
+    company: v.string(),
+    url: v.optional(v.string()),
+    location: v.optional(v.string()),
+    stage: v.string(),
+    appliedAt: v.optional(v.number()),
+    nextStep: v.optional(v.string()),
+    nextStepAt: v.optional(v.number()),
+    notes: v.optional(v.string()),
+    contact: v.optional(v.string()),
+    salaryNote: v.optional(v.string()),
+    history: v.array(v.object({ stage: v.string(), at: v.number() })),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_user", ["userId", "updatedAt"])
+    .index("by_user_and_job", ["userId", "jobId"]),
+
+  jobAlerts: defineTable({
+    userId: v.id("users"),
+    name: v.string(),
+    query: v.optional(v.string()),
+    families: v.array(v.string()),
+    seniority: v.array(v.string()),
+    workplaces: v.array(v.string()),
+    regions: v.array(v.string()),
+    minSalaryUsd: v.optional(v.number()),
+    frequency: v.union(v.literal("daily"), v.literal("weekly")),
+    enabled: v.boolean(),
+    lastSentAt: v.optional(v.number()),
+    createdAt: v.number(),
+  })
+    .index("by_user", ["userId"])
+    .index("by_frequency", ["enabled", "frequency"]),
 });

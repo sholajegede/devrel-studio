@@ -39,3 +39,7 @@ next-env.d.ts
 # and this repository is public.
 .env.sentry-build-plugin
 .sentryclirc
+
+# internal build notes
+BUILD_PLAN.md
+BUILD_LOG.md
