@@ -13,6 +13,9 @@ const STORAGE_KEYS = {
   members:    "devrel-members-tour-v1",
   billing:    "devrel-billing-tour-v1",
   settings:   "devrel-settings-tour-v1",
+  "jobs-public":   "devrel-jobs-public-tour-v1",
+  "jobs-discover": "devrel-jobs-discover-tour-v1",
+  "jobs-tracker":  "devrel-jobs-tracker-tour-v1",
 } as const;
 
 export type TourVariant = keyof typeof STORAGE_KEYS;
@@ -100,6 +103,44 @@ const SETTINGS_STEPS: TourStep[] = [
   { target: '[data-tour="settings-danger"]', title: "Danger zone", content: "Deleting your account wipes every entry with it and nothing comes back. We ask you to confirm before anything is deleted.", position: "top", highlight: true },
 ];
 
+
+// ── Job board ─────────────────────────────────────────────────────────────────
+const JOBS_PUBLIC_STEPS: TourStep[] = [
+  { target: "body", title: "The DevRel job board", content: "Every developer relations role, taken from company careers pages three times a day. This short tour shows you how to find the right ones.", position: "center", highlight: false },
+  { target: '[data-tour="jobs-search"]', title: "Search", content: "Type a role, a company or a skill. Try \"Convex\" or \"Python\". A search looks at every role, including the adjacent ones.", position: "bottom", highlight: true },
+  { target: '[data-tour="jobs-role-type"]', title: "Role type", content: "Pick the kind of work you want: advocacy, DevRel engineering, developer success, community, docs, education or programs. The number is how many open roles there are.", position: "right", highlight: true },
+  { target: '[data-tour="jobs-adjacent"]', title: "Include adjacent roles", content: "Adjacent roles sit next to DevRel but are not core. Examples are developer marketing and internal developer experience. They stay hidden until you turn this on. Turn it on for a wider list.", position: "right", highlight: true },
+  { target: '[data-tour="jobs-level"]', title: "Level", content: "Choose from intern to Head or VP. Pick more than one if you are between levels.", position: "right", highlight: true },
+  { target: '[data-tour="jobs-type"]', title: "Full-time or contract", content: "Switch to Contract and freelance to see short-term work. It comes from company pages, We Work Remotely, RemoteOK and Hacker News.", position: "right", highlight: true },
+  { target: '[data-tour="jobs-country"]', title: "Where do you live?", content: "Set your country. Every role then says if it is open to you. \"Hide roles closed to me\" removes the ones that are not. Remote does not always mean anywhere.", position: "right", highlight: true },
+  { target: '[data-tour="jobs-pay"]', title: "Pay", content: "Show only roles that list pay, or set a minimum. Pay is shown in US dollars a year so you can compare.", position: "right", highlight: true },
+  { target: '[data-tour="jobs-sort"]', title: "Sort", content: "Newest shows what was posted last. Highest pay puts the best paid roles first.", position: "bottom", highlight: true },
+  { target: '[data-tour="jobs-card"]', title: "A role", content: "Each card shows the pay, the place, the level and when it was posted. A green tag shows if it is open in your country. Click the card for the full listing.", position: "bottom", highlight: true },
+  { target: '[data-tour="jobs-save"]', title: "Save it", content: "Save a role to your tracker with a free account. The tracker follows each application from saved to offer.", position: "left", highlight: true },
+  { target: "body", title: "That is the board", content: "A free account adds CV matching, the tracker and email alerts. The Tour button starts this again.", position: "center", highlight: false },
+];
+
+const JOBS_DISCOVER_STEPS: TourStep[] = [
+  { target: "body", title: "Your job board", content: "This is the same board, ranked for you. Roles that fit your CV come first.", position: "center", highlight: false },
+  { target: '[data-tour="jobs-tabs"]', title: "Five areas", content: "Discover finds roles. Tracker follows your applications. Alerts emails you new matches. Market shows pay and who is hiring. CV & preferences is where you upload your CV. Pro is the paid pass.", position: "bottom", highlight: true },
+  { target: '[data-tour="jobs-sort"]', title: "Best match", content: "Roles are ranked against your CV and preferences. Upload your CV first if you have not. Without it, the ranking has nothing to use.", position: "bottom", highlight: true },
+  { target: '[data-tour="jobs-adjacent"]', title: "Include adjacent roles", content: "Adjacent roles are close to DevRel but not core, such as developer marketing and internal developer experience. They stay hidden until you turn this on.", position: "right", highlight: true },
+  { target: '[data-tour="jobs-country"]', title: "Your country", content: "Set where you live. Each role then says if it is open to you, and the match score takes it into account.", position: "right", highlight: true },
+  { target: '[data-tour="jobs-card"]', title: "Match score", content: "The percentage shows how well the role fits your skills, focus, level and place. The line under it says why.", position: "bottom", highlight: true },
+  { target: '[data-tour="jobs-tailor"]', title: "Tailor CV", content: "Write CV bullets and a cover note for this one role. They use only your CV and your published work. You get three free. Jobs Pro gives you more.", position: "left", highlight: true },
+  { target: '[data-tour="jobs-alert"]', title: "Alert me", content: "Turn the filters you have set into an email alert. You hear about new matching roles without checking the board.", position: "bottom", highlight: true },
+  { target: "body", title: "That is Discover", content: "Save a role to add it to your tracker. The Tour button starts this again.", position: "center", highlight: false },
+];
+
+const JOBS_TRACKER_STEPS: TourStep[] = [
+  { target: "body", title: "Your tracker", content: "Every role you are chasing, from saved to signed. Drag a card to a new column when something changes.", position: "center", highlight: false },
+  { target: '[data-tour="tracker-add"]', title: "Add a role", content: "Found a role somewhere else? Add it here with a title, a company and a link.", position: "bottom", highlight: true },
+  { target: '[data-tour="tracker-stats"]', title: "Your numbers", content: "How many are active, how many replied, and how long companies take to answer. They update as you move cards.", position: "bottom", highlight: true },
+  { target: '[data-tour="tracker-board"]', title: "The board", content: "Saved, Applied, Screening, Interviewing, Offer and Closed. Drag a card across. On a phone, use the menu on the card.", position: "top", highlight: true },
+  { target: '[data-tour="tracker-card"]', title: "Open a card", content: "Click a card to add notes, a next step with a date, a contact and the pay you discussed. The history shows when each move happened.", position: "right", highlight: true },
+  { target: "body", title: "Nudges", content: "Roles with no reply for 10 days show up as worth a nudge. Steps due this week appear under Coming up. The Tour button starts this again.", position: "center", highlight: false },
+];
+
 // ── Step map ──────────────────────────────────────────────────────────────────
 const STEPS_MAP: Record<TourVariant, TourStep[]> = {
   dashboard:  DASHBOARD_STEPS,
@@ -110,6 +151,9 @@ const STEPS_MAP: Record<TourVariant, TourStep[]> = {
   members:    MEMBERS_STEPS,
   billing:    BILLING_STEPS,
   settings:   SETTINGS_STEPS,
+  "jobs-public":   JOBS_PUBLIC_STEPS,
+  "jobs-discover": JOBS_DISCOVER_STEPS,
+  "jobs-tracker":  JOBS_TRACKER_STEPS,
 };
 
 // ── Component ─────────────────────────────────────────────────────────────────
@@ -119,9 +163,11 @@ interface AdminTourProps {
   onComplete?: () => void;
   autoStart?: boolean;
   onTourControlReady?: (controls: { startTour: () => void }) => void;
+  /** When set, this decides whether the tour starts by itself and records what happens. */
+  gate?: { ready: boolean; shouldAuto: boolean; onStart: () => void; onDone: () => void };
 }
 
-export function AdminTour({ variant, onComplete, autoStart = false, onTourControlReady }: AdminTourProps) {
+export function AdminTour({ variant, onComplete, autoStart = false, onTourControlReady, gate }: AdminTourProps) {
   const STEPS       = STEPS_MAP[variant];
   const STORAGE_KEY = STORAGE_KEYS[variant];
 
@@ -138,10 +184,22 @@ export function AdminTour({ variant, onComplete, autoStart = false, onTourContro
 
   useEffect(() => { onTourControlReady?.({ startTour }); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, []);
 
+  const autoFired = useRef(false);
+  const gateRef = useRef(gate);
+  gateRef.current = gate;
+  const gateReady = gate?.ready ?? false;
+  const gateAuto = gate?.shouldAuto ?? false;
+
   useEffect(() => {
+    if (gateRef.current) {
+      if (!autoStart || !gateReady || !gateAuto || autoFired.current) return;
+      autoFired.current = true;
+      const timer = setTimeout(() => { gateRef.current?.onStart(); setIsActive(true); }, 1200);
+      return () => clearTimeout(timer);
+    }
     const done = localStorage.getItem(STORAGE_KEY);
     if (autoStart && !done) setTimeout(() => setIsActive(true), 700);
-  }, [autoStart, STORAGE_KEY]);
+  }, [autoStart, STORAGE_KEY, gateReady, gateAuto]);
 
   const computePosition = useCallback(() => {
     const current = STEPS[step];
@@ -157,6 +215,8 @@ export function AdminTour({ variant, onComplete, autoStart = false, onTourContro
     const el = document.querySelector(current.target);
     if (!el) { centerIt(); return; }
     const r = el.getBoundingClientRect();
+    // An element that is in the page but hidden, such as a desktop-only sidebar on a phone.
+    if (r.width === 0 || r.height === 0) { centerIt(); return; }
     let top = 0, left = 0;
 
     switch (current.position) {
@@ -197,6 +257,7 @@ export function AdminTour({ variant, onComplete, autoStart = false, onTourContro
 
   const complete = useCallback(() => {
     localStorage.setItem(STORAGE_KEY, "true");
+    gateRef.current?.onDone();
     setIsActive(false); setStep(0); setVisible(false);
     onComplete?.();
   }, [onComplete, STORAGE_KEY]);

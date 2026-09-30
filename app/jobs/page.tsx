@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { Suspense } from 'react'
 import { JobBoard } from '@/components/jobs/job-board'
+import { JobsTour } from '@/components/jobs/jobs-tour'
 import { Faq, HubLinks, JobsShell, JsonLd, StaticJobList } from '@/components/jobs/shell'
 import { faqItems, marketSummary } from '@/lib/jobs/copy'
 import { breadcrumbLd, faqLd, itemListLd } from '@/lib/jobs/seo'
@@ -51,8 +52,9 @@ export default async function JobsPage() {
             ))}
           </dl>
         )}
-        <div className="relative mt-6">
+        <div className="relative mt-6 flex flex-wrap items-center gap-3">
           <HubLinks />
+          <JobsTour variant="jobs-public" />
         </div>
       </header>
 

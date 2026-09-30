@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
+import { JobsTour } from '@/components/jobs/jobs-tour'
 
 const TABS = [
   { href: '/dashboard/jobs', label: 'Discover', exact: true },
@@ -22,9 +23,13 @@ export function JobsHeader({ title, description, children }: { title: string; de
           <h1 className="text-2xl font-semibold text-foreground">{title}</h1>
           <p className="text-sm text-muted-foreground">{description}</p>
         </div>
-        {children}
+        <div className="flex items-center gap-2">
+          {children}
+          {pathname === '/dashboard/jobs' && <JobsTour variant="jobs-discover" />}
+          {pathname.startsWith('/dashboard/jobs/tracker') && <JobsTour variant="jobs-tracker" />}
+        </div>
       </div>
-      <nav aria-label="Jobs sections" className="mt-5 flex gap-1 overflow-x-auto border-b border-border">
+      <nav data-tour="jobs-tabs" aria-label="Jobs sections" className="mt-5 flex gap-1 overflow-x-auto border-b border-border">
         {TABS.map((tab) => {
           const active = tab.exact ? pathname === tab.href : pathname.startsWith(tab.href)
           return (

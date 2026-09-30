@@ -983,4 +983,15 @@ export default defineSchema({
   })
     .index("by_user", ["userId"])
     .index("by_status", ["status"]),
+
+  // Product tours already shown, per account or per hashed IP address. The IP
+  // is hashed with a server secret, so a row cannot be turned back into an
+  // address. Lets a tour stay dismissed when someone changes browser.
+  tourState: defineTable({
+    subject: v.string(),
+    tour: v.string(),
+    runs: v.number(),
+    done: v.boolean(),
+    updatedAt: v.number(),
+  }).index("by_subject_and_tour", ["subject", "tour"]),
 });

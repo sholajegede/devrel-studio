@@ -497,12 +497,13 @@ open http://admin.localhost:3000/login
 | `OWNER_EMAIL` | Where operator notifications are sent (defaults to `support@devrel.studio`) |
 | `NEXT_PUBLIC_APP_URL`, `SITE_URL` | Absolute URLs where the origin cannot be inferred |
 | `JOBS_REVALIDATE_SECRET` | Set on **both** Convex and Vercel. Lets Convex refresh `/jobs` after each sync |
+| `TOURS_SECRET` | Set on **both** Convex and Vercel (`openssl rand -hex 32`). Hashes visitor IPs so the job board tour is remembered across browsers. Without it the tour falls back to browser and account memory |
 | `ANTHROPIC_API_KEY`, `JOBS_AI_MODEL` | **Convex-side.** Tailored CVs and cover notes. `JOBS_AI_MODEL` defaults to `claude-sonnet-4-5` |
 | `REDDIT_CLIENT_ID`, `REDDIT_CLIENT_SECRET` | **Convex-side, optional.** Only needed if you add a r/forhire feed |
 | `NEXT_PUBLIC_LOGO_DEV_TOKEN` | Sharper company logos from logo.dev; the default is Google's favicon service |
 | `REPORT_REDIRECT_TO` | Diverts every report email to one address — useful in staging |
 
-Convex functions read their own environment (`npx convex env set …`), which is separate from Vercel's. `MANAGER_CODE_SECRET`, `RESEND_API_KEY`, `GITHUB_TOKEN` and `JOBS_REVALIDATE_SECRET` need to be set in **both** places; `ADMIN_EMAILS` belongs on Convex only.
+Convex functions read their own environment (`npx convex env set …`), which is separate from Vercel's. `MANAGER_CODE_SECRET`, `RESEND_API_KEY`, `GITHUB_TOKEN`, `JOBS_REVALIDATE_SECRET` and `TOURS_SECRET` need to be set in **both** places; `ADMIN_EMAILS` belongs on Convex only.
 
 ## Testing
 

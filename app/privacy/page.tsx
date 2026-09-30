@@ -76,6 +76,15 @@ export default function PrivacyPage() {
         </p>
       </Section>
 
+      <Section heading="Job board tour">
+        <p>
+          The guided tour on the job board remembers whether you have seen it. It stores a
+          short note in your browser, on your account if you are signed in, and against a
+          hashed version of your IP address. We never store the address itself, and the hash
+          cannot be turned back into one. Nothing else is tied to it.
+        </p>
+      </Section>
+
       <Section heading="Sub-processors">
         <p>
           These services process data for us. Each one does a single job:

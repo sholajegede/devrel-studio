@@ -86,7 +86,7 @@ export default function TrackerPage() {
         title="Tracker"
         description="Every role you are chasing, from saved to signed. Drag cards between columns."
       >
-        <Button onClick={() => setAdding(true)} className="bg-accent text-accent-foreground hover:bg-accent/90">
+        <Button data-tour="tracker-add" onClick={() => setAdding(true)} className="bg-accent text-accent-foreground hover:bg-accent/90">
           <Plus className="h-4 w-4" />
           Add a role
         </Button>
@@ -97,7 +97,7 @@ export default function TrackerPage() {
       ) : rows === null ? (
         <p className="text-sm text-muted-foreground">Sign in to use the tracker.</p>
       ) : rows.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-border p-10 text-center">
+        <div data-tour="tracker-board" className="rounded-xl border border-dashed border-border p-10 text-center">
           <p className="font-medium text-foreground">Nothing tracked yet</p>
           <p className="mx-auto mt-1 max-w-md text-sm text-muted-foreground">
             Save a role from the board, or add one you found elsewhere. Moving a card keeps a dated history, so
@@ -113,7 +113,7 @@ export default function TrackerPage() {
       ) : (
         <div className="space-y-5">
           {stats && (
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+            <div data-tour="tracker-stats" className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
               <Stat label="Active" value={String(stats.active)} />
               <Stat label="Applied" value={String(stats.applied)} />
               <Stat label="Response rate" value={pct(stats.responseRate)} />
@@ -168,7 +168,7 @@ export default function TrackerPage() {
             </div>
           )}
 
-          <div className="grid gap-3 overflow-x-auto pb-2 md:grid-cols-3 xl:grid-cols-6">
+          <div data-tour="tracker-board" className="grid gap-3 overflow-x-auto pb-2 md:grid-cols-3 xl:grid-cols-6">
             {COLUMNS.map((column) => {
               const items = rows.filter((row) => columnOf(row.stage) === column.id)
               return (
@@ -196,9 +196,9 @@ export default function TrackerPage() {
                     <span className="tabular-nums">{items.length}</span>
                   </h2>
                   <div className="space-y-2">
-                    {items.map((row) => (
+                    {items.map((row, rowIndex) => (
+                      <div key={row._id} data-tour={column.id === COLUMNS.find((c) => rows.some((r) => columnOf(r.stage) === c.id))?.id && rowIndex === 0 ? 'tracker-card' : undefined}>
                       <Card
-                        key={row._id}
                         row={row}
                         onOpen={() => setOpenId(row._id)}
                         onDragStart={(event) => {
@@ -208,6 +208,7 @@ export default function TrackerPage() {
                         }}
                         onMove={(stage) => setStage({ id: row._id, stage })}
                       />
+                      </div>
                     ))}
                   </div>
                 </section>

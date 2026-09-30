@@ -183,8 +183,8 @@ export function JobBoard({
   const count = (list: { id: string; count: number }[] | undefined, id: string) =>
     list?.find((entry) => entry.id === id)?.count
 
-  const Group = ({ title, children }: { title: string; children: React.ReactNode }) => (
-    <fieldset className="space-y-2">
+  const Group = ({ title, children, tour }: { title: string; children: React.ReactNode; tour?: string }) => (
+    <fieldset className="space-y-2" data-tour={tour}>
       <legend className="mb-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">{title}</legend>
       {children}
     </fieldset>
@@ -218,7 +218,7 @@ export function JobBoard({
   const filters = (
     <div className="space-y-6">
       {!lockedFamily && (
-        <Group title="Role type">
+        <Group title="Role type" tour="jobs-role-type">
           {visibleFamilies.map((family) => (
             <Check
               key={family.id}
@@ -228,7 +228,7 @@ export function JobBoard({
               onChange={() => toggleIn('f', family.id)}
             />
           ))}
-          <label className="flex cursor-pointer items-center justify-between gap-2 pt-1 text-xs text-muted-foreground">
+          <label data-tour="jobs-adjacent" className="flex cursor-pointer items-center justify-between gap-2 pt-1 text-xs text-muted-foreground">
             Include adjacent roles
             <Switch
               checked={includeAdjacent}
@@ -239,7 +239,7 @@ export function JobBoard({
         </Group>
       )}
 
-      <Group title="Level">
+      <Group title="Level" tour="jobs-level">
         {SENIORITIES.map((level) => (
           <Check
             key={level.id}
@@ -264,7 +264,7 @@ export function JobBoard({
       </Group>
 
       {!lockedEmployment && (
-        <Group title="Job type">
+        <Group title="Job type" tour="jobs-type">
           {EMPLOYMENT.map((type) => (
             <Check
               key={type.id}
@@ -288,7 +288,7 @@ export function JobBoard({
         ))}
       </Group>
 
-      <Group title="Where do you live?">
+      <Group title="Where do you live?" tour="jobs-country">
         <select
           value={country ?? ''}
           onChange={(event) => setCountry(event.target.value || undefined)}
@@ -313,7 +313,7 @@ export function JobBoard({
         </label>
       </Group>
 
-      <Group title="Pay">
+      <Group title="Pay" tour="jobs-pay">
         <label className="flex cursor-pointer items-center justify-between gap-2 text-sm text-foreground">
           Only roles that list pay
           <Switch
@@ -386,7 +386,7 @@ export function JobBoard({
 
       <section aria-label="Job listings" className="min-w-0">
         <div className="flex flex-wrap items-center gap-2">
-          <div className="relative min-w-[220px] flex-1">
+          <div data-tour="jobs-search" className="relative min-w-[220px] flex-1">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               value={text}
@@ -405,6 +405,7 @@ export function JobBoard({
             onChange={(event) => setParam('sort', event.target.value === (personal ? 'match' : 'newest') ? null : event.target.value)}
             className="h-9 rounded-md border border-border bg-background px-2 text-sm"
             aria-label="Sort"
+            data-tour="jobs-sort"
           >
             {personal && <option value="match">Best match</option>}
             <option value="newest">Newest</option>
@@ -427,7 +428,7 @@ export function JobBoard({
               </Button>
             )}
             {personal && (
-              <Button asChild variant="outline" size="sm">
+              <Button asChild variant="outline" size="sm" data-tour="jobs-alert">
                 <Link href={`/dashboard/jobs/alerts${filterKey ? `?${filterKey}` : ''}`}>
                   <Bell className="h-3.5 w-3.5" />
                   Alert me
@@ -438,9 +439,9 @@ export function JobBoard({
         </div>
 
         <div className="mt-3 space-y-3">
-          {visible.map(({ job, match }) => (
+          {visible.map(({ job, match }, index) => (
+            <div key={job._id} data-tour={index === 0 ? 'jobs-card' : undefined}>
             <JobCard
-              key={job._id}
               job={job}
               href={`${linkBase}/${job.slug}`}
               country={country}
@@ -450,15 +451,19 @@ export function JobBoard({
                   {personal && (
                     <Link
                       href={`/dashboard/jobs/kit/${job.slug}`}
+                      data-tour={index === 0 ? 'jobs-tailor' : undefined}
                       className="rounded-md border border-border px-2 py-1 text-xs text-foreground hover:border-accent hover:text-accent"
                     >
                       Tailor CV
                     </Link>
                   )}
-                  <SaveButton jobId={job._id} />
+                  <span data-tour={index === 0 ? 'jobs-save' : undefined}>
+                    <SaveButton jobId={job._id} />
+                  </span>
                 </>
               }
             />
+            </div>
           ))}
 
           {result && visible.length === 0 && (
