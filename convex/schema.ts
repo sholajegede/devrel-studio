@@ -1038,6 +1038,46 @@ export default defineSchema({
   // Three posts a week are drafted, fact-checked and emailed for review. Only a
   // published post is public. The review link holds a random token; only its
   // hash is stored.
+  // ── /hire ──────────────────────────────────────────────────────────────────
+  // A DevRel's hiring profile. Nothing is public until `listed` is true, and the
+  // server refuses to list a profile that is missing the basics.
+  talentProfiles: defineTable({
+    userId: v.id("users"),
+    listed: v.boolean(),
+    openToWork: v.boolean(),
+    listedAt: v.optional(v.number()),
+    headline: v.optional(v.string()),
+    summary: v.optional(v.string()),
+    country: v.optional(v.string()),
+    city: v.optional(v.string()),
+    timezone: v.optional(v.string()),
+    availability: v.optional(v.string()),
+    workModes: v.array(v.string()),
+    engagements: v.array(v.string()),
+    seniority: v.optional(v.string()),
+    families: v.array(v.string()),
+    skills: v.array(v.string()),
+    languages: v.array(v.string()),
+    yearsExperience: v.optional(v.number()),
+    experience: v.array(v.object({ company: v.string(), title: v.string(), start: v.optional(v.string()), end: v.optional(v.string()), summary: v.optional(v.string()) })),
+    education: v.array(v.object({ school: v.string(), degree: v.optional(v.string()), year: v.optional(v.string()) })),
+    projects: v.array(v.object({ name: v.string(), url: v.optional(v.string()), summary: v.optional(v.string()) })),
+    communities: v.array(v.object({ name: v.string(), role: v.optional(v.string()), url: v.optional(v.string()) })),
+    updatedAt: v.number(),
+  })
+    .index("by_user", ["userId"])
+    .index("by_listed", ["listed"]),
+
+  // Messages a recruiter sent through a profile's contact form.
+  talentContacts: defineTable({
+    talentUserId: v.id("users"),
+    name: v.string(),
+    email: v.string(),
+    company: v.string(),
+    message: v.string(),
+    createdAt: v.number(),
+  }).index("by_talent", ["talentUserId"]),
+
   blogPosts: defineTable({
     slug: v.string(),
     title: v.string(),

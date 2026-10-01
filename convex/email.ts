@@ -755,3 +755,21 @@ export const sendBlogReview = internalAction({
     })
   },
 })
+
+/** A recruiter's message to a listed DevRel. The recruiter's address is the reply-to. */
+export const sendTalentContact = internalAction({
+  args: { to: v.string(), talentName: v.string(), fromName: v.string(), fromEmail: v.string(), company: v.string(), message: v.string() },
+  handler: async (_ctx, args): Promise<SendResult> => {
+    return await send({
+      to: args.to,
+      replyTo: args.fromEmail,
+      subject: `${args.fromName} at ${args.company} wrote to you through DevRel Studio`,
+      html: layout(`
+        <p style="margin:0 0 12px;font-size:15px;line-height:1.6;">Hi ${escapeHtml(args.talentName)},</p>
+        <p style="margin:0 0 16px;font-size:15px;line-height:1.6;"><strong>${escapeHtml(args.fromName)}</strong> at <strong>${escapeHtml(args.company)}</strong> sent you a message from your /hire page. Reply to this email to answer them directly.</p>
+        <p style="margin:0 0 16px;padding:14px 16px;background:#f7fafc;border-radius:8px;font-size:14px;line-height:1.6;white-space:pre-wrap;">${escapeHtml(args.message)}</p>
+        <p style="margin:0;font-size:13px;color:#718096;">Their email: ${escapeHtml(args.fromEmail)}. We have not verified who they are, so check the company before you share details.</p>`),
+      text: `${args.fromName} at ${args.company} wrote to you from your /hire page.\n\n${args.message}\n\nReply to this email to answer them. Their email: ${args.fromEmail}. We have not verified who they are.`,
+    })
+  },
+})

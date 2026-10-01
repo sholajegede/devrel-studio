@@ -48,6 +48,7 @@ import type * as model_workspaces from "../model/workspaces.js";
 import type * as portfolio from "../portfolio.js";
 import type * as reports from "../reports.js";
 import type * as sync from "../sync.js";
+import type * as talent from "../talent.js";
 import type * as tours from "../tours.js";
 import type * as trials from "../trials.js";
 import type * as users from "../users.js";
@@ -99,6 +100,7 @@ declare const fullApi: ApiFromModules<{
   portfolio: typeof portfolio;
   reports: typeof reports;
   sync: typeof sync;
+  talent: typeof talent;
   tours: typeof tours;
   trials: typeof trials;
   users: typeof users;

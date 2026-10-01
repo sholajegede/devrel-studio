@@ -27,6 +27,7 @@ export function MarketingFooter() {
                 { href: '/#how-it-works', label: 'How it works' },
                 { href: '/pricing',       label: 'Pricing' },
                 { href: '/jobs',          label: 'DevRel jobs' },
+                { href: '/hire',          label: 'Hire a DevRel' },
                 { href: '/blog',          label: 'Blog' },
               ].map(({ href, label }) => (
                 <li key={label}>

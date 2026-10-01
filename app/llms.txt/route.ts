@@ -50,6 +50,7 @@ export async function GET() {
     field('DevRel jobs board', `${origin}/jobs`),
     field('Jobs llms.txt', `${origin}/jobs/llms.txt`),
     field('Jobs JSON API', `${origin}/api/jobs`),
+    field('Hire a DevRel', `${origin}/hire`),
     field('Blog', `${origin}/blog`),
     field('Blog RSS', `${origin}/blog/feed.xml`),
     field('Pricing', `${origin}/pricing`),

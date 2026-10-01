@@ -28,6 +28,7 @@ const publicRoutes = [
   '/demo(.*)',
   '/jobs(.*)',
   '/blog(.*)',
+  '/hire(.*)',
   '/sign-in(.*)',
   '/sign-up(.*)',
   '/api/auth(.*)',

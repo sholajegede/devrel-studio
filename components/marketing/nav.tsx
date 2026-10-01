@@ -42,6 +42,7 @@ export function MarketingNav() {
           <Link href="/#features"     className="text-sm text-muted-foreground hover:text-foreground transition-colors">Features</Link>
           <Link href="/#how-it-works" className="text-sm text-muted-foreground hover:text-foreground transition-colors">How it works</Link>
           <Link href="/jobs"          className="text-sm text-muted-foreground hover:text-foreground transition-colors">Jobs</Link>
+          <Link href="/hire"          className="text-sm text-muted-foreground hover:text-foreground transition-colors">Hire</Link>
           <Link href="/blog"          className="text-sm text-muted-foreground hover:text-foreground transition-colors">Blog</Link>
           <Link href="/pricing"       className="text-sm text-muted-foreground hover:text-foreground transition-colors">Pricing</Link>
         </nav>
