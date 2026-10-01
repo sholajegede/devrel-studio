@@ -5,7 +5,7 @@ import { ActionCtx, MutationCtx, internalAction, internalMutation, internalQuery
 import { requireAdmin } from './model/admin'
 import { callClaude } from './model/claude'
 import {
-  FACT_CHECK_SYSTEM, PRODUCT_FACTS, factCheckUser, factRepairUser, repairUser, researchPrompt, topicPrompt, writerSystem, writerUser,
+  FACT_CHECK_SYSTEM, PRODUCT_FACTS, factCheckUser, factRepairUser, repairUser, researchPrompt, topicPrompt, writerSystem, writerUser, AVOID_AI_SYSTEM, polishUser,
 } from '../lib/blog/prompts'
 import { Claim, Draft, checkDraft, draftToText, extractJson, parseClaims, parseDraft } from '../lib/blog/draft'
 import { parseMarkdown, plainText, readingMinutes, wordCount } from '../lib/blog/markdown'
@@ -443,6 +443,8 @@ interface Topic {
   title: string
   keyword: string
   angle: string
+  hard_question?: string
+  shape?: string
   reader: string
   why_now: string
   kind: string
@@ -479,6 +481,8 @@ async function writeDraft(topic: Topic, research: string, dataBlock: string): Pr
   const system = writerSystem()
   const user = writerUser({
     title: topic.title,
+    hardQuestion: topic.hard_question,
+    shape: topic.shape,
     angle: topic.angle,
     keyword: topic.keyword,
     reader: topic.reader,
@@ -495,6 +499,14 @@ async function writeDraft(topic: Topic, research: string, dataBlock: string): Pr
     draft = parseDraft(raw)
   }
   if (!draft) throw new Error('The writer did not return a usable draft')
+
+  // Second pass: an editor removes machine-writing patterns without adding anything.
+  try {
+    const polished = parseDraft(await callClaude({ system: AVOID_AI_SYSTEM, user: polishUser(draftToText(draft)), maxTokens: 7000 }))
+    if (polished && polished.body.length > draft.body.length * 0.8) draft = polished
+  } catch {
+    // Keep the unpolished draft. The checks below still run.
+  }
 
   let problems = checkDraft(draft, ground)
   for (let pass = 0; pass < 3 && problems.length > 0; pass++) {

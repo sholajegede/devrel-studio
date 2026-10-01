@@ -69,7 +69,7 @@ describe('topics', () => {
 })
 
 describe('draft', () => {
-  const body = ['**Developer advocates get paid less when the role is hidden in a listing.**', '', '**Quick answer:** ' + 'Read the listing for pay, level and scope before you apply. '.repeat(5), '',
+  const body = ['Developer advocate listings often hide pay and level, so how do you judge one before you apply? Read three fields first: pay band, level and scope, because they decide what the job asks of you.', '', 'This post covers those three fields and how to compare two roles. It does not cover interview prep. ' + 'Each field gets its own section below. '.repeat(3), '',
     '## What does the listing say?', '', 'A listing tells you about pay and level. ' + 'The team writes it with care so you can judge the work. '.repeat(30), '',
     '## How do you compare two roles?', '', 'Put the roles side by side. ' + 'Use the same fields for each one and compare the gaps. '.repeat(30), '',
     '## Why does level matter?', '', 'Level sets scope. ' + 'Scope sets what you own and who you report to. '.repeat(30), '',

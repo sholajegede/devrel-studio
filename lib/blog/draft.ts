@@ -75,12 +75,10 @@ export function checkDraft(draft: Draft, groundTruth: string[]): string[] {
 
   const firstHeading = blocks.findIndex((block) => block.t === 'h')
   const intro = blocks.slice(0, firstHeading === -1 ? blocks.length : firstHeading)
-  const quick = intro.find((block) => block.t === 'p' && /^quick answer/i.test(plainText([block]).trim()))
-  if (!quick) problems.push('Missing the "**Quick answer:**" paragraph before the first heading.')
-  else {
-    const n = wordCount(plainText([quick]))
-    if (n < 30 || n > 80) problems.push(`The quick answer is ${n} words. Make it 40 to 60.`)
-  }
+  const introWords = wordCount(plainText(intro))
+  if (introWords < 50 || introWords > 170) problems.push(`The introduction is ${introWords} words. Make it 60 to 120: the question, the answer with its key number, then a scope sentence.`)
+  if (!/\bthis (post|article|guide)\b/i.test(plainText(intro))) problems.push('The introduction needs a scope sentence that begins "This post" and says what the post covers and leaves out.')
+  if (intro.some((block) => block.t === 'p' && /^quick answer/i.test(plainText([block]).trim()))) problems.push('Remove the "Quick answer" label. State the answer in the introduction as plain prose.')
 
   const h2 = blocks.filter((block) => block.t === 'h' && block.level === 2)
   if (h2.length < 4 || h2.length > 7) problems.push(`There are ${h2.length} sections. Use 4 to 6.`)
@@ -113,8 +111,8 @@ export function checkDraft(draft: Draft, groundTruth: string[]): string[] {
   if (sentences.length > 10) {
     const long = sentences.filter((sentence) => wordCount(sentence) > 30).length
     const short = sentences.filter((sentence) => wordCount(sentence) <= 6).length
-    if (long / sentences.length > 0.08) problems.push(`${long} sentences run over 30 words. Split them.`)
-    if (short / sentences.length > 0.1) problems.push(`${short} sentences are 6 words or fewer. Join some into connected sentences.`)
+    if (long / sentences.length > 0.2) problems.push(`${long} sentences run over 30 words. Split some at the real break in the reasoning.`)
+    if (short / sentences.length > 0.1) problems.push(`${short} sentences are 6 words or fewer. Join most of them to the sentence before, so each follows from the last.`)
   }
 
   const prose = draft.body.replace(/```[\s\S]*?```/g, ' ')
