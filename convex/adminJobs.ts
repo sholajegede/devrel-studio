@@ -13,6 +13,7 @@ const kindValidator = v.union(
   v.literal('wwr'),
   v.literal('hn'),
   v.literal('reddit'),
+  v.literal('page'),
 )
 
 export const overview = query({

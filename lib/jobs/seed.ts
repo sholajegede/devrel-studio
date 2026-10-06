@@ -1,4 +1,5 @@
 import type { SourceKind } from './adapters'
+import { CAREERS_PAGES } from './pages'
 
 export interface SeedSource {
   kind: SourceKind
@@ -65,4 +66,5 @@ export const SEED_SOURCES: SeedSource[] = [
   ...greenhouse.map(([slug, name]) => ({ kind: 'greenhouse' as const, slug, name })),
   ...ashby.map(([slug, name]) => ({ kind: 'ashby' as const, slug, name })),
   ...lever.map(([slug, name]) => ({ kind: 'lever' as const, slug, name })),
+  ...CAREERS_PAGES.map((page) => ({ kind: 'page' as const, slug: page.key, name: page.company })),
 ]

@@ -800,6 +800,7 @@ export default defineSchema({
       v.literal("wwr"),
       v.literal("hn"),
       v.literal("reddit"),
+      v.literal("page"),
     ),
     slug: v.string(),
     name: v.string(),

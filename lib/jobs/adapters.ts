@@ -1,6 +1,6 @@
 import { parseStructuredSalary, type SalaryRange } from './salary'
 
-export type SourceKind = 'greenhouse' | 'lever' | 'ashby' | 'remoteok' | 'wwr' | 'hn' | 'reddit'
+export type SourceKind = 'greenhouse' | 'lever' | 'ashby' | 'remoteok' | 'wwr' | 'hn' | 'reddit' | 'page'
 
 export interface RawJob {
   externalId: string

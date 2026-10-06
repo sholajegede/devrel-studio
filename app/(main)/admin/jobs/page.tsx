@@ -22,7 +22,7 @@ export default function AdminJobsPage() {
   const grantPro = useMutation(api.adminJobs.grantPro)
   const declinePro = useMutation(api.adminJobs.declinePro)
 
-  const [kind, setKind] = useState<'greenhouse' | 'ashby' | 'lever' | 'remoteok' | 'wwr' | 'hn' | 'reddit'>('greenhouse')
+  const [kind, setKind] = useState<'greenhouse' | 'ashby' | 'lever' | 'remoteok' | 'wwr' | 'hn' | 'reddit' | 'page'>('greenhouse')
   const [slug, setSlug] = useState('')
   const [name, setName] = useState('')
 
@@ -103,6 +103,7 @@ export default function AdminJobsPage() {
             <option value="wwr">We Work Remotely feed</option>
             <option value="hn">Hacker News (hiring or freelancer)</option>
             <option value="reddit">Reddit subreddit</option>
+            <option value="page">Careers page (registered in lib/jobs/pages.ts)</option>
           </select>
           <Input className="w-48" placeholder="board slug" value={slug} onChange={(e) => setSlug(e.target.value)} aria-label="Board slug" />
           <Input className="w-48" placeholder="Company name" value={name} onChange={(e) => setName(e.target.value)} aria-label="Company name" />

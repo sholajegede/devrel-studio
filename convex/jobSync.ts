@@ -30,6 +30,7 @@ import {
   parseLever,
   type RawJob,
 } from '../lib/jobs/adapters'
+import { pageFor, parsePageIndex, parsePageJob } from '../lib/jobs/pages'
 import { normalizeJob, slugify, type NormalizedJob } from '../lib/jobs/normalize'
 import { SEED_SOURCES } from '../lib/jobs/seed'
 import { classifyTitle } from '../lib/jobs/taxonomy'
@@ -163,6 +164,19 @@ async function fetchSource(
     if (!response.ok) throw new Error(`${response.status} from reddit.com`)
     const raw = parseReddit(await response.json(), source.slug)
     return { total: raw.length, raw }
+  }
+  if (source.kind === 'page') {
+    const page = pageFor(source.slug)
+    if (!page) throw new Error(`No careers page registered for ${source.slug}`)
+    const links = parsePageIndex(await getText(page.indexUrl), page).slice(0, 30)
+    const jobs = await mapLimit(links, 3, async (link) => {
+      try {
+        return parsePageJob(await getText(link), link, page)
+      } catch {
+        return null
+      }
+    })
+    return { total: links.length, raw: jobs.filter((job): job is RawJob => job !== null) }
   }
   if (source.kind === 'lever') {
     const raw = parseLever(await getJson(LEVER_LIST(source.slug)))
