@@ -4,6 +4,7 @@ import { SignedInSwitch } from '@/components/marketing/auth-aware'
 import { Button } from '@/components/ui/button'
 import { ThemeToggle } from '@/components/theme-toggle'
 import { LayoutDashboard } from 'lucide-react'
+import { MobileMenu } from '@/components/marketing/mobile-menu'
 
 /**
  * Marketing header.
@@ -47,7 +48,7 @@ export function MarketingNav() {
           <Link href="/pricing"       className="text-sm text-muted-foreground hover:text-foreground transition-colors">Pricing</Link>
         </nav>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3">
           <ThemeToggle />
 
           <SignedInSwitch
@@ -82,6 +83,7 @@ export function MarketingNav() {
             </>
             }
           />
+          <MobileMenu />
         </div>
       </div>
     </header>
