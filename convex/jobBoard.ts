@@ -63,6 +63,7 @@ export const saveProfile = mutation({
     workplaces: v.array(v.string()),
     country: v.optional(v.string()),
     minSalaryUsd: v.optional(v.number()),
+    needsVisa: v.optional(v.boolean()),
     headline: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
@@ -80,6 +81,7 @@ export const saveProfile = mutation({
       workplaces: args.workplaces.filter((value) => WORKPLACES.includes(value)),
       country: args.country,
       minSalaryUsd: args.minSalaryUsd,
+      needsVisa: args.needsVisa || undefined,
       headline: args.headline?.trim().slice(0, 120) || undefined,
     })
   },

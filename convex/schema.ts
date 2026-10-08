@@ -827,6 +827,7 @@ export default defineSchema({
     employmentType: v.string(),
     workplace: v.string(),
     remoteScope: v.optional(v.string()),
+    visa: v.optional(v.string()),
     locationLabel: v.string(),
     locations: v.array(v.string()),
     countries: v.array(v.string()),
@@ -893,6 +894,7 @@ export default defineSchema({
     postedThisWeek: v.number(),
     withSalary: v.number(),
     remote: v.number(),
+    visaSponsorship: v.optional(v.number()),
   }).index("by_key", ["key"]),
 
   jobProfiles: defineTable({
@@ -906,6 +908,7 @@ export default defineSchema({
     seniority: v.optional(v.string()),
     workplaces: v.array(v.string()),
     country: v.optional(v.string()),
+    needsVisa: v.optional(v.boolean()),
     minSalaryUsd: v.optional(v.number()),
     headline: v.optional(v.string()),
     yearsExperience: v.optional(v.number()),
@@ -941,6 +944,7 @@ export default defineSchema({
     seniority: v.array(v.string()),
     workplaces: v.array(v.string()),
     regions: v.array(v.string()),
+    visaOnly: v.optional(v.boolean()),
     minSalaryUsd: v.optional(v.number()),
     frequency: v.union(v.literal("instant"), v.literal("daily"), v.literal("weekly")),
     enabled: v.boolean(),

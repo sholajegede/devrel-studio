@@ -36,6 +36,7 @@ export default function ProfilePage() {
   const [workplaces, setWorkplaces] = useState<string[]>([])
   const [country, setCountry] = useState('')
   const [minSalary, setMinSalary] = useState('')
+  const [needsVisa, setNeedsVisa] = useState(false)
   const [headline, setHeadline] = useState('')
   const [skillInput, setSkillInput] = useState('')
   const [pasted, setPasted] = useState('')
@@ -53,6 +54,7 @@ export default function ProfilePage() {
     setWorkplaces(profile.workplaces)
     setCountry(profile.country ?? '')
     setMinSalary(profile.minSalaryUsd ? String(profile.minSalaryUsd) : '')
+    setNeedsVisa(Boolean(profile.needsVisa))
     setHeadline(profile.headline ?? '')
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loadedAt])
@@ -101,6 +103,7 @@ export default function ProfilePage() {
         workplaces,
         country: country || undefined,
         minSalaryUsd: minSalary ? Number(minSalary) : undefined,
+        needsVisa: needsVisa || undefined,
         headline: headline || undefined,
       })
       toast.success('Preferences saved')
@@ -308,6 +311,19 @@ export default function ProfilePage() {
               ))}
             </div>
           </fieldset>
+
+          <label className="flex cursor-pointer items-start gap-2 text-sm text-foreground">
+            <input
+              type="checkbox"
+              checked={needsVisa}
+              onChange={(event) => setNeedsVisa(event.target.checked)}
+              className="mt-0.5 h-3.5 w-3.5 accent-[var(--accent)]"
+            />
+            <span>
+              I need visa sponsorship
+              <span className="block text-xs text-muted-foreground">Roles that sponsor rank higher. Roles that say they do not sponsor rank lower.</span>
+            </span>
+          </label>
 
           <div className="space-y-2">
             <label htmlFor="min" className="text-sm font-medium text-foreground">

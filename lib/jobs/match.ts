@@ -8,6 +8,7 @@ export interface MatchProfile {
   workplaces: string[]
   country?: string
   minSalaryUsd?: number
+  needsVisa?: boolean
 }
 
 export interface MatchJob {
@@ -15,6 +16,7 @@ export interface MatchJob {
   seniority: string
   workplace: string
   remoteScope?: string | null
+  visa?: string | null
   countries: string[]
   regions: string[]
   skills: string[]
@@ -98,6 +100,18 @@ export function scoreJob(profile: MatchProfile, job: MatchJob): MatchResult {
   }
 
   if (profile.workplaces.length === 0 || profile.workplaces.includes(job.workplace)) score += 5
+
+  if (profile.needsVisa) {
+    if (job.visa === 'yes') {
+      score += 5
+      reasons.push('Offers visa sponsorship')
+    } else if (job.visa === 'no') {
+      score -= 15
+      gaps.push('Does not sponsor visas')
+    } else {
+      gaps.push('Does not say if it sponsors visas')
+    }
+  }
 
   if (profile.minSalaryUsd && job.salaryMaxUsd) {
     if (job.salaryMaxUsd >= profile.minSalaryUsd) {

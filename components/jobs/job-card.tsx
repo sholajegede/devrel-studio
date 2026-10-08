@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { Badge } from '@/components/ui/badge'
-import { MapPin, Wallet } from 'lucide-react'
+import { MapPin, Plane, Wallet } from 'lucide-react'
 import { CompanyLogo } from '@/components/jobs/company-logo'
 import { eligibility, countryName, type Eligibility, type RemoteScope, type Workplace } from '@/lib/jobs/locations'
 import { matchLabel } from '@/lib/jobs/match'
@@ -20,6 +20,7 @@ export interface CardJob {
   seniority: string
   workplace: string
   remoteScope: string | null
+  visa?: string | null
   locationLabel: string
   countries: string[]
   regions: string[]
@@ -134,6 +135,12 @@ export function JobCard({
           <span className="rounded-full bg-muted px-2.5 py-1 text-muted-foreground">
             {seniorityLabel(job.seniority)}
           </span>
+          {job.visa === 'yes' && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-sky-500/10 px-2.5 py-1 font-medium text-sky-700 dark:text-sky-400">
+              <Plane className="h-3 w-3" />
+              Visa sponsorship
+            </span>
+          )}
           <span className="ml-auto text-muted-foreground">{timeAgo(job.postedAt)}</span>
         </div>
 

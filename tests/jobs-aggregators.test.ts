@@ -76,3 +76,12 @@ describe('aggregator parsers', () => {
     expect(jobs[0].applyUrl).toContain('reddit.com/r/forhire/comments/a')
   })
 })
+
+describe('Hacker News titles', () => {
+  it('keeps the role from a stack list and drops filler', async () => {
+    const { tidyHnTitle } = await import('@/lib/jobs/aggregators')
+    expect(tidyHnTitle('Python/Ruby/PHP/Js/Rust/Kotlin/C#/Crystal/Nim/Elixir Developer Advocate positions')).toBe('Developer Advocate')
+    expect(tidyHnTitle('Developer Advocate - EU timezone')).toBe('Developer Advocate')
+    expect(tidyHnTitle('Senior Developer Relations Engineer')).toBe('Senior Developer Relations Engineer')
+  })
+})

@@ -101,7 +101,7 @@ export default async function JobPage({ params }: { params: Promise<{ slug: stri
           <div className="flex items-start gap-4">
             <Monogram name={job.companyName} size={52} />
             <div>
-              <h1 className="text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">{job.title}</h1>
+              <h1 className="text-2xl font-semibold tracking-tight text-foreground [overflow-wrap:anywhere] sm:text-3xl">{job.title}</h1>
               <p className="mt-1 text-muted-foreground">
                 <Link href={`/jobs/companies/${job.companySlug}`} className="font-medium text-foreground hover:underline">
                   {job.companyName}
@@ -116,6 +116,8 @@ export default async function JobPage({ params }: { params: Promise<{ slug: stri
             <Badge variant="secondary">{seniorityLabel(job.seniority)}</Badge>
             <Badge variant="secondary">{familyLabel(job.family)}</Badge>
             {pay && <Badge variant="outline">{pay} a year</Badge>}
+            {job.visa === 'yes' && <Badge variant="outline">Visa sponsorship</Badge>}
+            {job.visa === 'no' && <Badge variant="outline" className="text-muted-foreground">No visa sponsorship</Badge>}
           </div>
 
           <div className="mt-8 space-y-4 text-[15px] leading-relaxed text-foreground">

@@ -2,6 +2,7 @@ export interface StatsJob {
   family: string
   seniority: string
   workplace: string
+  visa?: string
   regions: string[]
   companySlug: string
   companyName: string
@@ -23,6 +24,7 @@ export interface JobStatsData {
   salaries: { family: string; seniority: string; n: number; p25: number; median: number; p75: number }[]
   postedThisWeek: number
   withSalary: number
+  visaSponsorship?: number
   remote: number
 }
 
@@ -95,5 +97,6 @@ export function computeStats(jobs: StatsJob[], now: number): JobStatsData {
     postedThisWeek: jobs.filter((job) => now - job.postedAt < WEEK_MS).length,
     withSalary: jobs.filter((job) => job.salaryMinUsd !== undefined).length,
     remote: jobs.filter((job) => job.workplace === 'remote').length,
+    visaSponsorship: jobs.filter((job) => job.visa === 'yes').length,
   }
 }

@@ -106,6 +106,20 @@ interface HnComment {
 }
 
 /**
+ * Hacker News headers are free text, so a role can arrive as a stack list such as
+ * "Python/Ruby/PHP/Js/Rust/Kotlin/C#/Crystal/Nim/Elixir Developer Advocate positions".
+ * Keep the role itself: drop a leading chain of slash-joined names, a trailing
+ * "positions" or "roles", and anything after a dash, colon or bracket.
+ */
+export function tidyHnTitle(raw: string): string {
+  let title = raw.replace(/^(?:[\w.#+-]+\/){2,}[\w.#+-]+\s+/, '')
+  title = title.replace(/\s+(?:positions?|roles?|openings?|vacancies)$/i, '')
+  title = title.split(/\s+[-–—]\s+|\s*[:(\[]/)[0].trim()
+  if (title.length > 70) title = title.slice(0, 70).replace(/\s+\S*$/, '').trim()
+  return title.length >= 5 ? title : raw.slice(0, 70).trim()
+}
+
+/**
  * Top-level comments are one job each. The header is the first line, pipe
  * separated: Company | Role | Location | Remote. Only comments whose header
  * names a DevRel-spectrum role are kept.
@@ -129,10 +143,12 @@ export function parseHnComments(json: unknown, mode: 'hiring' | 'freelancer'): R
       .filter((segment) => !/^seeking (freelancer|work)$/i.test(segment))
     if (segments.length < 2) continue
 
-    const title = segments.find((segment, index) => index > 0 && classifyTitle(segment) !== null)
-    if (!title) continue
+    const matched = segments.find((segment, index) => index > 0 && classifyTitle(segment) !== null)
+    if (!matched) continue
+    const title = tidyHnTitle(matched)
+    if (classifyTitle(title) === null) continue
     const company = segments[0]
-    const place = segments.filter((segment) => segment !== company && segment !== title)
+    const place = segments.filter((segment) => segment !== company && segment !== matched)
     const locations = place.filter((segment) => /remote|onsite|on-site|hybrid|,/i.test(segment) || /\b[A-Z]{2,}\b/.test(segment)).slice(0, 2)
 
     jobs.push({

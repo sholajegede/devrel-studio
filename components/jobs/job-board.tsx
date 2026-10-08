@@ -32,6 +32,7 @@ export interface BoardStats {
   byWorkplace: { id: string; count: number }[]
   byRegion: { id: string; count: number }[]
   bySkill: { id: string; count: number }[]
+  visaSponsorship?: number
 }
 
 const PAGE = 40
@@ -59,7 +60,7 @@ const csv = (value: string | null) => (value ? value.split(',').filter(Boolean) 
 
 const FILTER_NAMES: Record<string, string> = {
   f: 'role type', s: 'level', w: 'workplace', e: 'job type', r: 'region', k: 'skill',
-  min: 'minimum pay', pay: 'only with pay', d: 'posted', open: 'hide closed to me',
+  min: 'minimum pay', pay: 'only with pay', visa: 'visa sponsorship', d: 'posted', open: 'hide closed to me',
 }
 
 /** Says what changed between two sets of filters, for analytics. */
@@ -148,6 +149,7 @@ export function JobBoard({
   const skills = csv(params.get('k'))
   const minPay = Number(params.get('min') ?? 0)
   const salaryOnly = params.get('pay') === '1'
+  const visaOnly = params.get('visa') === '1'
   const includeAdjacent = params.get('adj') === '1'
   const posted = Number(params.get('d') ?? 0)
   const sort = (params.get('sort') ?? (personal ? 'match' : 'newest')) as 'newest' | 'salary' | 'match'
@@ -162,6 +164,7 @@ export function JobBoard({
     skills.length > 0 ||
     minPay > 0 ||
     salaryOnly ||
+    visaOnly ||
     posted > 0 ||
     Boolean(params.get('q')) ||
     hideClosed
@@ -178,6 +181,7 @@ export function JobBoard({
     company: lockedCompany,
     minSalaryUsd: minPay || undefined,
     salaryOnly: salaryOnly || undefined,
+    visaOnly: visaOnly || undefined,
     includeAdjacent: includeAdjacent || undefined,
     postedWithinDays: posted || undefined,
     sort: sort === 'salary' ? ('salary' as const) : ('newest' as const),
@@ -350,6 +354,21 @@ export function JobBoard({
             aria-label="Hide roles closed to me"
           />
         </label>
+      </Group>
+
+      <Group title="Visa">
+        <label className="flex cursor-pointer items-center justify-between gap-2 text-sm text-foreground">
+          <span>
+            Offers visa sponsorship
+            {stats?.visaSponsorship ? <span className="ml-1 text-xs text-muted-foreground">{stats.visaSponsorship}</span> : null}
+          </span>
+          <Switch
+            checked={visaOnly}
+            onCheckedChange={(on) => setParam('visa', on ? '1' : null)}
+            aria-label="Only roles that offer visa sponsorship"
+          />
+        </label>
+        <p className="text-xs text-muted-foreground">Based on what each posting says. Many do not say, so check the posting.</p>
       </Group>
 
       <Group title="Pay" tour="jobs-pay">

@@ -19,6 +19,7 @@ const alertFields = {
   seniority: v.array(v.string()),
   workplaces: v.array(v.string()),
   regions: v.array(v.string()),
+  visaOnly: v.optional(v.boolean()),
   minSalaryUsd: v.optional(v.number()),
   frequency: v.union(v.literal('instant'), v.literal('daily'), v.literal('weekly')),
 }
@@ -141,6 +142,7 @@ export const collectDigests = internalQuery({
                 seniority: alert.seniority,
                 workplaces: alert.workplaces,
                 regions: alert.regions,
+                visaOnly: alert.visaOnly,
                 minSalaryUsd: alert.minSalaryUsd,
                 includeAdjacent: true,
               },

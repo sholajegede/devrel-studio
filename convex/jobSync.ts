@@ -53,6 +53,7 @@ const normalizedJobValidator = v.object({
   employmentType: v.string(),
   workplace: v.string(),
   remoteScope: v.optional(v.string()),
+  visa: v.optional(v.string()),
   locationLabel: v.string(),
   locations: v.array(v.string()),
   countries: v.array(v.string()),

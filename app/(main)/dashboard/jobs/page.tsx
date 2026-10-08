@@ -23,6 +23,7 @@ export default function DiscoverPage() {
         workplaces: profile.workplaces,
         country: profile.country,
         minSalaryUsd: profile.minSalaryUsd,
+        needsVisa: profile.needsVisa,
       }
     : null
 

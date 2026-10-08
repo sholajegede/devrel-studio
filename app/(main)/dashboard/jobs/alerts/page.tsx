@@ -27,6 +27,7 @@ function describe(alert: {
   seniority: string[]
   workplaces: string[]
   regions: string[]
+  visaOnly?: boolean
   minSalaryUsd?: number
 }): string {
   const parts = [
@@ -35,6 +36,7 @@ function describe(alert: {
     alert.seniority.length ? alert.seniority.join(', ') : null,
     alert.workplaces.length ? alert.workplaces.join(', ') : null,
     alert.regions.length ? alert.regions.join(', ') : null,
+    alert.visaOnly ? 'visa sponsorship' : null,
     alert.minSalaryUsd ? `from $${alert.minSalaryUsd.toLocaleString()}` : null,
   ].filter(Boolean)
   return parts.length ? parts.join(' · ') : 'Every new role'
@@ -54,6 +56,7 @@ function AlertsInner() {
   const [seniority, setSeniority] = useState<string[]>(csv(params.get('s')))
   const [workplaces, setWorkplaces] = useState<string[]>(csv(params.get('w')))
   const [regions, setRegions] = useState<string[]>(csv(params.get('r')))
+  const [visaOnly, setVisaOnly] = useState(params.get('visa') === '1')
   const [min, setMin] = useState(params.get('min') ?? '')
   const [frequency, setFrequency] = useState<'instant' | 'daily' | 'weekly'>('daily')
   const [busy, setBusy] = useState(false)
@@ -71,6 +74,7 @@ function AlertsInner() {
         seniority,
         workplaces,
         regions,
+        visaOnly: visaOnly || undefined,
         minSalaryUsd: min ? Number(min) : undefined,
         frequency,
       })
@@ -136,6 +140,15 @@ function AlertsInner() {
             <p className="text-sm font-medium">Region</p>
             {chips(REGIONS.map((r) => ({ id: r.id, label: r.label })), regions, setRegions)}
           </div>
+          <label className="flex cursor-pointer items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={visaOnly}
+              onChange={(e) => setVisaOnly(e.target.checked)}
+              className="h-3.5 w-3.5 accent-[var(--accent)]"
+            />
+            Only roles that offer visa sponsorship
+          </label>
           <div className="grid gap-3 sm:grid-cols-2">
             <Input inputMode="numeric" placeholder="Minimum yearly pay in USD" value={min} onChange={(e) => setMin(e.target.value.replace(/[^0-9]/g, ''))} aria-label="Minimum pay" />
             <select

@@ -22,6 +22,7 @@ export function toCard(job: Doc<'jobs'>) {
     employmentType: job.employmentType,
     workplace: job.workplace,
     remoteScope: job.remoteScope ?? null,
+    visa: job.visa ?? null,
     locationLabel: job.locationLabel,
     locations: job.locations,
     countries: job.countries,
@@ -56,6 +57,7 @@ export const filterArgs = {
   company: v.optional(v.string()),
   minSalaryUsd: v.optional(v.number()),
   salaryOnly: v.optional(v.boolean()),
+  visaOnly: v.optional(v.boolean()),
   includeAdjacent: v.optional(v.boolean()),
   postedWithinDays: v.optional(v.number()),
 }
@@ -72,6 +74,7 @@ type Filters = {
   company?: string
   minSalaryUsd?: number
   salaryOnly?: boolean
+  visaOnly?: boolean
   includeAdjacent?: boolean
   postedWithinDays?: number
 }
@@ -88,6 +91,7 @@ export function matchesFilters(job: Doc<'jobs'>, filters: Filters, now: number):
   if (filters.regions?.length && !filters.regions.some((region) => job.regions.includes(region))) return false
   if (filters.skills?.length && !filters.skills.every((skill) => job.skills.includes(skill))) return false
   if (filters.salaryOnly && job.salaryMaxUsd === undefined) return false
+  if (filters.visaOnly && job.visa !== 'yes') return false
   if (filters.minSalaryUsd && (job.salaryMaxUsd ?? 0) < filters.minSalaryUsd) return false
   if (filters.postedWithinDays && now - job.postedAt > filters.postedWithinDays * DAY_MS) return false
   if (filters.country) {

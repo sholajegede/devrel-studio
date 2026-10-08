@@ -3,6 +3,7 @@ import { htmlToText, summarise } from './html'
 import { parseLocations, type RemoteScope, type Workplace } from './locations'
 import { parseSalaryText, toUsd } from './salary'
 import { extractSkills } from './skills'
+import { detectVisa, type VisaStatus } from './visa'
 import {
   FAMILY_BY_ID,
   classifyTitle,
@@ -24,6 +25,7 @@ export interface NormalizedJob {
   employmentType: EmploymentType
   workplace: Workplace
   remoteScope?: RemoteScope
+  visa?: VisaStatus
   locationLabel: string
   locations: string[]
   countries: string[]
@@ -107,6 +109,8 @@ export function normalizeJob(
       }
     : {}
 
+  const visa = detectVisa(`${raw.title}\n${description}`)
+
   const normalized: Omit<NormalizedJob, 'contentHash'> = {
     externalId: raw.externalId,
     slug,
@@ -117,6 +121,7 @@ export function normalizeJob(
     employmentType: detectEmployment(raw.employment, raw.title),
     workplace: place.workplace,
     ...(place.remoteScope ? { remoteScope: place.remoteScope } : {}),
+    ...(visa ? { visa } : {}),
     locationLabel: place.label,
     locations: place.locations,
     countries: place.countries,
@@ -144,6 +149,7 @@ export function normalizeJob(
       normalized.salaryMax,
       normalized.applyUrl,
       normalized.description,
+      normalized.visa ?? null,
     ]),
   )
 
