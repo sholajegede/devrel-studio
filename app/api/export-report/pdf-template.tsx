@@ -135,7 +135,8 @@ const s = StyleSheet.create({
   // Hero
   hero: { marginBottom: 28 },
   // Height-bounded so a wide wordmark and a square glyph both sit correctly.
-  heroLogo:     { height: 28, maxWidth: 160, objectFit: 'contain', marginBottom: 10 },
+  heroLogoRow:  { flexDirection: 'row', justifyContent: 'flex-start', marginBottom: 10 },
+  heroLogo:     { height: 28, maxWidth: 160, objectFit: 'contain', objectPositionX: 0 },
   heroClient:   { fontFamily: 'Helvetica-Bold', fontSize: 24, color: C.fg, marginBottom: 4 },
   heroSubtitle: { fontSize: 10, color: C.muted, marginBottom: 3 },
   heroPeriod:   { fontFamily: 'Helvetica-Bold', fontSize: 11, color: C.accent },
@@ -459,7 +460,14 @@ export function createReportDocument(data: ReportData) {
             // proportions are unknown, and a squashed logo is worse than a
             // small one.
             // eslint-disable-next-line jsx-a11y/alt-text
-            <Image src={branding.logoUrl} style={s.heroLogo} />
+            // In a row, so the image takes its own width from its aspect
+            // ratio. In the column it stretched to the full 160pt and
+            // `contain` centred the mark inside that box, away from the
+            // left edge the client name starts on.
+            <View style={s.heroLogoRow}>
+              {/* eslint-disable-next-line jsx-a11y/alt-text */}
+              <Image src={branding.logoUrl} style={s.heroLogo} />
+            </View>
           ) : null}
           <Text style={s.heroClient}>{clientName}</Text>
           <Text style={s.heroSubtitle}>Content Performance Report</Text>

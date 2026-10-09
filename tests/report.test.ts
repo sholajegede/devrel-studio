@@ -246,3 +246,15 @@ describe('targetProgress', () => {
     expect(targetProgress(0, 40_000)).toMatchObject({ percent: 0, met: false })
   })
 })
+
+import { periodsLabel } from '@/lib/report'
+
+describe('periodsLabel', () => {
+  it('labels one month, a range and a gap', () => {
+    expect(periodsLabel(['2026-09'])).toBe('September 2026')
+    expect(periodsLabel(['2026-09', '2026-07', '2026-08'])).toBe('July – September 2026')
+    expect(periodsLabel(['2025-12', '2026-01'])).toBe('December 2025 – January 2026')
+    expect(periodsLabel(['2026-01', '2026-03', '2026-09'])).toBe('January, March and September 2026')
+    expect(periodsLabel(['2025-11', '2026-03'])).toBe('November 2025 and March 2026')
+  })
+})

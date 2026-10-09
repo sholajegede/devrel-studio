@@ -7,7 +7,7 @@ import { Id } from '@/convex/_generated/dataModel'
 import { useUserContext } from '@/contexts/user-context'
 import { useWorkspaceRole } from '@/hooks/use-workspace-role'
 import { COMMON_TIMEZONES, DEFAULT_SCHEDULE } from '@/lib/schedule'
-import { periodLabel } from '@/lib/report'
+import { periodLabel, periodsLabel } from '@/lib/report'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -25,7 +25,7 @@ import { RoleNotice } from '@/components/dashboard/role-notice'
 import { ReportComposer } from '@/components/dashboard/report-composer'
 import { useClientScope } from '@/contexts/client-scope'
 import { toast } from 'sonner'
-import { AlertTriangle, Clock, Loader2, Mail, PenLine, Send, Target, X } from 'lucide-react'
+import { Clock, Loader2, Mail, PenLine, Send, Target, X } from 'lucide-react'
 
 // ── Report delivery ───────────────────────────────────────────────────────────
 //
@@ -232,11 +232,13 @@ function ClientReportCard({
 
     setSending(true)
     try {
-      const result = await send({ clientId: entry.clientId, periods })
+      // The addresses on screen, saved or not. Sending to the stored list
+      // while the card shows another one is the mismatch this replaces.
+      const result = await send({ clientId: entry.clientId, periods, to: recipients })
 
       if (result.sent > 0) {
         toast.success(
-          `Sent ${result.sent} ${result.sent === 1 ? 'email' : 'emails'}` +
+          `Sent one report covering ${periods.length} ${periods.length === 1 ? 'month' : 'months'} to ${result.sent} ${result.sent === 1 ? 'recipient' : 'recipients'}` +
             (result.skipped.length ? ` · ${result.skipped.length} skipped` : ''),
         )
       } else {
@@ -537,8 +539,9 @@ function ClientReportCard({
                   ) : (
                     <Send className="h-3.5 w-3.5" />
                   )}
-                  Send {selected.length || ''}{' '}
-                  {selected.length === 1 ? 'report' : 'reports'} now
+                  {selected.length > 1
+                    ? `Send ${periodsLabel(selected)} as one report`
+                    : 'Send report now'}
                 </Button>
               )}
             </>
@@ -557,7 +560,6 @@ function ordinal(n: number): string {
 export default function ReportsPage() {
   const { profile } = useUserContext()
   const schedules = useQuery(api.reports.listSchedules, profile?._id ? {} : 'skip')
-  const override = useQuery(api.reports.deliveryOverride, profile?._id ? {} : 'skip')
   const { matches } = useClientScope()
 
   if (!profile || schedules === undefined) return <PageLoader />
@@ -573,21 +575,6 @@ export default function ReportsPage() {
           any month by hand.
         </p>
       </div>
-
-      {/* An override makes every recipient below wrong. Saying so is the only
-          thing that keeps the cards honest. */}
-      {override && (
-        <div className="mb-6 flex items-start gap-2.5 rounded-lg border border-amber-300 bg-amber-50/60 px-4 py-3 dark:border-amber-500/30 dark:bg-amber-500/10">
-          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
-          <p className="text-sm text-amber-900 dark:text-amber-200">
-            <span className="font-medium">Delivery is being redirected.</span> Every report —
-            scheduled or sent by hand — goes to{' '}
-            <span className="font-mono text-xs">{override.redirectingTo}</span>, not the
-            recipients below. Clear <span className="font-mono text-xs">REPORT_REDIRECT_TO</span>{' '}
-            to send for real.
-          </p>
-        </div>
-      )}
 
       {schedules.length === 0 ? (
         <Card>

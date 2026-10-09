@@ -9,6 +9,7 @@ import { action, internalAction,
 import { getCurrentWorkspace, requireInWorkspace } from './model/workspaces'
 import { dueNow } from '../lib/schedule'
 import { previousMonth } from '../lib/metrics'
+import { periodsLabel } from '../lib/report'
 import { enforceRateLimit } from './model/rateLimit'
 
 // ── Monthly report notifications ──────────────────────────────────────────────
@@ -61,23 +62,6 @@ function monthLabel(key: string): string {
 }
 
 /**
- * Where reports actually go.
- *
- * While the wording and cadence are still being judged, every report is sent to
- * this address instead of the client's. Deliberately an override rather than a
- * disabled cron: the job still runs on its real schedule against real data, so
- * what arrives is exactly what a client would have received — which is the only
- * way to review it honestly.
- *
- * Clear it to start sending to clients:
- *   npx convex env remove REPORT_REDIRECT_TO --prod
- */
-function redirectTarget(): string | null {
-  const target = process.env.REPORT_REDIRECT_TO?.trim()
-  return target && target.includes('@') ? target : null
-}
-
-/**
  * Render the report to a PDF by asking the Next.js route that already does it.
  *
  * @react-pdf/renderer cannot run inside Convex, and maintaining a second
@@ -88,7 +72,7 @@ function redirectTarget(): string | null {
  * than one with; an email that never arrives because a PDF would not render is
  * far worse than both.
  */
-async function buildReportPdf(slug: string, month: string): Promise<string | null> {
+async function buildReportPdf(slug: string, months: string[]): Promise<string | null> {
   const origin = process.env.SITE_URL
   if (!origin) return null
 
@@ -96,11 +80,11 @@ async function buildReportPdf(slug: string, month: string): Promise<string | nul
     const response = await fetch(`${origin}/api/export-report`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ slug, month, source: 'cron' }),
+      body: JSON.stringify({ slug, months, source: 'cron' }),
     })
 
     if (!response.ok) {
-      console.error(`[reports] pdf render failed for ${slug} ${month}:`, response.status)
+      console.error(`[reports] pdf render failed for ${slug} ${months.join(',')}:`, response.status)
       return null
     }
 
@@ -116,7 +100,7 @@ async function buildReportPdf(slug: string, month: string): Promise<string | nul
 
     return btoa(binary)
   } catch (error) {
-    console.error(`[reports] pdf render errored for ${slug} ${month}:`, error)
+    console.error(`[reports] pdf render errored for ${slug} ${months.join(',')}:`, error)
     return null
   }
 }
@@ -917,53 +901,75 @@ export const deliverReports = internalAction({
     let failed = 0
     const skipped: string[] = []
 
-    for (const period of args.periods.slice(0, 24)) {
-      const payload = await ctx.runQuery(internal.reports.sendPayload, {
+    // Several months go out as one email with one PDF. A send of July to
+    // September is one report about one quarter, not three emails.
+    const periods = [...new Set(args.periods)].sort().slice(0, 24)
+    const included: string[] = []
+    let published = 0
+    let payload: { slug: string; clientName: string; recipients: string[] } | null = null
+
+    for (const period of periods) {
+      const row = await ctx.runQuery(internal.reports.sendPayload, {
         clientId: args.clientId,
         period,
       })
 
-      if (!payload) {
+      if (!row) {
         skipped.push(`${period}: client not found`)
         continue
       }
-
-      const recipients = args.to?.length ? args.to : payload.recipients
-      if (recipients.length === 0) {
-        skipped.push(`${period}: no recipient`)
-        continue
-      }
+      payload = row
 
       // A report saying nothing was published is worse than no report, and a
       // manual send should not be the way that slips out.
-      if (payload.published === 0) {
-        skipped.push(`${period}: nothing published`)
+      if (row.published === 0) {
+        skipped.push(`${monthLabel(period)}: nothing published`)
         continue
       }
 
-      const pdf = await buildReportPdf(payload.slug, period)
-      const root = process.env.SITE_URL?.replace(/^https?:\/\//, '') ?? 'devrel.studio'
-      const redirect = redirectTarget()
-
-      for (const recipient of recipients) {
-        const result = await ctx.runAction(internal.email.sendMonthlyReportReady, {
-          email: redirect ?? recipient,
-          clientName: payload.clientName,
-          period: monthLabel(period),
-          publishedCount: payload.published,
-          dashboardUrl: `https://${payload.slug}.${root}/report?month=${period}`,
-          ...(pdf ? { pdfBase64: pdf, pdfFilename: `${payload.slug}-report-${period}.pdf` } : {}),
-        })
-
-        if (result.ok) sent++
-        else failed++
-      }
-
-      await ctx.runMutation(internal.reports.markSent, {
-        clientId: args.clientId,
-        period,
-      })
+      included.push(period)
+      published += row.published
     }
+
+    if (!payload || included.length === 0) return { sent, failed, skipped }
+
+    const recipients = args.to?.length ? args.to : payload.recipients
+    if (recipients.length === 0) {
+      skipped.push('no recipient')
+      return { sent, failed, skipped }
+    }
+
+    const first = included[0]
+    const last = included[included.length - 1]
+    const pdf = await buildReportPdf(payload.slug, included)
+    const root = process.env.SITE_URL?.replace(/^https?:\/\//, '') ?? 'devrel.studio'
+    const dashboardUrl =
+      included.length === 1
+        ? `https://${payload.slug}.${root}/report?month=${first}`
+        : `https://${payload.slug}.${root}/reports`
+    const filename =
+      included.length === 1
+        ? `${payload.slug}-report-${first}.pdf`
+        : `${payload.slug}-report-${first}-to-${last}.pdf`
+
+    for (const recipient of recipients) {
+      const result = await ctx.runAction(internal.email.sendMonthlyReportReady, {
+        email: recipient,
+        clientName: payload.clientName,
+        period: periodsLabel(included),
+        publishedCount: published,
+        dashboardUrl,
+        ...(pdf ? { pdfBase64: pdf, pdfFilename: filename } : {}),
+      })
+
+      if (result.ok) sent++
+      else failed++
+    }
+
+    await ctx.runMutation(internal.reports.markSent, {
+      clientId: args.clientId,
+      period: last,
+    })
 
     return { sent, failed, skipped }
   },
@@ -1043,23 +1049,5 @@ export const dueSchedules = internalQuery({
         clientId: schedule.clientId,
         period: verdict.period,
       }))
-  },
-})
-
-/**
- * Whether a delivery override is active, and where mail is going instead.
- *
- * Surfaced in the dashboard because the alternative is an interface that lies:
- * the schedule card names a recipient, and with an override set that is not who
- * receives it. A debugging aid that cannot be seen is a trap.
- */
-export const deliveryOverride = query({
-  args: {},
-  handler: async (ctx) => {
-    const context = await getCurrentWorkspace(ctx)
-    if (!context) return null
-
-    const target = process.env.REPORT_REDIRECT_TO?.trim()
-    return target && target.includes('@') ? { redirectingTo: target } : null
   },
 })

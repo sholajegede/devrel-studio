@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { renderToBuffer } from '@react-pdf/renderer'
 import { ConvexHttpClient } from 'convex/browser'
 import { api } from '@/convex/_generated/api'
-import { buildReport } from '@/lib/report'
+import { buildReport, periodLabel, periodsLabel } from '@/lib/report'
 import { createReportDocument } from './pdf-template'
 import type { ReportData } from './pdf-template'
 
@@ -47,53 +47,109 @@ async function brandingForSlug(
   }
 }
 
-async function reportFromSlug(slug: string, month: string): Promise<ReportData | null> {
+type Notes = NonNullable<ReportData['notes']>
+
+/**
+ * One document for one or more months.
+ *
+ * Each month is built with the same `buildReport` the page uses, then the
+ * months are added together. The written notes are kept per month, under the
+ * month's name, because a summary written for July does not describe
+ * September. Goals are summed only when every month has one; a sum over a
+ * month with no goal would understate the target.
+ */
+async function reportForMonths(slug: string, months: string[]): Promise<ReportData | null> {
   const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL
   if (!convexUrl) return null
 
-  const data = await new ConvexHttpClient(convexUrl).query(api.reports.getReport, {
-    slug,
-    period: month,
-  })
+  const keys = [...new Set(months)].filter((key) => /^\d{4}-\d{2}$/.test(key)).sort().slice(0, 24)
+  if (keys.length === 0) return null
 
-  if (!data) return null
+  const convex = new ConvexHttpClient(convexUrl)
+  const rows = await Promise.all(
+    keys.map((period) => convex.query(api.reports.getReport, { slug, period })),
+  )
+  const first = rows[0]
+  if (!first || rows.some((row) => !row)) return null
 
-  const report = buildReport(data.entries, month)
+  const reports = keys.map((period, index) => ({
+    period,
+    data: rows[index]!,
+    report: buildReport(rows[index]!.entries, period),
+  }))
+  const multi = reports.length > 1
+  const last = reports[reports.length - 1]
 
-  return {
-    client: data.client.name,
-    period: report.label,
-    branding: {
-      logoUrl: data.client.logoUrl ?? null,
-      brandColor: data.client.brandColor ?? null,
-    },
-    // `published` is filtered on status === 'Published', so status is always
-    // present — but the type carries it as optional, and defaulting is honest
-    // where a cast would just silence the compiler.
-    content: report.published.map((entry) => ({
-      ...entry,
-      status: entry.status ?? 'Published',
-    })),
-    stats: {
-      published: report.totals.published,
-      inProgress: report.upcoming.length,
-      totalViews: report.totals.views,
-      totalDownloads: report.totals.downloads,
-      totalAttendees: report.totals.attendees,
-      totalStars: report.totals.stars,
-      totalReshares: report.totals.reshares,
-    },
-    // The written half. The cron path is the one that reaches a client's inbox,
-    // so leaving these out here would mean the emailed PDF silently dropped the
-    // only part of the report a person actually wrote.
-    notes: data.notes ?? null,
-    targets: data.targets ?? null,
-    highlights: report.highlights.map(({ entry, metric }) => ({
+  const content = reports
+    .flatMap(({ report }) => report.published)
+    .sort((a, b) => b.publicationDate.localeCompare(a.publicationDate))
+    .map((entry) => ({ ...entry, status: entry.status ?? 'Published' }))
+
+  const sum = (pick: (totals: ReturnType<typeof buildReport>['totals']) => number) =>
+    reports.reduce((total, { report }) => total + pick(report.totals), 0)
+
+  const highlights = reports
+    .flatMap(({ report }) => report.highlights)
+    .sort((a, b) => b.metric - a.metric)
+    .slice(0, 3)
+    .map(({ entry, metric }) => ({
       title: entry.title,
       platform: entry.platform,
       category: entry.category,
       metric,
-    })),
+    }))
+
+  const withNotes = reports.filter(({ data }) => data.notes)
+  const section = (pick: (notes: Notes) => string | null | undefined) => {
+    const parts = withNotes
+      .map(({ period, data }) => ({ period, text: pick(data.notes as Notes)?.trim() }))
+      .filter((part): part is { period: string; text: string } => Boolean(part.text))
+    if (parts.length === 0) return null
+    return multi ? parts.map((part) => `${periodLabel(part.period)}: ${part.text}`).join('\n\n') : parts[0].text
+  }
+  const notes: ReportData['notes'] = withNotes.length
+    ? {
+        summary: section((n) => n.summary),
+        performanceNote: section((n) => n.performanceNote),
+        responseToFeedback: section((n) => n.responseToFeedback),
+        quotes: withNotes.flatMap(({ data }) => data.notes?.quotes ?? []),
+      }
+    : null
+
+  const sumTarget = (pick: (t: { reach: number | null; published: number | null }) => number | null) => {
+    const values = reports.map(({ data }) => pick(data.targets))
+    return values.every((value) => typeof value === 'number')
+      ? (values as number[]).reduce((a, b) => a + b, 0)
+      : null
+  }
+
+  return {
+    client: first.client.name,
+    period: multi ? periodsLabel(keys) : last.report.label,
+    branding: {
+      logoUrl: first.client.logoUrl ?? null,
+      brandColor: first.client.brandColor ?? null,
+    },
+    content,
+    stats: {
+      published: sum((t) => t.published),
+      // Work still to ship, seen from the end of the last month covered.
+      inProgress: last.report.upcoming.length,
+      totalViews: sum((t) => t.views),
+      totalDownloads: sum((t) => t.downloads),
+      totalAttendees: sum((t) => t.attendees),
+      totalStars: sum((t) => t.stars),
+      totalReshares: sum((t) => t.reshares),
+    },
+    // The written half. The cron path is the one that reaches a client's inbox,
+    // so leaving these out here would mean the emailed PDF silently dropped the
+    // only part of the report a person actually wrote.
+    notes,
+    targets: {
+      reach: sumTarget((t) => t.reach),
+      published: sumTarget((t) => t.published),
+    },
+    highlights,
   }
 }
 
@@ -101,10 +157,18 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
 
-    const fromSlug = typeof body?.slug === 'string' && typeof body?.month === 'string'
+    const months: string[] | null =
+      typeof body?.slug !== 'string'
+        ? null
+        : Array.isArray(body?.months)
+          ? body.months.filter((month: unknown): month is string => typeof month === 'string')
+          : typeof body?.month === 'string'
+            ? [body.month]
+            : null
+    const fromSlug = months !== null
 
     const data: ReportData | null = fromSlug
-      ? await reportFromSlug(body.slug, body.month)
+      ? await reportForMonths(body.slug, months)
       : (body as ReportData)
 
     if (!data) {

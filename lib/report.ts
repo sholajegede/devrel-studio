@@ -43,6 +43,40 @@ export function periodLabel(period: string): string {
   return `${names[month - 1] ?? '—'} ${year}`
 }
 
+const SHORT_NAMES = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December',
+]
+
+/**
+ * A label for several months in one report.
+ *
+ * Contiguous months read as a range: `July – September 2026`, or
+ * `December 2025 – February 2026` across a year. A gap is listed instead,
+ * because a range over a gap claims months the report does not cover.
+ */
+export function periodsLabel(periods: readonly string[]): string {
+  const keys = [...new Set(periods)].sort()
+  if (keys.length === 0) return ''
+  if (keys.length === 1) return periodLabel(keys[0])
+
+  const contiguous = keys.every((key, index) => index === 0 || previousMonth(key) === keys[index - 1])
+  const first = keys[0]
+  const last = keys[keys.length - 1]
+  const sameYear = first.slice(0, 4) === last.slice(0, 4)
+  const month = (key: string) => SHORT_NAMES[Number(key.slice(5, 7)) - 1]
+
+  if (contiguous) {
+    return sameYear
+      ? `${month(first)} – ${periodLabel(last)}`
+      : `${periodLabel(first)} – ${periodLabel(last)}`
+  }
+
+  const names = sameYear ? keys.map(month) : keys.map(periodLabel)
+  const list = `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`
+  return sameYear ? `${list} ${last.slice(0, 4)}` : list
+}
+
 /**
  * Accepts `?month=2026-07`, or `?month=7&year=2026`.
  *
