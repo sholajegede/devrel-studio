@@ -274,6 +274,13 @@ export default function DashboardPage() {
                   {since.reportsRead === 1 ? 'time' : 'times'}
                 </>
               )}
+              {since.downloads > 0 && (
+                <>
+                  {', and '}
+                  <strong className="font-medium">{since.downloads}</strong>{' '}
+                  {since.downloads === 1 ? 'report PDF was' : 'report PDFs were'} downloaded
+                </>
+              )}
               .
             </span>
             <Link

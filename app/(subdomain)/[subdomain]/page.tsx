@@ -58,6 +58,7 @@ import {
   Search,
   X,
 } from "lucide-react";
+import { trackReportDownload } from "@/lib/report-download";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar as CalendarPicker } from "@/components/ui/calendar";
 import type { DateRange } from "react-day-picker";
@@ -546,6 +547,10 @@ export default function ClientDashboard({
       a.click();
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
+      trackReportDownload(
+        subdomain,
+        !dateRange?.from && /^\d{4}-\d{2}$/.test(selectedMonth) ? selectedMonth : undefined,
+      );
     } catch (error) {
       console.error("Export error:", error);
       alert("Failed to export report. Please try again.");

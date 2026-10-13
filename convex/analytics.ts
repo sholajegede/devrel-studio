@@ -170,7 +170,8 @@ export const recordDuration = mutation({
         q.eq('target', args.target.toLowerCase()).eq('visitorHash', args.visitorHash),
       )
       .order('desc')
-      .first()
+      .take(5)
+      .then((rows) => rows.find((row) => !isDownloadPath(row.path)))
 
     if (!view) return
     // Only ever extend. Two beacons can race on the same view, and the longer
@@ -319,6 +320,9 @@ function emptyOverview(days: number) {
       allTimeViews: 0,
       allTimeVisitors: 0,
       reportsRead: 0,
+      reportDownloads: 0,
+      managerDownloads: 0,
+      allTimeDownloads: 0,
       since: null as number | null,
       sessions: 0,
       avgSessionMs: null as number | null,
@@ -336,6 +340,7 @@ function emptyOverview(days: number) {
       byCountry: empty,
       byPath: empty,
       byClientName: empty,
+      byDownload: empty,
       byEntry: empty,
       byCampaign: empty,
       byCity: empty,
@@ -381,7 +386,13 @@ export function pageLabel(view: Pick<Doc<'pageViews'>, 'surface' | 'target' | 'p
   if (view.surface === 'portfolio') {
     return view.path === '/redirect' ? `/@${view.target} → redirect` : `/@${view.target}${rest}`
   }
-  if (view.surface === 'dashboard') return `${view.target}.devrel.studio${rest}`
+  if (view.surface === 'dashboard') {
+    if (isDownloadPath(view.path)) {
+      const period = downloadPeriod(view.path)
+      return `${view.target}.devrel.studio · PDF download${period ? ` (${period})` : ''}`
+    }
+    return `${view.target}.devrel.studio${rest}`
+  }
   return view.path
 }
 
@@ -441,8 +452,15 @@ export const overview = query({
     // The window is fetched twice: once for the chart, once for all-time
     // totals. All-time is capped at a year so a long-lived workspace does not
     // grow an unbounded read.
-    const windowed = await viewsInWindow(ctx, context.workspaceId, days)
-    const allTime = await viewsInWindow(ctx, context.workspaceId, 365)
+    const windowedRows = await viewsInWindow(ctx, context.workspaceId, days)
+    const allTimeRows = await viewsInWindow(ctx, context.workspaceId, 365)
+
+    // Downloads share the table but are not views. Split them off first so no
+    // view, visitor, session or bounce figure below counts a saved PDF.
+    const windowed = windowedRows.filter((row) => !isDownloadPath(row.path))
+    const allTime = allTimeRows.filter((row) => !isDownloadPath(row.path))
+    const windowedDownloads = windowedRows.filter((row) => isDownloadPath(row.path))
+    const allTimeDownloads = allTimeRows.filter((row) => isDownloadPath(row.path))
 
     const now = Date.now()
 
@@ -523,7 +541,7 @@ export const overview = query({
     }
 
     const clientNames = new Map<string, string>()
-    for (const view of windowedDashboard) {
+    for (const view of [...windowedDashboard, ...windowedDownloads]) {
       if (!view.clientId || clientNames.has(view.target)) continue
       const client = await ctx.db.get(view.clientId)
       if (client) clientNames.set(view.target, client.company || client.name)
@@ -555,6 +573,12 @@ export const overview = query({
           (view) => view.surface === 'dashboard' && isReportPath(view.path),
         ).length,
 
+        /** Report PDFs saved from client dashboards in the selected range. */
+        reportDownloads: windowedDownloads.length,
+        /** The same, by someone holding that client's access code. */
+        managerDownloads: windowedDownloads.filter((row) => row.identity === 'manager').length,
+        allTimeDownloads: allTimeDownloads.length,
+
         since: allTime.length ? allTime[allTime.length - 1].at : null,
         sessions: sessions.length,
         avgSessionMs: sessionTimes.length
@@ -578,6 +602,11 @@ export const overview = query({
         byCountry: tally(windowed, (view) => view.country),
         byPath: tally(windowedPortfolio, (view) => view.path),
         byClientName: tally(windowedDashboard, (view) => clientNames.get(view.target) ?? view.target),
+        byDownload: tally(windowedDownloads, (row) => {
+          const period = downloadPeriod(row.path)
+          const client = clientNames.get(row.target) ?? row.target
+          return period ? `${client} · ${period}` : `${client} · full dashboard`
+        }),
         byEntry: tally(sessions, (session) => pageLabel(session.views[0])),
         byCampaign: tally(windowed, (view) => view.campaign),
         byCity: tally(windowed, (view) =>
@@ -599,6 +628,23 @@ export const overview = query({
  */
 export function isReportPath(path: string): boolean {
   return path === '/report' || path.startsWith('/report/')
+}
+
+/**
+ * A report PDF saved from a client dashboard, recorded by /api/track/download.
+ *
+ * Stored in `pageViews` so it shares the write path, but it is not a page view:
+ * every count of views, visitors and sessions leaves these rows out, and they
+ * are counted on their own as downloads.
+ */
+export function isDownloadPath(path: string): boolean {
+  return path === '/download' || path.startsWith('/download/')
+}
+
+/** `/download/2026-09` → `2026-09`; null for the whole-dashboard export. */
+export function downloadPeriod(path: string): string | null {
+  const match = /^\/download\/(\d{4}-\d{2})$/.exec(path)
+  return match ? match[1] : null
 }
 
 function median(values: number[]): number | null {
@@ -798,17 +844,20 @@ export const sinceLastVisit = query({
     const elapsed = Date.now() - since
     if (elapsed < 5 * 60 * 1000) return null
 
-    const views = await ctx.db
+    const rows = await ctx.db
       .query('pageViews')
       .withIndex('by_workspace_and_time', (q) =>
         q.eq('workspaceId', context.workspaceId).gt('at', since),
       )
       .collect()
+    const views = rows.filter((row) => !isDownloadPath(row.path))
+    const downloads = rows.length - views.length
 
-    if (views.length === 0) return null
+    if (rows.length === 0) return null
 
     return {
       since,
+      downloads,
       views: views.length,
       visitors: uniqueBy(views, (view) => view.visitorHash),
       managerViews: views.filter((view) => view.identity === 'manager').length,

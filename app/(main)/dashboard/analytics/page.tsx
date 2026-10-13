@@ -134,6 +134,11 @@ export default function AnalyticsPage() {
                 info: 'Monthly report pages opened on your client dashboards, all time. Browsing the list of past reports does not count.',
               },
               {
+                label: 'Report downloads',
+                value: formatNumber(overview.tiles.reportDownloads),
+                info: `Report PDFs saved from your client dashboards in the ${rangeLabel}, from a monthly report page or the dashboard export. ${formatNumber(overview.tiles.managerDownloads)} by someone holding the client's access code, ${formatNumber(overview.tiles.allTimeDownloads)} all time.`,
+              },
+              {
                 label: 'Median read',
                 value: formatDuration(overview.tiles.medianDwellMs),
                 info: 'The midpoint time spent on a page in this range.',
@@ -145,12 +150,20 @@ export default function AnalyticsPage() {
 
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
             <PagesTable rows={overview.pages ?? []} className="lg:col-span-2" />
-            <RankedList
-              title="Client dashboards"
-              note="Views by client"
-              rows={overview.breakdowns.byClientName ?? []}
-              empty="No client dashboard was opened in this range."
-            />
+            <div className="space-y-4">
+              <RankedList
+                title="Client dashboards"
+                note="Views by client"
+                rows={overview.breakdowns.byClientName ?? []}
+                empty="No client dashboard was opened in this range."
+              />
+              <RankedList
+                title="Report downloads"
+                note="PDFs saved, by client and month"
+                rows={overview.breakdowns.byDownload ?? []}
+                empty="No report PDF was downloaded in this range."
+              />
+            </div>
           </div>
 
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">

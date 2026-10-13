@@ -23,6 +23,7 @@ import {
   Loader2,
   Share2,
 } from 'lucide-react'
+import { trackReportDownload } from '@/lib/report-download'
 
 // ── The monthly report ────────────────────────────────────────────────────────
 //
@@ -331,6 +332,7 @@ export function ReportView({ data }: { data: ReportData }) {
       anchor.download = `${data.client.slug}-report-${data.period}.pdf`
       anchor.click()
       URL.revokeObjectURL(url)
+      trackReportDownload(data.client.slug, data.period)
     } catch (error) {
       console.error('[report] pdf export failed:', error)
       toast.error('Could not build the PDF. Please try again.')

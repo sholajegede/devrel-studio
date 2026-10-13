@@ -51,11 +51,11 @@ export function Section({
 
 export type Metric = { label: string; value: string; info?: React.ReactNode; accent?: boolean }
 
-/** Eight numbers in one card, split by hairlines rather than eight boxes. */
+/** The headline numbers in one card, split by hairlines rather than separate boxes. Nine fit a 3 by 3 grid. */
 export function MetricGrid({ metrics }: { metrics: Metric[] }) {
   return (
     <Card className="gap-0 overflow-hidden p-0">
-      <div className="grid grid-cols-2 gap-px bg-border lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-px bg-border sm:grid-cols-3">
         {metrics.map((metric) => (
           <div key={metric.label} className="bg-card px-5 py-4">
             <div className="flex items-center justify-between gap-2">
