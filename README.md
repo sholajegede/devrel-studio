@@ -1,8 +1,8 @@
 # DevRel Studio
 
-**Developer-relations work, logged once and shown to the people paying for it.**
+**The system of record for developer relations and AgentRel: work logged once, reported by an agent, shown to the people paying for it.**
 
-A developer advocate logs each piece of work they ship — a post, a talk, a package, a demo. DevRel Studio turns that log into three things at once: a private workspace for the advocate, a live branded dashboard for every client, and a public portfolio of everything they have ever published. No exports, no slide decks, no month-end scramble.
+A developer advocate logs each piece of work they ship — a post, a talk, a package, a demo. DevRel Studio turns that log into three things at once: a private workspace for the advocate, a live branded dashboard for every client, and a public portfolio of everything they have ever published. A **report agent** drafts the monthly brief from the logged numbers, and every portfolio and public client dashboard serves an `llms.txt`, so agents can read the results too. No exports, no slide decks, no month-end scramble.
 
 It also runs **a DevRel job board** at [devrel.studio/jobs](https://devrel.studio/jobs): every developer-relations role pulled from company careers pages three times a day, with a tracker, alerts, CV matching and, for paying users, tailored applications built from the work already logged here.
 
@@ -19,6 +19,9 @@ Live at **[devrel.studio](https://devrel.studio)**. See a real client dashboard 
     - [Public portfolio — `devrel.studio/@handle`](#public-portfolio--devrelstudiohandle)
     - [Admin console — `admin.devrel.studio`](#admin-console--admindevrelstudio)
     - [Job board — `devrel.studio/jobs`](#job-board--devrelstudiojobs)
+    - [Hire a DevRel — `devrel.studio/hire`](#hire-a-devrel--devrelstudiohire)
+  - [The report agent](#the-report-agent)
+  - [Design system](#design-system)
   - [How the hosts work](#how-the-hosts-work)
   - [Tech stack](#tech-stack)
   - [Project structure](#project-structure)
@@ -76,11 +79,12 @@ These are genuinely separate. An admin has no implicit access to anyone's client
 | **All Content** | Every entry across every client: keyword search, category / status / platform / client filters, saved views, bulk actions, CSV import and export, keyboard shortcuts |
 | **Pipeline** | The forward-looking view — what is in flight, due, or slipped, as lanes over the existing `status` values |
 | **Analytics** | Who actually opened the work: visitors, sessions, bounce rate and dwell time across client dashboards and the public portfolio, with referrers, campaigns (`utm_source` and `ref`), entry pages, countries, cities, devices, recent sessions, and a live "reading now" count |
-| **Clients** | Full CRUD for engagements — retainer rate with full rate history, contract type, pause/resume, access codes, logo upload (light *and* dark), brand colour, and a custom domain |
-| **Reports** | Monthly client reports: written notes and targets, PDF export, per-client recipients, and a schedule (day, hour, timezone) that sends them automatically |
+| **Clients** | Full CRUD for engagements — retainer rate with full rate history, contract type, pause/resume, access codes, logo upload, brand colour, and a custom domain |
+| **Reports** | Monthly client reports: written notes and targets, a **report agent** that drafts them (see [The report agent](#the-report-agent)), PDF export, per-client recipients, and a schedule (day, hour, timezone) that sends them automatically |
 | **Members** | Invite teammates into a workspace by email with a role (Admin, Editor, Viewer); seat limits enforced by plan |
 | **Jobs** | Discover with CV match, a kanban tracker, alerts, CV and preferences, Market (pay and hiring) and Jobs Pro — see [Job board](#job-board--devrelstudiojobs) |
-| **Billing** | Plan, access window, term pricing, upgrade paths, and the Jobs Pro pass |
+| **Billing** | Plan, access window, term pricing in US dollars, upgrade requests, and the Jobs Pro pass |
+| **Hire** | The advocate's own `/hire` listing: headline, availability, skills, experience, and a switch for open-to-work. A CV can pre-fill it |
 | **Settings** | Profile, portfolio handle and bio, social links, account pause |
 
 ### Client dashboard — `<slug>.devrel.studio`
@@ -91,7 +95,7 @@ These are genuinely separate. An admin has no implicit access to anyone's client
 - Month and category filters
 - Monthly reports with the advocate's written summary, plus a feedback box that emails back
 - PDF download carrying the client's own logo and brand colour
-- White-labelled: the client's logo (per theme), their colour, optionally their own domain
+- White-labelled: the client's logo, their colour, optionally their own domain
 
 ### Public portfolio — `devrel.studio/@handle`
 
@@ -118,7 +122,46 @@ The host is **not** the security boundary — every query behind these pages res
 - **Blog — `devrel.studio/blog`, `/admin/blog`.** Monday, Wednesday and Friday a cron (`blog:draftNext`) chooses a topic from Hacker News, dev.to, the job board's own data and a standing backlog, skipping anything already written. It researches with web search, writes in the house style (`lib/blog/prompts.ts`), runs style checks (`lib/blog/draft.ts`, which reuses the slop list from the CV kits), then `blog:factCheck` checks every claim against the web and rewrites what fails. The draft is emailed to `BLOG_REVIEW_EMAIL` with a link to `/blog/review/<id>?t=<token>` where it can be edited, published or rejected. Only a hash of the token is stored. Diagrams are SVG from the model and are sanitised twice, on publish and on render. `/admin/blog` lists every post, starts a draft on demand and can email a fresh link.
 - **Job analytics — `/admin/jobs/analytics`.** Visitors, sessions, searches (and the ones that found nothing), filters, the adjacent toggle, role views, apply clicks, saves, copied links, shares, CVs, tailored kits, alerts, Jobs Pro, every tour step, top roles and companies, referrers, countries and a live feed. The browser queues events and posts them to `/api/jobs/track`, which forwards them to `jobAnalytics.ingest` with `MANAGER_CODE_SECRET`. Counters are kept for good (`jobMetrics`: days for totals, whole weeks for lists); raw events and visitor markers are deleted after 14 and 100 days by a daily cron. The event list lives in `lib/jobs/analytics.ts`.
 
-Everything is deterministic except the tailored applications, which call the Anthropic API.
+Everything is deterministic except the tailored applications, the blog drafts and the report agent, which call the Anthropic API.
+
+### Hire a DevRel — `devrel.studio/hire`
+
+A public directory of developer advocates who chose to be listed. An advocate appears only after switching the listing on and completing the basics (`listingBlockers` in `lib/hire/talent.ts`). Filters cover skills, level, focus, country, work mode and open-to-work.
+
+- Every public query builds its result field by field from `talentProfiles`, `users` and **published** `contentEntries`. Email addresses, CV text and private notes never leave.
+- Contact goes through the platform: a recruiter fills a form, and the advocate receives an email with the recruiter as reply-to. The advocate's own address is never shown. Contact is rate limited.
+- `/hire/[handle]` shows the profile with the work the advocate has published on DevRel Studio as proof.
+- An advocate edits the listing at `/dashboard/hire`, and `talent:fillFromCv` can pre-fill it from an uploaded CV.
+
+## The report agent
+
+A monthly report has a part only a person can write: what the month meant, why the numbers moved, and an answer to last month's feedback. The report agent drafts it.
+
+In the report composer (`components/dashboard/report-composer.tsx`), **Draft with the agent** calls `reportAgent:draft`. The flow:
+
+1. `reportAgent:authorize` checks the caller is an **editor** in the client's workspace and applies a limit of 20 drafts per hour per user.
+2. `reportAgent:context` reads the client's entries, last month's figures, the period's targets and the feedback left last month.
+3. `lib/report-agent.ts` builds a fact sheet from the same `buildReport` the page and the PDF use. Differences and percentages are worked out there, because a model does arithmetic badly and would otherwise write numbers that exist nowhere in the data.
+4. The model returns JSON: `summary`, `performanceNote`, `responseToFeedback`.
+5. The draft is checked: any number not in the fact sheet, and any phrase on the house stock-phrase list (`lib/jobs/slop.ts`, shared with the CV kits and the blog), is sent back for up to two repair passes.
+
+Rules the agent works under: it may state only what the data shows, it may not claim a cause the data cannot show, it names pieces by title, and it says plainly whether a target was met.
+
+**It never saves.** The draft fills the composer's boxes, and nothing is written until the person presses Save. It refuses a period with nothing published. If a check still objects after the repair passes, the composer warns the user to read it closely.
+
+Needs `ANTHROPIC_API_KEY` on Convex. The model is `BLOG_AI_MODEL` (default `claude-sonnet-5-5`). The pure parts (fact sheet, prompt, parsing, checks) are covered by `tests/report-agent.test.ts`.
+
+## Design system
+
+One flat, light theme. No dark mode, no gradients, no shadows, no blur.
+
+- **Tokens** live in `app/globals.css`: paper `#f8f0e3`, sand `#ece4d7` and `#e1d7c5`, ink `#180102`, and flat accents orange `#f16b46`, blue `#63a4bc`, green `#3dac91`, ochre `#dbb154`, rust `#b84a3c`, pink `#e0a5d0`, olive `#8f8566`. The shadcn variables map onto them: card is sand, primary is ink, accent is orange.
+- **Palette remap.** The Tailwind amber, emerald, green, sky, blue, red, violet, stone and slate scales are remapped to these hues in `@theme`, so older utility classes recolour without being rewritten. Font weights are remapped too: semibold renders at 500 and bold at 600.
+- **Type.** Hanken Grotesk for text and IBM Plex Mono for labels, both through `next/font` in `app/layout.tsx`. Headlines are medium weight with tight tracking.
+- **Shape.** Cards are 32px radius with no border. The primary button has one soft corner pair and one tight pair (`rounded-[2rem_0.5rem_0.5rem_2rem]`), secondary buttons are pills. Flat geometric figures (`components/marketing/shapes.tsx`) stand in for illustration.
+- **Building blocks.** `components/marketing/primitives.tsx` (`Display`, `Lede`, `Label`, button links), `shapes.tsx`, `auth-shell.tsx`, and `components/brand/` (`logo-mark.tsx`, `wordmark.tsx`, the loader).
+- **Brand assets.** The favicon set is the D mark in ink on orange: `app/favicon.ico`, `app/icon.svg`, `app/apple-icon.png`. The landing page's hero image is `public/images/dashboard-screenshot.png`; replace it when the dashboard changes.
+- **Logo strip.** The landing page lists the teams whose DevRel work has been tracked, in `SOCIAL_PROOF_LOGOS` in `app/page.tsx`. An entry without a `src` renders as a name, so a brand is never drawn from memory. Add the real file to `public/assets/logos/` and set `src`.
 
 ## How the hosts work
 
@@ -146,14 +189,15 @@ Worth knowing:
 | Framework | [Next.js 16](https://nextjs.org) — App Router, Turbopack |
 | UI runtime | React 19 |
 | Language | TypeScript 5 |
-| Styling | [Tailwind CSS v4](https://tailwindcss.com) with light/dark themes via `next-themes` |
+| Styling | [Tailwind CSS v4](https://tailwindcss.com), one light theme driven by CSS tokens (see [Design system](#design-system)) |
+| Fonts | Hanken Grotesk and IBM Plex Mono via `next/font` |
 | Components | [shadcn/ui](https://ui.shadcn.com) on Radix primitives |
 | Charts | [Recharts](https://recharts.org) 2 |
 | Backend / DB | [Convex](https://convex.dev) 1.44 — reactive queries, mutations, actions, crons, file storage |
 | Auth | [Kinde](https://kinde.com) (`@kinde-oss/kinde-auth-nextjs` 2) |
-| Payments | [Stripe](https://stripe.com) — optional; the app runs fully without keys |
+| Payments | US dollars only. Plans are sold by invoice and wire transfer; [Stripe](https://stripe.com) is wired but optional, and the app runs fully without keys |
 | Email | [Resend](https://resend.com), via Convex actions |
-| AI | [Anthropic API](https://docs.anthropic.com), called from Convex, for tailored CVs and cover notes only |
+| AI | [Anthropic API](https://docs.anthropic.com), called from Convex, for tailored CVs and cover notes, blog drafts, and the report agent |
 | CV parsing | [`unpdf`](https://github.com/unjs/unpdf), in a Convex Node action |
 | PDF | [`@react-pdf/renderer`](https://react-pdf.org) + `pdf-lib` |
 | Tests | [Vitest](https://vitest.dev) + Testing Library + jsdom |
@@ -176,6 +220,8 @@ devrel_studio/
 │   │   └── [subdomain]/         # Client dashboard — layout.tsx holds the access gate
 │   │       ├── page.tsx           report/ · reports/ · llms.txt/
 │   │       └── opengraph-image.tsx
+│   ├── hire/                    # Public talent directory and profiles
+│   ├── blog/                    # Public blog and the review editor
 │   ├── jobs/                    # Public job board: list, role pages, hubs, apply redirect, feed, llms.txt
 │   ├── portfolio/[handle]/      # Public portfolio (rewrite target for /@handle)
 │   ├── api/                     # auth · billing/checkout · export-report
@@ -185,12 +231,12 @@ devrel_studio/
 │   └── page.tsx                 # Landing page
 │
 ├── components/
-│   ├── brand/                   # Logo mark + the loader built from it
+│   ├── brand/                   # Logo mark, wordmark, and the loader built from it
 │   ├── dashboard/ admin/        # Workspace and console UI
 │   ├── subdomain/               # Access gate, report view
 │   ├── analytics/               # Dwell-time beacon
 │   ├── jobs/                    # Job board UI: board, cards, logos, tabs
-│   ├── marketing/ invite/       # Nav, footer, invitation flow, pricing blocks
+│   ├── marketing/ invite/       # Nav, footer, primitives, shapes, auth shell, pricing blocks, invitation flow
 │   └── ui/                      # shadcn/ui library
 │
 ├── convex/
@@ -199,6 +245,8 @@ devrel_studio/
 │   │                            # access windows, rate limiting, admin guards
 │   ├── content.ts clients.ts    # Core domain
 │   ├── reports.ts analytics.ts  # Reporting and view data
+│   ├── reportAgent.ts           # Report agent: authorize, context, draft
+│   ├── talent.ts                # /hire directory: listings, contact, CV pre-fill
 │   ├── members.ts users.ts      # Workspaces, invites, profiles
 │   ├── admin*.ts                # Console queries, split by section
 │   ├── managerAccess.ts         # Client access codes and sessions
@@ -216,6 +264,9 @@ devrel_studio/
 │   ├── jobs/                    # Pure job-board logic: taxonomy, locations, salary, CV, match,
 │   │                            # tracker stats, SEO, sources, Pro gate, style checks
 │   ├── metrics.ts               # Which number belongs to which category
+│   ├── report-agent.ts          # Report agent: fact sheet, prompt, parsing, checks
+│   ├── currency.ts              # US-dollar price list and formatting
+│   ├── hire/                    # Talent profile rules and server reads
 │   ├── naming.ts                # Slug/handle rules and the reserved lists
 │   ├── llms-txt.ts report.ts    # Generated text surfaces
 │   ├── view-tracking.ts         # Edge-safe hashing, bot and prefetch rules
@@ -232,7 +283,9 @@ devrel_studio/
 | Route | Access | Description |
 |---|---|---|
 | `/` | Public | Landing page |
-| `/pricing` `/contact` `/privacy` `/terms` | Public | Marketing and legal |
+| `/pricing` `/contact` `/privacy` `/terms` | Public | Marketing and legal. Prices are in US dollars |
+| `/hire` `/hire/[handle]` | Public | Directory of advocates open to work, and one profile |
+| `/blog` `/blog/[slug]` `/blog/feed.xml` | Public | The blog and its RSS feed |
 | `/sign-in` `/sign-up` | Public | Branded entry to Kinde's hosted flow |
 | `/demo` | Public | A real, seeded client dashboard |
 | `/@handle` | Public | Portfolio (rewrites to `/portfolio/handle`) |
@@ -377,7 +430,7 @@ Crons in `convex/crons.ts`:
 
 ## Machine-readable surfaces
 
-Alongside `sitemap.xml`, `robots.txt` and generated OpenGraph cards, the app publishes `llms.txt` files for agents:
+Alongside `sitemap.xml`, `robots.txt` and generated OpenGraph cards, the app publishes `llms.txt` files for agents. This is the AgentRel side of the product: results are served in a form an AI agent can read, not only a person:
 
 | URL | Contents |
 |---|---|
@@ -393,7 +446,7 @@ The rule they obey: **an llms.txt says exactly what the HTML page at the same UR
 
 ## Plans and access
 
-Priced per month, **sold in blocks** rather than renewed monthly.
+Priced per month in **US dollars**, **sold in blocks** rather than renewed monthly. There is one price list (`lib/currency.ts`); no local currencies and no conversion. Payment is by invoice and wire transfer.
 
 | Plan | Monthly | Clients | Entries | Seats |
 |---|---|---|---|---|
@@ -503,7 +556,7 @@ open http://admin.localhost:3000/login
 | `JOBS_REVALIDATE_SECRET` | Set on **both** Convex and Vercel. Lets Convex refresh `/jobs` after each sync |
 | `TOURS_SECRET` | Set on **both** Convex and Vercel (`openssl rand -hex 32`). Hashes visitor IPs so the job board tour is remembered across browsers. Without it the tour falls back to browser and account memory |
 | `BLOG_REVIEW_EMAIL`, `BLOG_AI_MODEL` | **Convex-side.** Where review emails go (default `me@sholajegede.com`) and the model for blog drafts (defaults to `claude-sonnet-5-5`). The blog also needs web search enabled for the Anthropic API key's organisation, plus `RESEND_API_KEY` and `SITE_URL` |
-| `ANTHROPIC_API_KEY`, `JOBS_AI_MODEL` | **Convex-side.** Tailored CVs and cover notes. `JOBS_AI_MODEL` defaults to `claude-sonnet-4-5` |
+| `ANTHROPIC_API_KEY`, `JOBS_AI_MODEL` | **Convex-side.** Tailored CVs and cover notes, and the report agent. `JOBS_AI_MODEL` defaults to `claude-sonnet-4-5`. The report agent uses `BLOG_AI_MODEL` |
 | `REDDIT_CLIENT_ID`, `REDDIT_CLIENT_SECRET` | **Convex-side, optional.** Only needed if you add a r/forhire feed |
 | `NEXT_PUBLIC_LOGO_DEV_TOKEN` | Sharper company logos from logo.dev; the default is Google's favicon service |
 | `REPORT_REDIRECT_TO` | Diverts every report email to one address — useful in staging |
@@ -519,7 +572,7 @@ npm run typecheck  # tsc --noEmit
 npm run lint
 ```
 
-Concentrated where a mistake is expensive rather than spread evenly: access control and admin authorisation, impersonation, view-tracking correctness and write contention, metric roll-ups, retainer rate history, report scheduling across timezones, PDF rendering, CSV import, naming rules, and the job board: title classification, locations and eligibility, salary parsing, CV analysis and matching, tracker stats, Jobs Pro gating, style checks, and every source parser.
+Concentrated where a mistake is expensive rather than spread evenly: access control and admin authorisation, impersonation, view-tracking correctness and write contention, metric roll-ups, retainer rate history, report scheduling across timezones, the report agent's fact sheet and checks, US-dollar pricing, PDF rendering, CSV import, naming rules, and the job board: title classification, locations and eligibility, salary parsing, CV analysis and matching, tracker stats, Jobs Pro gating, style checks, and every source parser.
 
 ## Deployment
 
@@ -544,7 +597,7 @@ Order matters. Deploying the frontend first means new code calling functions tha
 5. If the apex is proxied by a CDN, make sure subdomains are not — and check the CDN's managed `robots.txt`
 6. Run `npx convex deploy`
 7. Job board, first time: set `JOBS_REVALIDATE_SECRET` and `SITE_URL` on Convex and the secret on Vercel, then `npx convex run --prod jobSync:seedSources` and `npx convex run --prod jobSync:syncAll`
-8. For tailored applications, set `ANTHROPIC_API_KEY` on Convex
+8. For tailored applications and the report agent, set `ANTHROPIC_API_KEY` on Convex
 
 ## Scripts
 
