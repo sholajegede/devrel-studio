@@ -282,7 +282,7 @@ const COMPARE: { step: string; before: string; after: string }[] = [
   {
     step: 'Prove',
     before: 'Stakeholders asking when the report is coming',
-    after: 'Stakeholders open it whenever they like, and see who else did',
+    after: 'Stakeholders open it whenever they like, and you can see that they did',
   },
   {
     step: 'Compare',
@@ -322,23 +322,28 @@ function BeforeAfter() {
 
           {COMPARE.map((row) => (
             <div key={row.step} className="grid md:grid-cols-2">
-              <div className="flex gap-4 bg-sand px-7 py-6 sm:px-12 sm:py-8">
-                <X aria-hidden className="mt-1 h-5 w-5 shrink-0 text-rust/70" />
-                <div>
-                  <Label className="md:hidden">Before · {row.step}</Label>
-                  <Label className="hidden md:inline">{row.step}</Label>
-                  <p className="mt-1.5 text-[17px] leading-snug text-muted-foreground line-through decoration-ink/25 decoration-1">
+              <div className="flex items-start gap-4 bg-sand px-7 py-6 sm:px-12 sm:py-8">
+                <X aria-hidden className="mt-[1px] h-5 w-5 shrink-0 text-rust/70" />
+                <div className="min-w-0">
+                  <Label className="block">
+                    <span className="md:hidden">Before · </span>
+                    {row.step}
+                  </Label>
+                  <p className="mt-2 text-[17px] leading-snug text-muted-foreground line-through decoration-ink/25 decoration-1">
                     {row.before}
                   </p>
                 </div>
               </div>
-              <div className="flex gap-4 bg-ink px-7 py-6 text-paper sm:px-12 sm:py-8">
-                <span aria-hidden className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-green">
-                  <Check className="h-3.5 w-3.5 text-paper" strokeWidth={3} />
+              <div className="flex items-start gap-4 bg-ink px-7 py-6 text-paper sm:px-12 sm:py-8">
+                <span aria-hidden className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-green">
+                  <Check className="h-3 w-3 text-paper" strokeWidth={3} />
                 </span>
-                <div>
-                  <Label className="text-paper/55 md:hidden">With DevRel Studio · {row.step}</Label>
-                  <p className="text-[19px] font-medium leading-snug tracking-[-0.015em] md:mt-[1.65rem]">{row.after}</p>
+                <div className="min-w-0">
+                  <Label className="block text-paper/55">
+                    <span className="md:hidden">With DevRel Studio · </span>
+                    {row.step}
+                  </Label>
+                  <p className="mt-2 text-[19px] font-medium leading-snug tracking-[-0.015em]">{row.after}</p>
                 </div>
               </div>
             </div>

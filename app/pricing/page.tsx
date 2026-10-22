@@ -232,8 +232,7 @@ export default async function PricingPage() {
           <div className="border-b border-ink/10 px-7 py-7">
             <h2 className="text-2xl font-medium tracking-[-0.03em] text-foreground">Buy months at a time</h2>
             <p className="mt-1 text-sm text-muted-foreground">
-              We handle each payment by hand, not through a card form. Longer terms cost less,
-              for you and for us.
+              Pay by invoice and wire transfer, in US dollars. Longer terms cost less.
             </p>
           </div>
 

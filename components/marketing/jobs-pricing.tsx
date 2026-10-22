@@ -80,7 +80,7 @@ export function JobsPricing({ currency }: { currency: CurrencyCode }) {
             ))}
           </ul>
           <p className="mt-5 text-sm text-paper/55">
-            Up to {PRO_TAILORINGS_PER_MONTH} tailorings a month. Paid by bank transfer, like the plans above. Refunded
+            Up to {PRO_TAILORINGS_PER_MONTH} tailorings a month. Invoiced in US dollars, like the plans above. Refunded
             within 14 days.
           </p>
         </div>

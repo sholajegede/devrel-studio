@@ -10,15 +10,18 @@ export function Wordmark({
   href = '/',
   size = 'md',
   onClick,
+  tone = 'accent',
 }: {
   className?: string
   href?: string
   size?: 'sm' | 'md'
   onClick?: () => void
+  /** `ink` for use on a coloured panel, where the orange mark would vanish. */
+  tone?: 'accent' | 'ink'
 }) {
   return (
     <Link href={href} onClick={onClick} aria-label="DevRel Studio, home" className={`flex items-center gap-2.5 ${className}`}>
-      <LogoMark className={`${size === 'sm' ? 'h-6' : 'h-8'} w-auto text-accent`} />
+      <LogoMark className={`${size === 'sm' ? 'h-6' : 'h-8'} w-auto ${tone === 'ink' ? 'text-ink' : 'text-accent'}`} />
       <span
         className={`${size === 'sm' ? 'text-[1.1rem]' : 'text-[1.45rem]'} font-bold leading-[0.82] tracking-[-0.05em] text-foreground`}
       >

@@ -26,17 +26,17 @@ export function MarketingNav() {
           <NavLinks />
 
           <SignedInSwitch
-            signedIn={<PrimaryLink href="/dashboard" arrow={false} className="h-11 px-6 text-[15px]">Dashboard</PrimaryLink>}
+            signedIn={<PrimaryLink href="/dashboard" arrow={false} className="h-11 whitespace-nowrap px-4 text-[15px] sm:px-6">Dashboard</PrimaryLink>}
             signedOut={
               <>
                 {/* Visible at every width: a returning customer must always have a way back in. */}
                 <Link
                   href="/sign-in"
-                  className="inline-flex h-11 items-center rounded-full px-4 text-[15px] font-medium text-foreground transition-colors hover:bg-sand"
+                  className="inline-flex h-11 items-center whitespace-nowrap rounded-full px-3 text-[15px] sm:px-4 font-medium text-foreground transition-colors hover:bg-sand"
                 >
                   Sign in
                 </Link>
-                <PrimaryLink href="/sign-up" arrow={false} className="h-11 px-6 text-[15px]">
+                <PrimaryLink href="/sign-up" arrow={false} className="h-11 whitespace-nowrap px-4 text-[15px] sm:px-6">
                   Start free
                 </PrimaryLink>
               </>

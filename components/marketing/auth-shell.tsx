@@ -28,7 +28,7 @@ export function AuthShell({
           panelTone === 'ochre' ? 'bg-ochre' : 'bg-blue'
         }`}
       >
-        <Wordmark />
+        <Wordmark tone="ink" />
 
         <div className="flex flex-1 flex-col justify-center py-12">
           <h1 className="text-[clamp(2.5rem,4vw,3.6rem)] font-medium leading-[1.02] tracking-[-0.04em]">{headline}</h1>

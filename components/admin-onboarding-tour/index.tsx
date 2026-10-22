@@ -89,7 +89,7 @@ const MEMBERS_STEPS: TourStep[] = [
 
 // ── Billing ───────────────────────────────────────────────────────────────────
 const BILLING_STEPS: TourStep[] = [
-  { target: "body", title: "Billing", content: "How long your access runs, and how to extend it. Prices are monthly. You pay by bank transfer.", position: "center", highlight: false },
+  { target: "body", title: "Billing", content: "How long your access runs, and how to extend it. Prices are monthly. You pay by invoice and wire transfer, in US dollars.", position: "center", highlight: false },
   { target: '[data-tour="billing-plan"]', title: "Your plan", content: "The plan you are on, what it includes, and the date access runs to. A free trial lasts 14 days.", position: "bottom", highlight: true },
   { target: '[data-tour="billing-plans"]', title: "The plans", content: "Three plans, priced by the month in your own currency. Buy 1, 3, 6 or 12 months at a time. Longer terms cost less.", position: "top", highlight: true },
   { target: '[data-tour="billing-receipts"]', title: "Payment record", content: "Each payment lands here with the date it cleared and the date access runs to.", position: "top", highlight: true },
