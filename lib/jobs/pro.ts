@@ -1,6 +1,5 @@
 // Jobs Pro: the paid side of the job board. Sold as a 12 month pass through
-// the same manual transfer flow as the workspace plans, because card payments
-// are not available. Pure, so the Convex gate and the UI read the same rules.
+// the same invoiced flow as the workspace plans, priced in US dollars. Pure, so the Convex gate and the UI read the same rules.
 
 export const FREE_TAILORINGS = 3
 /** Fair use for paid accounts. Every tailoring is a model call that costs money. */
@@ -9,10 +8,8 @@ export const PRO_MONTHS = 12
 export const FREE_ALERT_LIMIT = 2
 export const PRO_ALERT_LIMIT = 50
 
-export const PRO_PRICE: Record<'USD' | 'GBP' | 'NGN', number> = {
+export const PRO_PRICE: Record<'USD', number> = {
   USD: 49,
-  GBP: 39,
-  NGN: 75_000,
 }
 
 export const PRO_FEATURES = [

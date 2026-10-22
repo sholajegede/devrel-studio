@@ -44,11 +44,11 @@ export default function ContactPage() {
 
       <section className="px-4 pb-14 pt-12 text-center sm:px-8 sm:pt-20">
         <Display as="h1" size="xl">
-          Write to the person
+          Talk to us about
           <br />
-          who builds this
+          your program
         </Display>
-        <Lede className="mt-7">One address, read by the person who builds this. Most messages get an answer within a working day.</Lede>
+        <Lede className="mt-7">Evaluating DevRel Studio for a team, an agency or an enterprise program? Write to us. Most messages get an answer within one working day.</Lede>
         <div className="mt-9 flex justify-center">
           <PrimaryLink href="mailto:support@devrel.studio" arrow={false}>
             support@devrel.studio

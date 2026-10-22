@@ -31,7 +31,7 @@ export default function PrivacyPage() {
         </p>
         <p>
           <strong className="text-foreground">Payment records.</strong> We store which plan you
-          bought and when your access ends. We handle payments by bank transfer, so we never
+          bought and when your access ends. We handle payments by invoice and wire transfer, so we never
           hold a card number.
         </p>
         <p>

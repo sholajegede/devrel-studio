@@ -442,12 +442,12 @@ export const sendTrialEndingSoon = internalAction({
         </p>
         <p style="margin:0 0 22px;">${button(args.billingUrl, 'Pick a plan')}</p>
         <p style="margin:0;font-size:13px;line-height:1.6;color:#6e625b;">
-          Payment is by bank transfer, so picking a plan opens an email to us
+          Payment is by invoice and wire transfer, so picking a plan opens an email to us
           rather than a checkout. Reply here if you would rather just ask a
           question first.
         </p>
       `),
-      text: `${greeting}\n\nYour free DevRel Studio trial ends ${when}. ${logged}\n\nNothing gets deleted when it ends. Your work stays, and the dashboards you gave your clients keep working. You just cannot add new entries until you pick a plan.\n\nPick a plan: ${args.billingUrl}\n\nPayment is by bank transfer, so picking a plan opens an email to us rather than a checkout. Reply here if you would rather ask a question first.`,
+      text: `${greeting}\n\nYour free DevRel Studio trial ends ${when}. ${logged}\n\nNothing gets deleted when it ends. Your work stays, and the dashboards you gave your clients keep working. You just cannot add new entries until you pick a plan.\n\nPick a plan: ${args.billingUrl}\n\nPayment is by invoice and wire transfer, so picking a plan opens an email to us rather than a checkout. Reply here if you would rather ask a question first.`,
     })
   },
 })

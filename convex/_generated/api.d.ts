@@ -46,6 +46,7 @@ import type * as model_rateLimit from "../model/rateLimit.js";
 import type * as model_trialNotices from "../model/trialNotices.js";
 import type * as model_workspaces from "../model/workspaces.js";
 import type * as portfolio from "../portfolio.js";
+import type * as reportAgent from "../reportAgent.js";
 import type * as reports from "../reports.js";
 import type * as sync from "../sync.js";
 import type * as talent from "../talent.js";
@@ -98,6 +99,7 @@ declare const fullApi: ApiFromModules<{
   "model/trialNotices": typeof model_trialNotices;
   "model/workspaces": typeof model_workspaces;
   portfolio: typeof portfolio;
+  reportAgent: typeof reportAgent;
   reports: typeof reports;
   sync: typeof sync;
   talent: typeof talent;

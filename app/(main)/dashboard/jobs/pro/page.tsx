@@ -8,19 +8,16 @@ import { api } from '@/convex/_generated/api'
 import { Button } from '@/components/ui/button'
 import { RoleNotice } from '@/components/dashboard/role-notice'
 import { JobsHeader } from '@/components/jobs/jobs-tabs'
-import { CURRENCIES, currencyForTimeZone, formatPrice, type CurrencyCode } from '@/lib/currency'
+import { formatPrice } from '@/lib/currency'
 import { FREE_TAILORINGS, PRO_FEATURES, PRO_MONTHS, PRO_PRICE, PRO_TAILORINGS_PER_MONTH } from '@/lib/jobs/pro'
 
 export default function ProPage() {
   const status = useQuery(api.jobPro.status)
   const requestPro = useMutation(api.jobPro.requestPro)
   const cancel = useMutation(api.jobPro.cancelRequest)
-  const [currency, setCurrency] = useState<CurrencyCode>('USD')
+  const currency = 'USD' as const
   const [busy, setBusy] = useState(false)
 
-  useEffect(() => {
-    setCurrency(currencyForTimeZone(Intl.DateTimeFormat().resolvedOptions().timeZone))
-  }, [])
 
   const price = PRO_PRICE[currency]
 
@@ -66,27 +63,10 @@ export default function ProPage() {
 
         {!status?.pro && (
           <div className="mt-6 space-y-3">
-            <div className="flex flex-wrap items-center gap-3">
-              <label htmlFor="cur" className="text-sm text-muted-foreground">
-                Currency
-              </label>
-              <select
-                id="cur"
-                value={currency}
-                onChange={(event) => setCurrency(event.target.value as CurrencyCode)}
-                className="h-9 rounded-md border border-border bg-background px-2 text-sm"
-              >
-                {(Object.keys(CURRENCIES) as CurrencyCode[]).map((code) => (
-                  <option key={code} value={code}>
-                    {code}
-                  </option>
-                ))}
-              </select>
-            </div>
             {status?.request ? (
               <div className="rounded-xl bg-muted p-3 text-sm">
                 Request received for {status.request.amount.toLocaleString('en-US')} {status.request.currency}. We email
-                transfer details, and Jobs Pro opens once the payment clears.
+                payment details, and Jobs Pro opens once the payment clears.
                 <Button variant="ghost" size="sm" onClick={() => cancel()} className="ml-2">
                   Cancel
                 </Button>
@@ -99,7 +79,7 @@ export default function ProPage() {
                   setBusy(true)
                   try {
                     await requestPro({ currency })
-                    toast.success('Request sent. Check your email for transfer details.')
+                    toast.success('Request sent. Check your email for payment details.')
                   } catch (error) {
                     toast.error(error instanceof Error ? error.message : 'Could not send request')
                   } finally {
@@ -111,7 +91,7 @@ export default function ProPage() {
               </Button>
             )}
             <p className="text-xs text-muted-foreground">
-              Card payments are not available yet, so this is a bank transfer and the pass is opened by hand once it clears.
+              Payment is by invoice and wire transfer. Jobs Pro is activated as soon as the payment clears.
             </p>
           </div>
         )}

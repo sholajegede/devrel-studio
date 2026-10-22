@@ -54,9 +54,9 @@ export const ledger = query({
       .filter((request) => request.createdAt >= since)
       .sort((a, b) => b.createdAt - a.createdAt)
 
-    // Currencies are not converted. A total mixing naira and dollars at a rate
+    // Currencies are not converted. A total mixing currencies at a rate
     // nobody recorded is a number that looks authoritative and is not; the page
-    // shows a subtotal per currency instead.
+    // shows a subtotal per currency instead. New sales are all in US dollars.
     const byCurrency = new Map<string, { amount: number; count: number }>()
     const byTerm = new Map<number, { count: number; months: number }>()
 

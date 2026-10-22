@@ -408,7 +408,7 @@ Access is a **timestamp**, not a subscription — which makes selling a month, a
 
 ### Jobs Pro
 
-A separate pass for the job board, sold as **one payment for 12 months** through the same manual transfer flow ($49, £39 or ₦75,000). It is not part of the plans above; comped accounts include it.
+A separate pass for the job board, sold as **one payment for 12 months** through the same invoiced wire flow ($49, priced in US dollars). It is not part of the plans above; comped accounts include it.
 
 | | Free | Jobs Pro |
 |---|---|---|

@@ -31,7 +31,7 @@ export default async function SignUpPage() {
           what your work did
         </>
       }
-      body="Join the advocates who log their work in one place and give every client a live dashboard."
+      body="Log your DevRel work once, give every client and executive a live dashboard, and let the report agent draft the monthly brief."
       points={PLAN_PERKS}
     >
       <h2 className="text-4xl font-medium tracking-[-0.04em] text-foreground">Create your account</h2>

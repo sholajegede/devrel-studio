@@ -3,7 +3,6 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { useKindeBrowserClient } from '@kinde-oss/kinde-auth-nextjs'
 import {
-  currencyForTimeZone,
   formatPrice,
   monthlyPrice,
   DEFAULT_CURRENCY,
@@ -25,16 +24,12 @@ export function SignedInSwitch({
   return <>{isAuthenticated === true ? signedIn : signedOut}</>
 }
 
-/** The reader's currency, from their time zone. Dollars until mounted. */
+/** Every price is in US dollars. */
 export function useLocalCurrency(): CurrencyCode {
-  const [currency, setCurrency] = useState<CurrencyCode>(DEFAULT_CURRENCY)
-  useEffect(() => {
-    setCurrency(currencyForTimeZone(Intl.DateTimeFormat().resolvedOptions().timeZone))
-  }, [])
-  return currency
+  return DEFAULT_CURRENCY
 }
 
-/** The FAQ answer that quotes plan prices, in the reader's currency. */
+/** The FAQ answer that quotes plan prices, in US dollars. */
 export function LocalPriceAnswer() {
   const currency = useLocalCurrency()
   const price = (id: 'starter' | 'pro' | 'agency') =>

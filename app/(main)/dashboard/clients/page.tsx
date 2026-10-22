@@ -76,7 +76,7 @@ import {
 
 type ClientStatus   = 'Active' | 'Paused' | 'Ended'
 type ContractType   = 'Retainer' | 'Project' | 'Hourly'
-type Currency       = 'USD' | 'EUR' | 'GBP' | 'NGN' | 'CAD' | 'AUD'
+type Currency       = 'USD' | 'EUR' | 'GBP' | 'NGN' | 'CAD' | 'AUD' // older clients may hold another currency
 
 interface ClientFormData {
   name: string
@@ -111,7 +111,7 @@ const STATUS_STYLES: Record<ClientStatus, string> = {
   Ended:  'bg-muted text-muted-foreground border-border',
 }
 
-const CURRENCIES: Currency[] = ['USD', 'EUR', 'GBP', 'NGN', 'CAD', 'AUD']
+const CURRENCIES: Currency[] = ['USD']
 
 const CURRENCY_SYMBOL: Record<Currency, string> = {
   USD: '$', EUR: '€', GBP: '£', NGN: '₦', CAD: 'CA$', AUD: 'A$',

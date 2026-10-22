@@ -13,7 +13,7 @@ const plexMono = IBM_Plex_Mono({ subsets: ["latin"], weight: ['400', '500'], var
 
 export const metadata: Metadata = {
   title: 'DevRel Studio',
-  description: 'The workspace for developer advocates: every article, talk and video you ship for a client, with the numbers to prove it worked.',
+  description: 'The system of record for developer relations: every article, talk, video and package in one place, with live dashboards that prove the return.',
   generator: 'v0.app',
 }
 

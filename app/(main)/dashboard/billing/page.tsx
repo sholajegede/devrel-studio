@@ -13,7 +13,6 @@ import {
 } from '@/convex/model/plans'
 import { UpgradeDialog } from '@/components/dashboard/upgrade-dialog'
 import {
-  currencyForTimeZone,
   formatPrice,
   monthlyPrice,
   priceWithCode,
@@ -48,7 +47,7 @@ const PLAN_ICONS: Record<PlanId, React.ElementType> = {
 }
 
 const FAQ_ITEMS = [
-  { q: 'How do I pay?', a: 'Pick a plan below and it opens an email. Say how many months you want, we send transfer details, and access opens once payment lands. Card payments are not available yet — Stripe requires a US entity.' },
+  { q: 'How do I pay?', a: 'Pick a plan below and it opens an email. Say how many months you want, we send an invoice, and access opens as soon as the payment clears. All prices are in US dollars.' },
   { q: 'What happens when access runs out?', a: 'Nothing is deleted. Your content stays and your clients’ dashboards stay online. You just cannot add or edit until access is extended.' },
   { q: 'Does extending early lose me time?', a: 'No. A new term is added to the end of your current window, never in place of it.' },
   { q: 'What’s your refund policy?', a: 'Full refund within 14 days of a payment, no questions asked. Email support@devrel.studio.' },
@@ -106,31 +105,11 @@ function BillingPageContent() {
 
   const billing = useQuery(api.billing.getMyPlan, {})
 
-  /**
-   * The dashboard has no geo header to read, so the currency comes from the
-   * browser's own time zone.
-   *
-   * Resolved after mount rather than during render: the server has no time zone
-   * to work from, so reading it inline would produce different markup on each
-   * side and React would throw out the whole tree. Dollars are the first paint
-   * and the correct symbol arrives a tick later, which is the same trade the
-   * client selector makes in contexts/client-scope.tsx.
-   */
-  const [currency, setCurrency] = useState<CurrencyCode>(DEFAULT_CURRENCY)
-
-  useEffect(() => {
-    setCurrency(currencyForTimeZone(Intl.DateTimeFormat().resolvedOptions().timeZone))
-  }, [])
+  const currency: CurrencyCode = DEFAULT_CURRENCY
 
   /**
-   * Card payments are not available: Stripe requires a US entity and this is
-   * run from Nigeria, so buying is arranged by hand.
-   *
-   * This used to send the browser to a mailto: URL, which does nothing at all
-   * on a machine with no mail client registered — no error, no window, no hint.
-   * For anyone using webmail in a browser the only route to paying was a button
-   * that appeared broken. The dialog records the request server-side instead,
-   * and still offers the mailto to anyone who prefers it.
+   * Plans are bought by invoice, in US dollars. The dialog records the request
+   * server-side and still offers a mailto to anyone who prefers it.
    */
   const [upgrading, setUpgrading] = useState<PlanId | null>(null)
 
@@ -417,7 +396,7 @@ function BillingPageContent() {
                     </div>
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    We email a receipt once the transfer clears.
+                    We email a receipt once the payment clears.
                   </p>
                 </div>
               ) : (

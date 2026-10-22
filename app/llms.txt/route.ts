@@ -40,9 +40,10 @@ export async function GET() {
   const header = lines(
     '# DevRel Studio',
     '',
-    '> Developer-relations work, logged once and shown to the people paying for it.',
-    '> Advocates log what they ship; each client gets a live dashboard, and each',
-    '> advocate gets a public portfolio of everything they have published.',
+    '> The system of record for developer relations and AgentRel. Advocates log what',
+    '> they ship, a report agent drafts the monthly brief from the numbers, each client',
+    '> gets a live dashboard, and each advocate gets a public portfolio of everything',
+    '> they have published.',
     '',
     field('Site', origin),
     field('Portfolios', `${origin}/@<handle>`),

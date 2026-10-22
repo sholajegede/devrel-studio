@@ -1,5 +1,4 @@
 import Link from 'next/link'
-import { headers } from 'next/headers'
 import type { Metadata } from 'next'
 import { Check, Minus, ArrowRight } from 'lucide-react'
 import {
@@ -27,14 +26,13 @@ import {
   termPriceIn,
   type CurrencyCode,
 } from '@/lib/currency'
-import { CurrencyPicker } from '@/components/marketing/currency-picker'
 import { JobsPricing } from '@/components/marketing/jobs-pricing'
 import { PRO_MONTHS, PRO_PRICE } from '@/lib/jobs/pro'
 
 export const metadata: Metadata = {
   title: 'Pricing · DevRel Studio',
   description:
-    'DevRel Studio pricing. Three client-reporting plans sold in terms of 1, 3, 6 or 12 months, a free DevRel job board, and Jobs Pro for 12 months in one payment. Prices show in your local currency. 14 days free.',
+    'DevRel Studio pricing. Three client-reporting plans sold in terms of 1, 3, 6 or 12 months, a free DevRel job board, and Jobs Pro for 12 months in one payment. All prices in US dollars. 14 days free.',
 }
 
 // ─── Plan presentation ────────────────────────────────────────────────────────
@@ -93,7 +91,7 @@ const FAQ = [
   },
   {
     q: 'What does Jobs Pro cost, and what does it add?',
-    a: `One payment for ${PRO_MONTHS} months: ${formatPrice(PRO_PRICE.USD, 'USD')}, ${formatPrice(PRO_PRICE.GBP, 'GBP')} or ${formatPrice(PRO_PRICE.NGN, 'NGN')}. It adds unlimited tailored CV and cover note kits (up to 60 a month), instant alerts, up to 50 saved alerts, pay benchmarks for your exact role, level and region, and a hiring view. It is separate from the client-reporting plans.`,
+    a: `One payment for ${PRO_MONTHS} months: ${formatPrice(PRO_PRICE.USD, 'USD')}. It adds unlimited tailored CV and cover note kits (up to 60 a month), instant alerts, up to 50 saved alerts, pay benchmarks for your exact role, level and region, and a hiring view. It is separate from the client-reporting plans.`,
   },
   {
     q: 'How do tailored applications avoid sounding machine-written?',
@@ -101,7 +99,7 @@ const FAQ = [
   },
   {
     q: 'How does payment work?',
-    a: 'You request a plan, or Jobs Pro, and say how many months you want. We send transfer details. Access opens when the payment lands. Card payments are not available yet, because Stripe needs a US company and we run this from Nigeria.',
+    a: 'You request a plan, or Jobs Pro, and say how many months you want. We send an invoice with wire details in US dollars. Access opens as soon as the payment clears.',
   },
   {
     q: 'What happens when my access runs out?',
@@ -200,27 +198,9 @@ function PlanCard({ id, currency }: { id: PlanId; currency: CurrencyCode }) {
 
 const ALL_PLANS: PlanId[] = ['free', ...PURCHASABLE_PLANS]
 
-/**
- * Prices render in the reader's own currency.
- *
- * The country comes from Vercel's geo header, which costs nothing and is on
- * every request in production. Reading it makes this page dynamic, which is the
- * trade: a cached page cannot show a Lagos reader naira. It is a small page and
- * the numbers are static, so the render is cheap.
- *
- * `?currency=` overrides the guess, for anyone behind a VPN or paying from a
- * different country than they are sitting in. A query parameter rather than a
- * client toggle, so the first paint is already right and the choice survives
- * being shared as a link.
- */
-export default async function PricingPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ currency?: string }>
-}) {
-  const [{ currency: requested }, headerList] = await Promise.all([searchParams, headers()])
-  const currency =
-    parseCurrency(requested) ?? currencyForCountry(headerList.get('x-vercel-ip-country'))
+/** Every price is in US dollars. */
+export default async function PricingPage() {
+  const currency: CurrencyCode = 'USD'
 
   return (
     <div className="min-h-screen bg-background">
@@ -228,16 +208,14 @@ export default async function PricingPage({
 
       <section className="px-4 pb-14 pt-12 text-center sm:px-8 sm:pt-20">
         <Display as="h1" size="xl">
-          Pay for the months
+          Pricing that scales
           <br />
-          you actually use
+          with your program
         </Display>
         <Lede className="mt-7">
-          Start free for 14 days, no card. After that you buy the months you want, and longer terms cost less. The
-          DevRel job board is free, and Jobs Pro is a separate one-off pass for a year.
+          Start free for 14 days, no card. After that you buy the months you need, and longer terms cost less. All
+          prices are in US dollars. The DevRel job board is free, and Jobs Pro is a separate one-off pass for a year.
         </Lede>
-
-        <CurrencyPicker current={currency} />
       </section>
 
       <section className="mx-auto max-w-[1600px] px-4 pb-20 sm:px-8">

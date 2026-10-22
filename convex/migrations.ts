@@ -404,7 +404,7 @@ async function freeSlug(
  * early adds to the window rather than truncating it.
  *
  *   npx convex run migrations:grantAccess --prod \
- *     '{"email":"someone@example.com","months":3,"plan":"pro","note":"₦120k transfer, 17 Aug"}'
+ *     '{"email":"someone@example.com","months":3,"plan":"pro","note":"$99 wire, 17 Aug"}'
  */
 export const grantAccess = internalMutation({
   args: {

@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useMutation, useQuery } from 'convex/react'
+import { useAction, useMutation, useQuery } from 'convex/react'
 import { api } from '@/convex/_generated/api'
 import { Id } from '@/convex/_generated/dataModel'
 import { periodLabel } from '@/lib/report'
@@ -18,7 +18,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { toast } from 'sonner'
-import { Loader2, Plus, X } from 'lucide-react'
+import { Loader2, Plus, Sparkles, X } from 'lucide-react'
 import { BrandLoader } from '@/components/brand/brand-loader'
 
 // ── Writing a report ──────────────────────────────────────────────────────────
@@ -136,6 +136,7 @@ export function ReportComposer({
     open ? { clientId, period } : 'skip',
   )
   const save = useMutation(api.reports.saveNotes)
+  const draftWithAgent = useAction(api.reportAgent.draft)
 
   const [summary, setSummary] = useState('')
   const [performanceNote, setPerformanceNote] = useState('')
@@ -144,6 +145,36 @@ export function ReportComposer({
   const [reachTarget, setReachTarget] = useState('')
   const [publishedTarget, setPublishedTarget] = useState('')
   const [saving, setSaving] = useState(false)
+  const [drafting, setDrafting] = useState(false)
+  const [drafted, setDrafted] = useState(false)
+
+  // The agent drafts; the person decides. Nothing it writes is saved until they
+  // press Save, and text they have already written is only replaced if they say so.
+  const runAgent = async () => {
+    const hasText = [summary, performanceNote, responseToFeedback].some((value) => value.trim())
+    if (hasText && !window.confirm('Replace what you have written with a new draft?')) return
+    setDrafting(true)
+    try {
+      const result = await draftWithAgent({ clientId, period })
+      setSummary(result.draft.summary)
+      setPerformanceNote(result.draft.performanceNote)
+      if (result.draft.responseToFeedback) setResponseToFeedback(result.draft.responseToFeedback)
+      setDrafted(true)
+      if (result.problems.length > 0) {
+        toast.warning('Draft added, but a check still objects. Read it closely before you save.')
+      } else {
+        toast.success('Draft added. Read it, edit it, then save.')
+      }
+    } catch (error) {
+      const message =
+        error && typeof error === 'object' && 'data' in error && typeof error.data === 'string'
+          ? error.data
+          : 'The agent could not draft this month'
+      toast.error(message)
+    } finally {
+      setDrafting(false)
+    }
+  }
 
   // Seeded once the server answers. Keyed on the period as well so switching
   // months inside an open dialog does not leave the previous month's text in
@@ -209,6 +240,22 @@ export function ReportComposer({
           </p>
         ) : (
           <div className="space-y-6 py-2">
+            {/* The agent */}
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-muted p-4">
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-medium text-foreground">Report agent</p>
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                  {drafted
+                    ? 'Drafted from this month\u2019s entries. Every number was checked against them.'
+                    : 'Drafts the summary, what drove the numbers and the answer to last month from your entries. You edit it before anything is saved.'}
+                </p>
+              </div>
+              <Button type="button" variant="outline" size="sm" onClick={runAgent} disabled={drafting} className="gap-1.5">
+                {drafting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
+                {drafting ? 'Drafting' : drafted ? 'Draft again' : 'Draft with the agent'}
+              </Button>
+            </div>
+
             {/* The paragraph */}
             <div>
               <Label htmlFor="summary" className="text-sm">Summary</Label>

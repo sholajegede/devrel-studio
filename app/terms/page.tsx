@@ -26,7 +26,7 @@ export default function TermsPage() {
         </p>
         <p>
           We handle payment directly, not through a card processor. You tell us the plan and
-          the term. We send transfer details. Access opens when the payment arrives.
+          the term. We send an invoice with wire details in US dollars. Access opens when the payment arrives.
         </p>
       </Section>
 

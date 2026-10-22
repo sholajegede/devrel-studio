@@ -64,7 +64,7 @@ export const status = query({
 })
 
 export const requestPro = mutation({
-  args: { currency: v.union(v.literal('USD'), v.literal('GBP'), v.literal('NGN')) },
+  args: { currency: v.literal('USD') },
   handler: async (ctx, args) => {
     const user = await requireCurrentUser(ctx)
     if (proActive(user)) throw new ConvexError('You already have Jobs Pro')

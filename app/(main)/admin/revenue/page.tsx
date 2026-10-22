@@ -101,9 +101,9 @@ export default function AdminRevenuePage() {
       ) : (
         <>
           <div className="mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {/* One card per currency. Converting naira and dollars at a rate
-                nobody recorded would produce a total that looks authoritative
-                and is not. */}
+            {/* One card per currency. Sales are in US dollars; older sales
+                in another currency keep their own card rather than being
+                converted at a rate nobody recorded. */}
             {ledger.totals.length === 0 ? (
               <Card className="gap-0 p-5">
                 <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">

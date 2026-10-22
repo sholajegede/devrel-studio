@@ -192,9 +192,9 @@ export function FeatureBento() {
     <section id="features" className="mx-auto max-w-[1600px] px-4 py-24 sm:px-8 sm:py-32">
       <div className="mx-auto max-w-3xl text-center">
         <h2 className="text-[clamp(2.25rem,5.4vw,4rem)] font-medium leading-[1.03] tracking-[-0.03em] text-foreground">
-          A modern workspace
+          The record
           <br />
-          for DevRel reporting
+          behind every report
         </h2>
       </div>
 
@@ -202,7 +202,7 @@ export function FeatureBento() {
         <Cell
           className="lg:col-span-4"
           title="A live address, not a monthly PDF"
-          body="Every client gets a URL that shows what you shipped and how it performed. Each number carries its change against last month."
+          body="Every client and executive gets a URL that shows what you shipped and how it performed. Each number carries its change against last month."
         >
           <StatStrip />
         </Cell>
@@ -220,7 +220,7 @@ export function FeatureBento() {
           className="lg:col-span-2"
           tone="blue"
           title="Six kinds of work, six numbers"
-          body="Each category tracks the number that suits it."
+          body="From video views to package downloads, each category tracks the number that suits it."
         >
           <CategoryList />
         </Cell>
@@ -244,8 +244,8 @@ export function FeatureBento() {
 
         <Cell
           className="lg:col-span-3"
-          title="Your own work, on your own page"
-          body="Publish everything you shipped at your handle. Export any view as CSV or PDF when a conversation needs paper."
+          title="A public record, readable by agents"
+          body="Publish everything you shipped at your handle, with an llms.txt beside it. Export any view as CSV or PDF when a conversation needs paper."
         >
           <div className="space-y-2">
             <div className="flex items-center gap-2.5 rounded-2xl bg-paper px-4 py-3">
