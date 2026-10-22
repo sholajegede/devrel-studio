@@ -38,10 +38,14 @@ export default async function HirePage() {
           })),
         }}
       />
-      <header className="mb-10 max-w-3xl">
-        <h1 className="text-4xl font-semibold tracking-tight text-foreground">Hire a developer advocate</h1>
-        <p className="mt-3 text-lg text-muted-foreground">{DESCRIPTION}</p>
-        <p className="mt-3 text-sm text-muted-foreground">
+      <header className="mb-14 text-center">
+        <h1 className="text-[clamp(2.75rem,7vw,5.25rem)] font-medium leading-[1] tracking-[-0.035em] text-foreground">
+          Hire a developer
+          <br />
+          advocate
+        </h1>
+        <p className="mx-auto mt-7 max-w-2xl text-lg leading-relaxed text-muted-foreground">{DESCRIPTION}</p>
+        <p className="mx-auto mt-3 max-w-xl text-sm text-muted-foreground">
           Everyone here switched on their listing. Each profile shows the work they track on DevRel Studio, and you contact them through the form on their page.
         </p>
       </header>

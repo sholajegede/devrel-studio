@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import Image from 'next/image'
+import { Wordmark } from '@/components/brand/wordmark'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -52,27 +52,18 @@ export function AccessGate({
   return (
     <div className="min-h-screen bg-background flex items-center justify-center px-4">
       <div className="w-full max-w-sm">
-        <div className="flex items-center gap-3 mb-8 justify-center">
-          <Image
-            src="/images/devrel-logo.png"
-            alt="DevRel Studio"
-            width={32}
-            height={32}
-            className="rounded"
-          />
-          <span className="text-base font-semibold text-foreground">
-            devrel<span className="text-muted-foreground">.studio</span>
-          </span>
+        <div className="mb-8 flex justify-center">
+          <Wordmark />
         </div>
 
-        <div className="rounded-xl border border-border bg-card p-6">
+        <div className="rounded-[2rem] bg-sand p-8">
           <div className="flex justify-center mb-4">
-            <div className="h-11 w-11 rounded-full bg-muted flex items-center justify-center">
-              <Lock className="h-5 w-5 text-muted-foreground" />
+            <div className="h-12 w-12 rounded-full bg-ochre flex items-center justify-center">
+              <Lock className="h-5 w-5 text-ink" />
             </div>
           </div>
 
-          <h1 className="text-lg font-semibold text-foreground text-center">
+          <h1 className="text-3xl font-medium leading-[1.05] tracking-[-0.04em] text-foreground text-center">
             {exists && clientName ? `${clientName} performance dashboard` : 'Private dashboard'}
           </h1>
           <p className="text-sm text-muted-foreground text-center mt-1.5 mb-6">

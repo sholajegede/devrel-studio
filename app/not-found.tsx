@@ -1,6 +1,6 @@
 import { Button } from '@/components/ui/button'
 import { siteOrigin } from '@/lib/site'
-import { Globe } from 'lucide-react'
+import { Shape } from '@/components/marketing/shapes'
 
 // ── An address nobody has claimed ─────────────────────────────────────────────
 //
@@ -29,9 +29,9 @@ export default function NotFound() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-6 py-16">
       <div className="w-full max-w-lg text-center">
-        <Globe className="mx-auto h-10 w-10 text-muted-foreground" />
+        <div className="mx-auto w-16"><Shape name="dome" color="ochre" /></div>
 
-        <h1 className="mt-5 text-2xl font-semibold tracking-[-0.02em] text-foreground">
+        <h1 className="mt-6 text-4xl font-medium leading-[1.05] tracking-[-0.04em] text-foreground">
           This address isn&apos;t claimed
         </h1>
 
@@ -56,7 +56,7 @@ export default function NotFound() {
             was sent this link and is now looking at a page inviting them to sign
             up for something they never asked for. Telling them it is probably
             not their fault costs one line. */}
-        <p className="mx-auto mt-10 max-w-md border-t border-border pt-6 text-sm text-muted-foreground">
+        <p className="mx-auto mt-10 max-w-md border-t border-ink/10 pt-6 text-sm text-muted-foreground">
           Expecting a dashboard here? The link may be mistyped, or whoever prepared it may
           not have published it yet — ask them for the address again.
         </p>

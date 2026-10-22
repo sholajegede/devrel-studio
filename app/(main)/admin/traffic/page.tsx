@@ -52,7 +52,7 @@ export default function AdminTrafficPage() {
     <>
       <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-foreground">Traffic</h1>
+          <h1 className="text-4xl font-medium leading-[1.05] tracking-[-0.04em] text-foreground sm:text-[2.75rem]">Traffic</h1>
           <p className="text-sm text-muted-foreground">
             Every page on the platform: devrel.studio itself, every portfolio and
             every client dashboard. Filter to one surface below.

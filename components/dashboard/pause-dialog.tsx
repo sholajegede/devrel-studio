@@ -123,7 +123,7 @@ export function PauseDialog({
           </div>
 
           {resuming && skipped > 0 && (
-            <div className="rounded-lg border bg-muted/30 p-3 text-xs text-muted-foreground">
+            <div className="rounded-xl border bg-muted/30 p-3 text-xs text-muted-foreground">
               <p>
                 <span className="font-medium text-foreground">
                   {skipped} month{skipped === 1 ? '' : 's'}

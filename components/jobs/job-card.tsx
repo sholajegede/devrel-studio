@@ -52,10 +52,10 @@ export function EligibilityChip({ job, country }: { job: CardJob; country?: stri
   )
   const name = countryName(country)
   if (fit === 'yes') {
-    return <Badge className="bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20">Open in {name}</Badge>
+    return <Badge className="bg-green text-paper border-transparent">Open in {name}</Badge>
   }
   if (fit === 'local') {
-    return <Badge className="bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20">In {name}</Badge>
+    return <Badge className="bg-green text-paper border-transparent">In {name}</Badge>
   }
   if (fit === 'no') {
     return <Badge variant="outline" className="text-muted-foreground">Not open in {name}</Badge>
@@ -66,10 +66,10 @@ export function EligibilityChip({ job, country }: { job: CardJob; country?: stri
 export function MatchPill({ score }: { score: number }) {
   const tone =
     score >= 80
-      ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400'
+      ? 'bg-green text-paper'
       : score >= 60
-        ? 'bg-accent/15 text-accent'
-        : 'bg-muted text-muted-foreground'
+        ? 'bg-orange text-paper'
+        : 'bg-paper text-muted-foreground'
   return (
     <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${tone}`}>
       {score}% · {matchLabel(score)}
@@ -93,7 +93,7 @@ export function JobCard({
   const pay = payLabel(job)
   const fresh = Date.now() - job.postedAt < 3 * 24 * 60 * 60 * 1000
   return (
-    <article className="group relative flex gap-4 rounded-2xl border border-border bg-card p-5 shadow-[0_1px_0_rgba(0,0,0,0.02)] transition-all duration-200 hover:-translate-y-0.5 hover:border-accent/40 hover:shadow-lg hover:shadow-black/5">
+    <article className="group relative flex gap-4 rounded-[2rem] bg-sand p-6 transition-colors duration-150 hover:bg-sand-deep">
       <Monogram name={job.companyName} size={48} />
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-2">
@@ -101,7 +101,7 @@ export function JobCard({
             <p className="flex items-center gap-2 text-sm text-muted-foreground">
               {job.companyName}
               {fresh && (
-                <span className="inline-flex items-center gap-1 rounded-full bg-accent/10 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-accent">
+                <span className="inline-flex items-center gap-1 rounded-full bg-orange px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-paper">
                   New
                 </span>
               )}
@@ -120,23 +120,23 @@ export function JobCard({
 
         <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
           {pay && (
-            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2.5 py-1 font-medium text-emerald-700 dark:text-emerald-400">
+            <span className="inline-flex items-center gap-1 rounded-full bg-green px-2.5 py-1 font-medium text-paper">
               <Wallet className="h-3 w-3" />
               {pay}
             </span>
           )}
-          <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2.5 py-1 text-muted-foreground">
+          <span className="inline-flex items-center gap-1 rounded-full bg-paper px-2.5 py-1 text-muted-foreground">
             <MapPin className="h-3 w-3" />
             {job.locationLabel}
           </span>
-          <span className="rounded-full bg-muted px-2.5 py-1 text-muted-foreground">
+          <span className="rounded-full bg-paper px-2.5 py-1 text-muted-foreground">
             {WORKPLACE_LABEL[job.workplace] ?? job.workplace}
           </span>
-          <span className="rounded-full bg-muted px-2.5 py-1 text-muted-foreground">
+          <span className="rounded-full bg-paper px-2.5 py-1 text-muted-foreground">
             {seniorityLabel(job.seniority)}
           </span>
           {job.visa === 'yes' && (
-            <span className="inline-flex items-center gap-1 rounded-full bg-sky-500/10 px-2.5 py-1 font-medium text-sky-700 dark:text-sky-400">
+            <span className="inline-flex items-center gap-1 rounded-full bg-blue px-2.5 py-1 font-medium text-paper">
               <Plane className="h-3 w-3" />
               Visa sponsorship
             </span>
@@ -148,7 +148,7 @@ export function JobCard({
           <div className="mt-3 flex flex-wrap items-center gap-1.5">
             <EligibilityChip job={job} country={country} />
             {job.skills.slice(0, 4).map((skill) => (
-              <Badge key={skill} variant="outline" className="font-normal text-muted-foreground">
+              <Badge key={skill} variant="outline" className="border-ink/15 font-normal text-muted-foreground">
                 {skill}
               </Badge>
             ))}

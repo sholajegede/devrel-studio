@@ -32,9 +32,9 @@ export default function ProPage() {
         description="Everything that helps you get the job, not just find it."
       />
 
-      <div className="mx-auto max-w-2xl rounded-2xl border border-border bg-card p-6">
+      <div className="mx-auto max-w-2xl rounded-3xl bg-card p-6">
         {status?.pro ? (
-          <div className="mb-5 rounded-lg bg-accent/10 p-3 text-sm text-foreground">
+          <div className="mb-5 rounded-xl bg-accent/10 p-3 text-sm text-foreground">
             {status.comped
               ? 'Jobs Pro is included on your account.'
               : `Jobs Pro is active until ${new Date(status.until ?? 0).toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric' })}.`}
@@ -84,7 +84,7 @@ export default function ProPage() {
               </select>
             </div>
             {status?.request ? (
-              <div className="rounded-lg bg-muted p-3 text-sm">
+              <div className="rounded-xl bg-muted p-3 text-sm">
                 Request received for {status.request.amount.toLocaleString('en-US')} {status.request.currency}. We email
                 transfer details, and Jobs Pro opens once the payment clears.
                 <Button variant="ghost" size="sm" onClick={() => cancel()} className="ml-2">

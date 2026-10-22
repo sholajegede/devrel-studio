@@ -27,7 +27,7 @@ export default function AdminOverviewPage() {
   return (
     <>
       <div className="mb-6">
-        <h1 className="text-2xl font-semibold text-foreground">Overview</h1>
+        <h1 className="text-4xl font-medium leading-[1.05] tracking-[-0.04em] text-foreground sm:text-[2.75rem]">Overview</h1>
         <p className="text-sm text-muted-foreground">
           {loading
             ? 'Loading…'
@@ -171,7 +171,7 @@ function Stat({
     >
       <div className="flex items-center gap-1.5">
         {tone === 'attention' && value > 0 && (
-          <AlertTriangle className="h-3.5 w-3.5 shrink-0 text-amber-600 dark:text-amber-500" />
+          <AlertTriangle className="h-3.5 w-3.5 shrink-0 text-amber-600" />
         )}
         <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
           {label}

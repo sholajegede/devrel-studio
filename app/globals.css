@@ -1,87 +1,76 @@
 @import 'tailwindcss';
 @import 'tw-animate-css';
-@custom-variant dark (&:is(.dark *));
-
-:root {
-  --background: #f5f5f5;
-  --foreground: #1a1a1a;
-  --card: #ffffff;
-  --card-foreground: #1a1a1a;
-  --popover: #ffffff;
-  --popover-foreground: #1a1a1a;
-  --primary: #232931;
-  --primary-foreground: #ffffff;
-  --secondary: #edf2f7;
-  --secondary-foreground: #2d3748;
-  --muted: #f7fafc;
-  --muted-foreground: #718096;
-  --accent: #38b2ac;
-  --accent-foreground: #ffffff;
-  --destructive: #e53e3e;
-  --destructive-foreground: #ffffff;
-  --border: #e2e8f0;
-  --input: #e2e8f0;
-  --ring: #38b2ac;
-  --chart-1: #38b2ac;
-  --chart-2: #2d3748;
-  --chart-3: #718096;
-  --chart-4: #4fd1c5;
-  --chart-5: #1a202c;
-  --radius: 0.5rem;
-  --sidebar: #ffffff;
-  --sidebar-foreground: #1a1a1a;
-  --sidebar-primary: #2d3748;
-  --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #edf2f7;
-  --sidebar-accent-foreground: #2d3748;
-  --sidebar-border: #e2e8f0;
-  --sidebar-ring: #38b2ac;
-}
 
 /*
- * Dark palette. This was the stock shadcn neutral set, which turned the teal
- * accent grey and gave --card the same value as --background, so every card
- * lost its edge. These are the light tokens restated for a dark ground: the
- * brand teal is kept (lifted a step, since #38b2ac is too dim against near
- * black), and card/popover/sidebar each sit on their own step above the page.
+ * One light theme. Warm paper ground, near-black ink with a red cast, and a
+ * small set of flat, saturated accents. No gradients, no dark mode, no shadows:
+ * depth comes from tone (page, then sand surface, then deeper sand) and from
+ * big radii.
  */
-.dark {
-  --background: #14181d;
-  --foreground: #e6e9ec;
-  --card: #1b2027;
-  --card-foreground: #e6e9ec;
-  --popover: #1b2027;
-  --popover-foreground: #e6e9ec;
-  --primary: #e6e9ec;
-  --primary-foreground: #1b2027;
-  --secondary: #252c35;
-  --secondary-foreground: #e6e9ec;
-  --muted: #222831;
-  --muted-foreground: #9aa5b1;
-  --accent: #4fd1c5;
-  --accent-foreground: #10231f;
-  --destructive: #f87171;
-  --destructive-foreground: #1b2027;
-  --border: #2b323b;
-  --input: #2b323b;
-  --ring: #4fd1c5;
-  --chart-1: #4fd1c5;
-  --chart-2: #9aa5b1;
-  --chart-3: #718096;
-  --chart-4: #38b2ac;
-  --chart-5: #e6e9ec;
-  --sidebar: #171c22;
-  --sidebar-foreground: #e6e9ec;
-  --sidebar-primary: #4fd1c5;
-  --sidebar-primary-foreground: #10231f;
-  --sidebar-accent: #252c35;
-  --sidebar-accent-foreground: #e6e9ec;
-  --sidebar-border: #2b323b;
-  --sidebar-ring: #4fd1c5;
+:root {
+  --paper: #f8f0e3;
+  --sand: #ece4d7;
+  --sand-deep: #e1d7c5;
+  --ink: #180102;
+  --ink-soft: #6e625b;
+  --orange: #f16b46;
+  --blue: #63a4bc;
+  --green: #3dac91;
+  --ochre: #dbb154;
+  --rust: #b84a3c;
+  --pink: #e0a5d0;
+  --olive: #8f8566;
+
+  --background: var(--paper);
+  --foreground: var(--ink);
+  --card: var(--sand);
+  --card-foreground: var(--ink);
+  --popover: #fbf6ec;
+  --popover-foreground: var(--ink);
+  --primary: var(--ink);
+  --primary-foreground: var(--paper);
+  --secondary: var(--sand-deep);
+  --secondary-foreground: var(--ink);
+  --muted: var(--sand-deep);
+  --muted-foreground: var(--ink-soft);
+  --accent: var(--orange);
+  --accent-foreground: var(--paper);
+  --destructive: var(--rust);
+  --destructive-foreground: var(--paper);
+  --border: #dcd1bd;
+  --input: #cfc3ad;
+  --ring: var(--orange);
+  --chart-1: var(--orange);
+  --chart-2: var(--blue);
+  --chart-3: var(--green);
+  --chart-4: var(--ochre);
+  --chart-5: var(--ink);
+  --radius: 1rem;
+  --sidebar: var(--sand);
+  --sidebar-foreground: var(--ink);
+  --sidebar-primary: var(--orange);
+  --sidebar-primary-foreground: var(--paper);
+  --sidebar-accent: var(--sand);
+  --sidebar-accent-foreground: var(--ink);
+  --sidebar-border: #dcd1bd;
+  --sidebar-ring: var(--orange);
 }
 
 @theme inline {
-  /* optional: --font-sans, --font-serif, --font-mono if they are applied in the layout.tsx */
+  --font-sans: var(--font-hanken), 'Helvetica Neue', Arial, sans-serif;
+  --font-mono: var(--font-plex-mono), ui-monospace, 'SFMono-Regular', monospace;
+  --color-paper: var(--paper);
+  --color-sand: var(--sand);
+  --color-sand-deep: var(--sand-deep);
+  --color-ink: var(--ink);
+  --color-ink-soft: var(--ink-soft);
+  --color-orange: var(--orange);
+  --color-blue: var(--blue);
+  --color-green: var(--green);
+  --color-ochre: var(--ochre);
+  --color-rust: var(--rust);
+  --color-pink: var(--pink);
+  --color-olive: var(--olive);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -106,10 +95,12 @@
   --color-chart-3: var(--chart-3);
   --color-chart-4: var(--chart-4);
   --color-chart-5: var(--chart-5);
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
+  --radius-sm: calc(var(--radius) - 6px);
+  --radius-md: calc(var(--radius) - 4px);
   --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
+  --radius-xl: calc(var(--radius) + 8px);
+  --radius-2xl: calc(var(--radius) + 12px);
+  --radius-3xl: 2rem;
   --color-sidebar: var(--sidebar);
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar-primary: var(--sidebar-primary);
@@ -120,12 +111,85 @@
   --color-sidebar-ring: var(--sidebar-ring);
 }
 
+/*
+ * Medium-weight headings with tight tracking are the voice of the system.
+ * Tailwind's semibold and bold are remapped here so every existing heading
+ * picks the weight up without being edited one by one.
+ */
+@theme {
+  --font-weight-medium: 500;
+  --font-weight-semibold: 500;
+  --font-weight-bold: 600;
+  --tracking-tighter: -0.05em;
+  --tracking-tight: -0.035em;
+
+  /* Status colours, remapped onto the palette so no page carries stock hues. */
+  --color-amber-50: #fbf4e1;  --color-amber-100: #f6e8c1; --color-amber-200: #f0d896;
+  --color-amber-300: #e8c76f; --color-amber-400: #dfb95e; --color-amber-500: #dbb154;
+  --color-amber-600: #a98027; --color-amber-700: #86621c; --color-amber-800: #6b5121;
+  --color-amber-900: #4a3817; --color-amber-950: #2d220e;
+
+  --color-emerald-50: #e6f5f0;  --color-emerald-100: #c8e9df; --color-emerald-200: #a0d8c8;
+  --color-emerald-300: #72c5ae; --color-emerald-400: #52b79c; --color-emerald-500: #3dac91;
+  --color-emerald-600: #2b856f; --color-emerald-700: #226b59; --color-emerald-800: #20574b;
+  --color-emerald-900: #1a4339; --color-emerald-950: #0e2a24;
+
+  --color-green-50: #e6f5f0;  --color-green-100: #c8e9df; --color-green-200: #a0d8c8;
+  --color-green-300: #72c5ae; --color-green-400: #52b79c; --color-green-500: #3dac91;
+  --color-green-600: #2b856f; --color-green-700: #226b59; --color-green-800: #20574b;
+  --color-green-900: #1a4339; --color-green-950: #0e2a24;
+
+  --color-sky-50: #eaf3f7;  --color-sky-100: #d4e6ee; --color-sky-200: #b4d3e0;
+  --color-sky-300: #8fbdd0; --color-sky-400: #77b0c7; --color-sky-500: #63a4bc;
+  --color-sky-600: #437f98; --color-sky-700: #366579; --color-sky-800: #305769;
+  --color-sky-900: #264553; --color-sky-950: #162a33;
+
+  --color-blue-50: #eaf3f7;  --color-blue-100: #d4e6ee; --color-blue-200: #b4d3e0;
+  --color-blue-300: #8fbdd0; --color-blue-400: #77b0c7; --color-blue-500: #63a4bc;
+  --color-blue-600: #437f98; --color-blue-700: #366579; --color-blue-800: #305769;
+  --color-blue-900: #264553; --color-blue-950: #162a33;
+
+  --color-red-50: #fbeeeb;  --color-red-100: #f6d9d3; --color-red-200: #eebcb2;
+  --color-red-300: #e39a8b; --color-red-400: #d2705f; --color-red-500: #b84a3c;
+  --color-red-600: #9c3b2f; --color-red-700: #7e3027; --color-red-800: #62261f;
+  --color-red-900: #481c17; --color-red-950: #2b100d;
+
+  --color-violet-50: #f8eef5;  --color-violet-100: #f1dceb; --color-violet-200: #e8c6de;
+  --color-violet-300: #e0a5d0; --color-violet-400: #cf8dbe; --color-violet-500: #b9729f;
+  --color-violet-600: #98587f; --color-violet-700: #7a4766; --color-violet-800: #5e374e;
+  --color-violet-900: #432838; --color-violet-950: #281520;
+
+  --color-yellow-500: #dbb154; --color-yellow-600: #a98027;
+
+  --color-stone-50: #f8f0e3;  --color-stone-100: #ece4d7; --color-stone-200: #e1d7c5;
+  --color-stone-300: #cdc1ac; --color-stone-400: #aca08f; --color-stone-500: #867b6f;
+  --color-stone-600: #6e625b; --color-stone-700: #51463f; --color-stone-800: #33271f;
+  --color-stone-900: #180102; --color-stone-950: #100001;
+  --color-slate-50: #f8f0e3;  --color-slate-100: #ece4d7; --color-slate-200: #e1d7c5;
+  --color-slate-300: #cdc1ac; --color-slate-400: #aca08f; --color-slate-500: #867b6f;
+  --color-slate-600: #6e625b; --color-slate-700: #51463f; --color-slate-800: #33271f;
+  --color-slate-900: #180102; --color-slate-950: #100001;
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
   }
+  html {
+    color-scheme: light;
+  }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground font-sans;
+    font-feature-settings: 'ss01', 'cv11';
+    -webkit-font-smoothing: antialiased;
+  }
+  h1,
+  h2 {
+    text-wrap: balance;
+  }
+  ::selection {
+    background: var(--orange);
+    color: var(--paper);
   }
 }
 

@@ -93,7 +93,7 @@ export default function JobAnalyticsPage() {
   const data = useQuery(api.jobAnalytics.report, { weeks })
   const live = useQuery(api.jobAnalytics.live, { limit: 60 })
 
-  if (data === undefined) return <div className="h-40 animate-pulse rounded-xl bg-muted" />
+  if (data === undefined) return <div className="h-40 animate-pulse rounded-2xl bg-muted" />
 
   const t = (event: string) => data.totals[event] ?? 0
   const visitors = data.weeklyVisitors.reduce((sum, week) => sum + week.count, 0)
@@ -111,12 +111,12 @@ export default function JobAnalyticsPage() {
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <Link href="/admin/jobs" className="text-xs text-muted-foreground hover:text-foreground">Jobs</Link>
-          <h1 className="text-2xl font-semibold text-foreground">Job board analytics</h1>
+          <h1 className="text-4xl font-medium leading-[1.05] tracking-[-0.04em] text-foreground sm:text-[2.75rem]">Job board analytics</h1>
           <p className="text-sm text-muted-foreground">
             Every visit, search, click, copy, CV, tailored kit and tour. Weeks run Monday to Sunday, UTC. {live ? `${live.online} on the site now.` : ''}
           </p>
         </div>
-        <div className="flex gap-1 rounded-lg border border-border p-1" role="group" aria-label="Range">
+        <div className="flex gap-1 rounded-xl border border-border p-1" role="group" aria-label="Range">
           {RANGES.map((range) => (
             <button
               key={range.weeks}
@@ -131,7 +131,7 @@ export default function JobAnalyticsPage() {
       </div>
 
       {data.truncated && (
-        <p className="rounded-lg border border-border bg-muted/50 p-3 text-sm text-muted-foreground">
+        <p className="rounded-xl border border-border bg-muted/50 p-3 text-sm text-muted-foreground">
           This range has more rows than one report reads. Pick a shorter range for exact lists.
         </p>
       )}

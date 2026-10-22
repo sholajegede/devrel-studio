@@ -120,7 +120,7 @@ function AlertsInner() {
       />
 
       <div className="grid gap-6 lg:grid-cols-2">
-        <section className="space-y-4 rounded-xl border border-border bg-card p-5">
+        <section className="space-y-4 rounded-2xl bg-card p-5">
           <h2 className="font-medium text-foreground">New alert</h2>
           <Input placeholder="Name, for example Senior advocate, remote" value={name} onChange={(e) => setName(e.target.value)} aria-label="Alert name" maxLength={80} />
           <Input placeholder="Keywords (optional)" value={query} onChange={(e) => setQuery(e.target.value)} aria-label="Keywords" />
@@ -176,9 +176,9 @@ function AlertsInner() {
         <section className="space-y-3">
           <h2 className="font-medium text-foreground">Your alerts</h2>
           {alerts === undefined ? (
-            <div className="h-24 animate-pulse rounded-xl bg-muted" />
+            <div className="h-24 animate-pulse rounded-2xl bg-muted" />
           ) : !alerts || alerts.length === 0 ? (
-            <div className="rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
+            <div className="rounded-2xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
               <Bell className="mx-auto mb-2 h-5 w-5" />
               No alerts yet. Set filters on the{' '}
               <Link href="/dashboard/jobs" className="underline">
@@ -188,7 +188,7 @@ function AlertsInner() {
             </div>
           ) : (
             alerts.map((alert) => (
-              <div key={alert._id} className="flex items-center gap-3 rounded-xl border border-border bg-card p-4">
+              <div key={alert._id} className="flex items-center gap-3 rounded-2xl bg-card p-4">
                 <div className="min-w-0 flex-1">
                   <p className="truncate font-medium text-foreground">{alert.name}</p>
                   <p className="truncate text-xs text-muted-foreground">{describe(alert)}</p>

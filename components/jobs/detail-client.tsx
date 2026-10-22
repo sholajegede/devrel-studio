@@ -24,7 +24,7 @@ export function EligibilityPanel({
     : null
 
   return (
-    <div className="rounded-lg border border-border p-3 text-sm">
+    <div className="rounded-xl border border-border p-3 text-sm">
       <div className="flex items-center gap-2 font-medium text-foreground">
         <Globe2 className="h-4 w-4 text-muted-foreground" />
         Can you apply from where you live?
@@ -43,13 +43,13 @@ export function EligibilityPanel({
         ))}
       </select>
       {country && fit === 'yes' && (
-        <p className="mt-2 flex items-start gap-1.5 text-emerald-700 dark:text-emerald-400">
+        <p className="mt-2 flex items-start gap-1.5 text-emerald-700">
           <Check className="mt-0.5 h-4 w-4 shrink-0" />
           Open to candidates in {countryName(country)}.
         </p>
       )}
       {country && fit === 'local' && (
-        <p className="mt-2 flex items-start gap-1.5 text-emerald-700 dark:text-emerald-400">
+        <p className="mt-2 flex items-start gap-1.5 text-emerald-700">
           <Check className="mt-0.5 h-4 w-4 shrink-0" />
           Based in {countryName(country)}.
         </p>

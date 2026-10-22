@@ -49,7 +49,7 @@ export default function AdminAbusePage() {
     <>
       <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-foreground">Lockouts</h1>
+          <h1 className="text-4xl font-medium leading-[1.05] tracking-[-0.04em] text-foreground sm:text-[2.75rem]">Lockouts</h1>
           <p className="text-sm text-muted-foreground">
             {loading
               ? 'Loading…'
@@ -112,7 +112,7 @@ function LockoutCard({ row, onUnlock }: { row: Row; onUnlock: () => void }) {
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
             {anyLocked && (
-              <ShieldAlert className="h-4 w-4 shrink-0 text-amber-600 dark:text-amber-500" />
+              <ShieldAlert className="h-4 w-4 shrink-0 text-amber-600" />
             )}
             <span className="font-medium text-foreground">{row.slug}.devrel.studio</span>
           </div>

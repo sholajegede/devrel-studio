@@ -163,7 +163,7 @@ function ChartTooltip({
   })
 
   return (
-    <div className="rounded-lg border bg-popover px-3 py-2 text-xs shadow-sm">
+    <div className="rounded-xl border bg-popover px-3 py-2 text-xs">
       <div className="font-medium text-popover-foreground">{heading}</div>
       <div className="mt-1 tabular-nums text-popover-foreground">
         {point.views.toLocaleString()} views

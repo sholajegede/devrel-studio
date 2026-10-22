@@ -26,7 +26,7 @@ function Shell({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen bg-background flex items-center justify-center px-4">
       <div className="w-full max-w-sm">
-        <div className="rounded-xl border border-border bg-card p-6 text-center">{children}</div>
+        <div className="rounded-[2rem] bg-sand p-8 text-center">{children}</div>
         <p className="mt-6 text-center text-xs text-muted-foreground">
           <Link href="/" className="hover:text-foreground transition-colors">
             devrel<span className="opacity-60">.studio</span>
@@ -63,10 +63,10 @@ export default async function InvitePage({
   if (!invite.valid) {
     return (
       <Shell>
-        <div className="mx-auto mb-4 flex h-11 w-11 items-center justify-center rounded-full bg-muted">
-          <AlertCircle className="h-5 w-5 text-muted-foreground" />
+        <div className="mx-auto mb-5 flex h-12 w-12 items-center justify-center rounded-full bg-ochre">
+          <AlertCircle className="h-5 w-5 text-ink" />
         </div>
-        <h1 className="text-lg font-semibold text-foreground">Invitation unavailable</h1>
+        <h1 className="text-3xl font-medium leading-[1.05] tracking-[-0.04em] text-foreground">Invitation unavailable</h1>
         <p className="mt-2 text-sm text-muted-foreground">
           {REASONS[invite.reason] ?? REASONS['not-found']}
         </p>
@@ -79,11 +79,11 @@ export default async function InvitePage({
 
   return (
     <Shell>
-      <div className="mx-auto mb-4 flex h-11 w-11 items-center justify-center rounded-full bg-accent/10">
-        <Users className="h-5 w-5 text-accent" />
+      <div className="mx-auto mb-5 flex h-12 w-12 items-center justify-center rounded-full bg-accent">
+        <Users className="h-5 w-5 text-paper" />
       </div>
 
-      <h1 className="text-lg font-semibold text-foreground">
+      <h1 className="text-3xl font-medium leading-[1.05] tracking-[-0.04em] text-foreground">
         Join {invite.workspaceName}
       </h1>
       <p className="mt-2 text-sm text-muted-foreground">
@@ -107,7 +107,7 @@ export default async function InvitePage({
               href={`/api/auth/register?post_login_redirect_url=${encodeURIComponent(
                 `/invite/${token}`,
               )}`}
-              className="inline-flex w-full items-center justify-center rounded-lg bg-accent px-4 py-2 text-sm font-medium text-accent-foreground transition-colors hover:bg-accent/90"
+              className="inline-flex h-12 w-full items-center justify-center rounded-[2rem_0.5rem_0.5rem_2rem] bg-accent px-4 text-base font-medium text-accent-foreground transition-colors hover:bg-ink"
             >
               Create an account to accept
             </Link>
@@ -116,7 +116,7 @@ export default async function InvitePage({
               href={`/api/auth/login?post_login_redirect_url=${encodeURIComponent(
                 `/invite/${token}`,
               )}`}
-              className="mt-2.5 inline-flex w-full items-center justify-center rounded-lg border border-border px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted"
+              className="mt-2.5 inline-flex h-12 w-full items-center justify-center rounded-full border border-ink/25 px-4 text-base font-medium text-foreground transition-colors hover:border-ink hover:bg-paper"
             >
               I already have an account
             </Link>

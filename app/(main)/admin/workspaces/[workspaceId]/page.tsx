@@ -27,7 +27,7 @@ export default function AdminWorkspacePage() {
     return (
       <div className="space-y-3">
         <div className="h-6 w-48 animate-pulse rounded bg-muted" />
-        <div className="h-24 animate-pulse rounded-xl bg-muted" />
+        <div className="h-24 animate-pulse rounded-2xl bg-muted" />
       </div>
     )
   }
@@ -61,7 +61,7 @@ export default function AdminWorkspacePage() {
 
       <div className="mb-6">
         <div className="flex flex-wrap items-center gap-2">
-          <h1 className="text-2xl font-semibold text-foreground">{workspace.name}</h1>
+          <h1 className="text-4xl font-medium leading-[1.05] tracking-[-0.04em] text-foreground sm:text-[2.75rem]">{workspace.name}</h1>
           {workspace.isPersonal && (
             <span className="rounded-full border border-border px-2 py-0.5 text-[11px] text-muted-foreground">
               personal
@@ -93,7 +93,7 @@ export default function AdminWorkspacePage() {
       {flagged && (
         <Card className="mb-4 gap-0 border-amber-600/30 p-4">
           <p className="flex items-start gap-2 text-sm text-foreground">
-            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-500" />
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
             <span>
               Over what {owner ? 'this plan' : 'the free plan'} allows. Writes are already
               blocked at the limit — this usually means an invoice is due, not that
@@ -191,7 +191,7 @@ function Row({
       <dt className="text-muted-foreground">{label}</dt>
       <dd
         className={`text-right tabular-nums ${
-          over ? 'font-medium text-amber-600 dark:text-amber-500' : 'text-foreground'
+          over ? 'font-medium text-amber-600' : 'text-foreground'
         }`}
       >
         {count}

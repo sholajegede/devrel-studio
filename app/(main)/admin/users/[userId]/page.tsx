@@ -47,7 +47,7 @@ export default function AdminUserPage() {
     return (
       <div className="space-y-3">
         <div className="h-6 w-48 animate-pulse rounded bg-muted" />
-        <div className="h-24 animate-pulse rounded-xl bg-muted" />
+        <div className="h-24 animate-pulse rounded-2xl bg-muted" />
       </div>
     )
   }
@@ -99,11 +99,11 @@ export default function AdminUserPage() {
       <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
-            <h1 className="text-2xl font-semibold text-foreground">
+            <h1 className="text-4xl font-medium leading-[1.05] tracking-[-0.04em] text-foreground sm:text-[2.75rem]">
               {account.name ?? account.email}
             </h1>
             {account.comped && (
-              <span className="inline-flex items-center gap-1 rounded-full border border-violet-600/30 px-2 py-0.5 text-[11px] font-medium text-violet-700 dark:text-violet-400">
+              <span className="inline-flex items-center gap-1 rounded-full border border-violet-600/30 px-2 py-0.5 text-[11px] font-medium text-violet-700">
                 <Sparkles className="h-3 w-3" />
                 Comped
               </span>
@@ -219,7 +219,7 @@ export default function AdminUserPage() {
               directly — the server checks each owned workspace and reports
               whether any one of them is over. */}
           {usage.overLimit && (
-            <p className="mt-3 flex items-start gap-1.5 text-xs text-amber-600 dark:text-amber-500">
+            <p className="mt-3 flex items-start gap-1.5 text-xs text-amber-600">
               <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
               At least one of their workspaces is over this plan. Writes there are
               already blocked.

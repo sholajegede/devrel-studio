@@ -143,7 +143,7 @@ export default function MembersPage() {
 
       <div className="flex items-start justify-between mb-8 gap-4">
         <div>
-          <h1 className="text-2xl font-semibold text-foreground">Members</h1>
+          <h1 className="text-4xl font-medium leading-[1.05] tracking-[-0.04em] text-foreground sm:text-[2.75rem]">Members</h1>
           <p className="text-sm text-muted-foreground mt-1">
             Manage who has access to your DevRel Studio workspace.
           </p>
@@ -242,14 +242,14 @@ export default function MembersPage() {
           <Card data-tour="members-invite">
             <CardContent className="p-6">
               {inviteLink && (
-                <div className="mb-5 rounded-lg border border-sky-200 bg-sky-50/60 dark:border-sky-500/30 dark:bg-sky-500/10 px-3 py-2.5">
+                <div className="mb-5 rounded-xl border border-sky-200 bg-sky-50/60 px-3 py-2.5">
                   <div className="flex items-start gap-2.5">
-                    <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-sky-600 dark:text-sky-400" />
+                    <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-sky-600" />
                     <div className="min-w-0 flex-1">
-                      <p className="text-xs font-medium text-sky-900 dark:text-sky-200">
+                      <p className="text-xs font-medium text-sky-900">
                         Invitation link
                       </p>
-                      <p className="mt-0.5 text-xs leading-relaxed text-sky-900/80 dark:text-sky-200/80">
+                      <p className="mt-0.5 text-xs leading-relaxed text-sky-900/80">
                         Share this if the email does not arrive. It expires in 14 days.
                       </p>
                       <code className="mt-2 block truncate rounded bg-background/60 px-2 py-1 text-[11px] font-mono">
@@ -310,7 +310,7 @@ export default function MembersPage() {
                 {inviteRole && ROLE_META[inviteRole] && (() => {
                   const { description, icon: Icon } = ROLE_META[inviteRole]
                   return (
-                    <div className="flex items-start gap-2 rounded-lg bg-muted/40 border border-border px-3 py-2.5 text-xs text-muted-foreground">
+                    <div className="flex items-start gap-2 rounded-xl bg-muted/40 border border-border px-3 py-2.5 text-xs text-muted-foreground">
                       <Icon className="h-3.5 w-3.5 mt-0.5 shrink-0" />
                       <span>{description}</span>
                     </div>

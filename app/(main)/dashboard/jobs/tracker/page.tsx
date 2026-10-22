@@ -99,11 +99,11 @@ export default function TrackerPage() {
       </JobsHeader>
 
       {rows === undefined ? (
-        <div className="h-64 animate-pulse rounded-xl bg-muted" />
+        <div className="h-64 animate-pulse rounded-2xl bg-muted" />
       ) : rows === null ? (
         <p className="text-sm text-muted-foreground">Sign in to use the tracker.</p>
       ) : rows.length === 0 ? (
-        <div data-tour="tracker-board" className="rounded-xl border border-dashed border-border p-10 text-center">
+        <div data-tour="tracker-board" className="rounded-2xl border border-dashed border-border p-10 text-center">
           <p className="font-medium text-foreground">Nothing tracked yet</p>
           <p className="mx-auto mt-1 max-w-md text-sm text-muted-foreground">
             Save a role from the board, or add one you found elsewhere. Moving a card keeps a dated history, so
@@ -135,7 +135,7 @@ export default function TrackerPage() {
           {stats && (stats.needsFollowUp.length > 0 || stats.upcoming.length > 0) && (
             <div className="grid gap-3 lg:grid-cols-2">
               {stats.upcoming.length > 0 && (
-                <div className="rounded-xl border border-border bg-card p-4">
+                <div className="rounded-2xl bg-card p-4">
                   <p className="mb-2 flex items-center gap-2 text-sm font-medium">
                     <CalendarClock className="h-4 w-4 text-accent" />
                     Coming up
@@ -154,7 +154,7 @@ export default function TrackerPage() {
                 </div>
               )}
               {stats.needsFollowUp.length > 0 && (
-                <div className="rounded-xl border border-border bg-card p-4">
+                <div className="rounded-2xl bg-card p-4">
                   <p className="mb-2 flex items-center gap-2 text-sm font-medium">
                     <AlertTriangle className="h-4 w-4 text-accent" />
                     Worth a nudge
@@ -193,7 +193,7 @@ export default function TrackerPage() {
                     setDragId(null)
                     if (id) void move(id, column.id)
                   }}
-                  className={`min-h-40 min-w-52 rounded-xl border bg-muted/40 p-2 transition-colors ${
+                  className={`min-h-40 min-w-52 rounded-2xl border bg-muted/40 p-2 transition-colors ${
                     overColumn === column.id ? 'border-accent bg-accent/5' : 'border-border'
                   }`}
                 >
@@ -232,7 +232,7 @@ export default function TrackerPage() {
 
 function Stat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-xl border border-border bg-card p-3">
+    <div className="rounded-2xl bg-card p-3">
       <p className="text-xs text-muted-foreground">{label}</p>
       <p className="text-xl font-semibold tabular-nums text-foreground">{value}</p>
     </div>
@@ -255,7 +255,7 @@ function Card({
     <div
       draggable
       onDragStart={onDragStart}
-      className="cursor-grab rounded-lg border border-border bg-card p-3 shadow-sm active:cursor-grabbing"
+      className="cursor-grab rounded-xl bg-card p-3 active:cursor-grabbing"
     >
       <button type="button" onClick={onOpen} className="flex w-full items-start gap-2 text-left">
         <Monogram name={row.company} size={28} />

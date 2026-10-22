@@ -137,7 +137,7 @@ function EntryCard({
 
   return (
     <div
-      className="rounded-lg border border-border bg-card p-3 transition-colors hover:border-foreground/20"
+      className="rounded-xl bg-card p-3 transition-colors hover:border-foreground/20"
       data-tour={tourAnchor ? 'pipeline-card' : undefined}
     >
       <div className="flex items-start justify-between gap-2">
@@ -199,7 +199,7 @@ function EntryCard({
       {entry.publicationDate && (
         <p
           className={`mt-2 inline-flex items-center gap-1 text-xs ${
-            overdue ? 'font-medium text-amber-600 dark:text-amber-400' : 'text-muted-foreground'
+            overdue ? 'font-medium text-amber-600' : 'text-muted-foreground'
           }`}
         >
           {overdue ? (
@@ -322,11 +322,11 @@ export default function PipelinePage() {
       {/* Header */}
       <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-foreground">Pipeline</h1>
+          <h1 className="text-4xl font-medium leading-[1.05] tracking-[-0.04em] text-foreground sm:text-[2.75rem]">Pipeline</h1>
           <p className="text-sm text-muted-foreground" data-tour="pipeline-summary">
             {visible.filter((e) => e.status !== 'Published').length} in flight
             {overdue.length > 0 && (
-              <span className="text-amber-600 dark:text-amber-400">
+              <span className="text-amber-600">
                 {' '}
                 · {overdue.length} past its date
               </span>
@@ -350,16 +350,16 @@ export default function PipelinePage() {
 
       {/* Overdue callout — the one thing worth interrupting for */}
       {overdue.length > 0 && (
-        <Card className="mb-6 border-amber-300 bg-amber-50/60 dark:border-amber-500/30 dark:bg-amber-500/10">
+        <Card className="mb-6 border-amber-300 bg-amber-50/60">
           <CardContent className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-start gap-2.5">
-              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
               <div>
-                <p className="text-sm font-medium text-amber-900 dark:text-amber-200">
+                <p className="text-sm font-medium text-amber-900">
                   {overdue.length} {overdue.length === 1 ? 'entry is' : 'entries are'} past
                   the planned date
                 </p>
-                <p className="text-xs text-amber-800/80 dark:text-amber-300/80">
+                <p className="text-xs text-amber-800/80">
                   {overdue
                     .slice(0, 3)
                     .map((e) => e.title || 'Untitled')
@@ -374,7 +374,7 @@ export default function PipelinePage() {
 
       {/* Board */}
       {entries.length === 0 ? (
-        <div className="rounded-lg border border-border bg-card py-16 text-center">
+        <div className="rounded-xl bg-card py-16 text-center">
           <p className="text-muted-foreground">Nothing in the pipeline yet.</p>
           <Link href="/dashboard/add" className="mt-4 inline-block">
             <Button size="sm" className="gap-1.5">
@@ -401,7 +401,7 @@ export default function PipelinePage() {
 
               <div className="space-y-2">
                 {lane.entries.length === 0 ? (
-                  <p className="rounded-lg border border-dashed border-border px-3 py-6 text-center text-xs text-muted-foreground">
+                  <p className="rounded-xl border border-dashed border-border px-3 py-6 text-center text-xs text-muted-foreground">
                     {lane.hint}
                   </p>
                 ) : (

@@ -116,13 +116,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           back later would otherwise have nothing on screen saying so. */}
       <ImpersonationBanner />
 
-      <div className="min-h-screen bg-background">
-        <div className="mx-auto flex max-w-[1400px] flex-col lg:flex-row">
-          <aside className="relative shrink-0 border-b border-border lg:sticky lg:top-0 lg:h-screen lg:w-56 lg:border-b-0 lg:border-r">
+      <div className="min-h-screen bg-background p-3">
+        <div className="mx-auto flex max-w-[1600px] flex-col gap-3 lg:flex-row">
+          <aside className="relative shrink-0 rounded-[2rem] bg-sidebar pb-3 lg:sticky lg:top-3 lg:h-[calc(100vh-1.5rem)] lg:w-60">
             <div className="flex items-center gap-2.5 px-5 py-4">
-              <ShieldCheck className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm font-semibold text-foreground">Admin</span>
-              <span className="rounded-full border border-border px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
+              <ShieldCheck className="h-4 w-4 text-accent" />
+              <span className="text-base font-bold tracking-[-0.03em] text-foreground">Admin</span>
+              <span className="rounded-md bg-ink px-2 py-0.5 text-[11px] font-medium text-paper">
                 {role}
               </span>
             </div>
@@ -145,10 +145,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                           key={item.href}
                           href={item.href}
                           aria-current={active ? 'page' : undefined}
-                          className={`flex shrink-0 items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-sm transition-colors ${
+                          className={`flex shrink-0 items-center gap-2.5 rounded-full px-3.5 py-2 text-sm transition-colors ${
                             active
-                              ? 'bg-secondary font-medium text-foreground'
-                              : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                              ? 'bg-paper font-medium text-accent'
+                              : 'text-foreground/80 hover:bg-paper/60 hover:text-foreground'
                           }`}
                         >
                           <Icon className="h-4 w-4 shrink-0" />
@@ -156,7 +156,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                           {/* The only count in the navigation, because it is the
                               only one that means somebody is waiting. */}
                           {item.href === '/admin/requests' && !!openRequests && (
-                            <span className="ml-auto rounded-full bg-accent px-1.5 py-0.5 text-[11px] font-medium text-accent-foreground">
+                            <span className="ml-auto rounded-full bg-accent px-2 py-0.5 text-[11px] font-medium text-accent-foreground">
                               {openRequests}
                             </span>
                           )}
@@ -173,14 +173,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 whose whole point is that it is not that one. It sits at the
                 foot of the navigation, the same place the dashboard puts it. */}
             <div className="mt-4 px-5 pb-4 lg:absolute lg:bottom-0 lg:px-3">
-              <LogoutLink className="flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground">
+              <LogoutLink className="flex items-center gap-2.5 rounded-full px-3.5 py-2 text-sm text-foreground/80 transition-colors hover:bg-paper/60 hover:text-foreground">
                 <LogOut className="h-4 w-4 shrink-0" />
                 Sign out
               </LogoutLink>
             </div>
           </aside>
 
-          <main className="min-w-0 flex-1 px-6 py-8 lg:px-10">{children}</main>
+          <main className="min-w-0 flex-1 px-3 py-6 lg:px-8">{children}</main>
         </div>
       </div>
     </UserProvider>
@@ -192,7 +192,7 @@ function NotFound() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-6">
       <div className="text-center">
-        <h1 className="text-2xl font-semibold text-foreground">Not found</h1>
+        <h1 className="text-4xl font-medium tracking-[-0.04em] text-foreground">Not found</h1>
         <p className="mt-2 text-sm text-muted-foreground">
           There is nothing at this address.
         </p>

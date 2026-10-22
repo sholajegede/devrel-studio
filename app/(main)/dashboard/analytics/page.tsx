@@ -50,7 +50,7 @@ export default function AnalyticsPage() {
       <RoleNotice />
 
       <div className="mb-6">
-        <h1 className="text-2xl font-semibold text-foreground">Analytics</h1>
+        <h1 className="text-4xl font-medium leading-[1.05] tracking-[-0.04em] text-foreground sm:text-[2.75rem]">Analytics</h1>
         <p className="text-sm text-muted-foreground">
           Who opens your client dashboards and portfolio, and what they read. Visitors are
           anonymous unless they sign in with an access code.

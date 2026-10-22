@@ -41,8 +41,8 @@ function Chip({ active, onClick, children }: { active: boolean; onClick: () => v
       onClick={onClick}
       aria-pressed={active}
       className={cn(
-        'rounded-full border px-2.5 py-1 text-xs transition-colors',
-        active ? 'border-accent bg-accent/10 text-foreground' : 'border-border text-muted-foreground hover:text-foreground',
+        'rounded-full px-3 py-1 text-xs font-medium transition-colors',
+        active ? 'bg-ink text-paper' : 'bg-sand text-foreground hover:bg-sand-deep',
       )}
     >
       {children}
@@ -74,7 +74,7 @@ export function TalentDirectory({ people }: { people: TalentCard[] }) {
             onChange={(event) => patch({ q: event.target.value })}
             placeholder="Search skills, roles, projects"
             aria-label="Search"
-            className="w-full rounded-lg border border-border bg-background py-2 pl-9 pr-3 text-sm outline-none focus:border-accent"
+            className="w-full rounded-full bg-sand py-2.5 pl-10 pr-4 text-sm outline-none placeholder:text-muted-foreground focus:ring-2 focus:ring-ink/15"
           />
         </label>
 
@@ -117,15 +117,15 @@ export function TalentDirectory({ people }: { people: TalentCard[] }) {
         </div>
 
         <div className="grid grid-cols-1 gap-3">
-          <select aria-label="Country" value={filter.country ?? ''} onChange={(event) => patch({ country: event.target.value || undefined })} className="rounded-lg border border-border bg-background px-3 py-2 text-sm">
+          <select aria-label="Country" value={filter.country ?? ''} onChange={(event) => patch({ country: event.target.value || undefined })} className="rounded-full bg-sand px-4 py-2.5 text-sm">
             <option value="">Any country</option>
             {countries.map((code) => <option key={code} value={code}>{countryName(code) ?? code}</option>)}
           </select>
-          <select aria-label="Work mode" value={filter.workMode ?? ''} onChange={(event) => patch({ workMode: event.target.value || undefined })} className="rounded-lg border border-border bg-background px-3 py-2 text-sm">
+          <select aria-label="Work mode" value={filter.workMode ?? ''} onChange={(event) => patch({ workMode: event.target.value || undefined })} className="rounded-full bg-sand px-4 py-2.5 text-sm">
             <option value="">Any work mode</option>
             {WORK_MODES.map((mode) => <option key={mode} value={mode}>{cap(mode)}</option>)}
           </select>
-          <select aria-label="Engagement" value={filter.engagement ?? ''} onChange={(event) => patch({ engagement: event.target.value || undefined })} className="rounded-lg border border-border bg-background px-3 py-2 text-sm">
+          <select aria-label="Engagement" value={filter.engagement ?? ''} onChange={(event) => patch({ engagement: event.target.value || undefined })} className="rounded-full bg-sand px-4 py-2.5 text-sm">
             <option value="">Any engagement</option>
             {ENGAGEMENTS.map((kind) => <option key={kind} value={kind}>{cap(kind)}</option>)}
           </select>
@@ -145,7 +145,7 @@ export function TalentDirectory({ people }: { people: TalentCard[] }) {
         </p>
 
         {ranked.length === 0 ? (
-          <p className="rounded-xl border border-dashed border-border p-10 text-center text-muted-foreground">
+          <p className="rounded-[2rem] bg-sand p-12 text-center text-muted-foreground">
             {people.length === 0 ? 'No one is listed yet.' : 'No one matches these filters. Remove one to see more people.'}
           </p>
         ) : (
@@ -155,14 +155,14 @@ export function TalentDirectory({ people }: { people: TalentCard[] }) {
               const place = [person.city, countryName(person.country)].filter(Boolean).join(', ')
               return (
                 <li key={person.handle}>
-                  <Link href={`/hire/${person.handle}`} className="block rounded-xl border border-border bg-card p-5 transition-colors hover:border-accent/60">
+                  <Link href={`/hire/${person.handle}`} className="block rounded-[2rem] bg-sand p-6 transition-colors hover:bg-sand-deep">
                     <div className="flex items-start gap-4">
                       <Avatar name={person.name} imageUrl={person.imageUrl} />
                       <div className="min-w-0 flex-1">
                         <div className="flex flex-wrap items-center gap-2">
                           <h2 className="font-medium text-foreground">{person.name}</h2>
                           {person.openToWork && (
-                            <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-xs text-emerald-600 dark:text-emerald-400">
+                            <span className="rounded-full bg-green px-2.5 py-0.5 text-xs font-medium text-paper">
                               {availabilityLabel(person.availability) ?? 'Open to work'}
                             </span>
                           )}
@@ -177,7 +177,7 @@ export function TalentDirectory({ people }: { people: TalentCard[] }) {
                         )}
                         <div className="mt-3 flex flex-wrap gap-1.5">
                           {[...person.skills].sort((a, b) => Number(chosen.has(b.toLowerCase())) - Number(chosen.has(a.toLowerCase()))).slice(0, 7).map((skill) => (
-                            <span key={skill} className={cn('rounded-md px-2 py-0.5 text-xs', chosen.has(skill.toLowerCase()) ? 'bg-accent/15 text-foreground' : 'bg-muted text-muted-foreground')}>
+                            <span key={skill} className={cn('rounded-md px-2 py-0.5 text-xs', chosen.has(skill.toLowerCase()) ? 'bg-ochre text-ink' : 'bg-paper text-muted-foreground')}>
                               {skill}
                             </span>
                           ))}

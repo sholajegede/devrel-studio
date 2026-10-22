@@ -27,7 +27,7 @@ export default async function CompaniesPage() {
         ])}
       />
       <Crumbs trail={[{ name: 'DevRel jobs', href: '/jobs' }, { name: 'Companies' }]} />
-      <h1 className="text-3xl font-semibold tracking-tight text-foreground">Companies hiring for DevRel</h1>
+      <h1 className="text-[clamp(2.25rem,5.4vw,3.75rem)] font-medium leading-[1.02] tracking-[-0.04em] text-foreground">Companies hiring for DevRel</h1>
       <p className="mt-3 max-w-3xl text-muted-foreground">
         {companies.length.toLocaleString('en-US')} companies have at least one open developer relations role.
       </p>
@@ -36,7 +36,7 @@ export default async function CompaniesPage() {
           <li key={company.slug}>
             <Link
               href={`/jobs/companies/${company.slug}`}
-              className="flex items-center gap-3 rounded-xl border border-border bg-card p-4 transition-colors hover:border-foreground/20"
+              className="flex items-center gap-3 rounded-2xl bg-card p-4 transition-colors hover:border-foreground/20"
             >
               <Monogram name={company.name} />
               <span className="min-w-0 flex-1 truncate font-medium text-foreground">{company.name}</span>

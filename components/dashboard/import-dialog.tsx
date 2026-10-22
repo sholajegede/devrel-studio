@@ -126,7 +126,7 @@ export function ImportDialog({
             <button
               type="button"
               onClick={() => fileInput.current?.click()}
-              className="flex w-full flex-col items-center gap-2 rounded-xl border border-dashed border-border px-6 py-10 text-center transition-colors hover:border-accent/50 hover:bg-muted/40"
+              className="flex w-full flex-col items-center gap-2 rounded-2xl border border-dashed border-border px-6 py-10 text-center transition-colors hover:border-accent/50 hover:bg-muted/40"
             >
               <Upload className="h-5 w-5 text-muted-foreground" />
               <span className="text-sm font-medium text-foreground">Choose a CSV file</span>
@@ -161,7 +161,7 @@ export function ImportDialog({
           </div>
         ) : (
           <div className="space-y-4">
-            <div className="rounded-lg border border-border p-4">
+            <div className="rounded-xl border border-border p-4">
               <p className="text-sm font-medium text-foreground">{fileName}</p>
               <p className="mt-1 text-sm text-muted-foreground">
                 <span className="font-medium text-foreground">{result.rows.length}</span>{' '}
@@ -169,7 +169,7 @@ export function ImportDialog({
                 {result.errors.length > 0 && (
                   <>
                     {' · '}
-                    <span className="text-amber-700 dark:text-amber-300">
+                    <span className="text-amber-700">
                       {result.errors.length} skipped
                     </span>
                   </>
@@ -178,8 +178,8 @@ export function ImportDialog({
             </div>
 
             {result.errors.length > 0 && (
-              <div className="max-h-40 overflow-y-auto rounded-lg border border-amber-200 bg-amber-50/60 p-3 dark:border-amber-500/30 dark:bg-amber-500/10">
-                <p className="flex items-center gap-1.5 text-xs font-medium text-amber-900 dark:text-amber-200">
+              <div className="max-h-40 overflow-y-auto rounded-xl border border-amber-200 bg-amber-50/60 p-3">
+                <p className="flex items-center gap-1.5 text-xs font-medium text-amber-900">
                   <AlertCircle className="h-3.5 w-3.5" />
                   These rows will not be imported
                 </p>
@@ -187,7 +187,7 @@ export function ImportDialog({
                   {result.errors.map((error) => (
                     <li
                       key={error.line}
-                      className="text-xs text-amber-900/80 dark:text-amber-200/80"
+                      className="text-xs text-amber-900/80"
                     >
                       Line {error.line}: {error.message}
                     </li>
@@ -203,7 +203,7 @@ export function ImportDialog({
             )}
 
             {result.rows.length > 0 && (
-              <div className="max-h-48 overflow-y-auto rounded-lg border border-border">
+              <div className="max-h-48 overflow-y-auto rounded-xl border border-border">
                 {result.rows.slice(0, 20).map((row) => (
                   <div
                     key={row.line}

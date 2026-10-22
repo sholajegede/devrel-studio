@@ -13,7 +13,7 @@ export default function AddContentPage() {
       <main className="mx-auto max-w-4xl px-6 py-8">
         <div className="mb-8 flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-semibold text-foreground">Add New Entry</h1>
+            <h1 className="text-4xl font-medium leading-[1.05] tracking-[-0.04em] text-foreground sm:text-[2.75rem]">Add New Entry</h1>
             <p className="text-sm text-muted-foreground mt-1">
               Log a new piece of content and its performance metrics
             </p>

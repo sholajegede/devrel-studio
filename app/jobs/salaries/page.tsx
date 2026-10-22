@@ -55,7 +55,7 @@ export default async function SalariesPage() {
       )}
 
       <Crumbs trail={[{ name: 'DevRel jobs', href: '/jobs' }, { name: 'Salaries' }]} />
-      <h1 className="text-3xl font-semibold tracking-tight text-foreground">DevRel salaries</h1>
+      <h1 className="text-[clamp(2.25rem,5.4vw,3.75rem)] font-medium leading-[1.02] tracking-[-0.04em] text-foreground">DevRel salaries</h1>
       <p className="mt-3 max-w-3xl leading-relaxed text-muted-foreground">
         {advocacy
           ? `The median listed salary for developer advocacy roles is ${compactUsd(advocacy.median)} a year. The middle half of roles pay ${compactUsd(advocacy.p25)} to ${compactUsd(advocacy.p75)}, based on ${advocacy.n} open roles that list pay.`
@@ -68,7 +68,7 @@ export default async function SalariesPage() {
             <h2 id={`h-${family.id}`} className="text-lg font-semibold text-foreground">
               {family.label}
             </h2>
-            <div className="mt-3 overflow-x-auto rounded-xl border border-border bg-card">
+            <div className="mt-3 overflow-x-auto rounded-2xl bg-card">
               <table className="w-full text-sm">
                 <thead className="text-left text-xs uppercase tracking-wide text-muted-foreground">
                   <tr>

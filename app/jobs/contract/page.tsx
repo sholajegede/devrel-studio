@@ -28,7 +28,7 @@ export default async function ContractPage() {
       />
       {result && <JsonLd data={itemListLd(origin, 'Contract and freelance DevRel jobs', result.items)} />}
       <Crumbs trail={[{ name: 'DevRel jobs', href: '/jobs' }, { name: 'Contract' }]} />
-      <h1 className="text-3xl font-semibold tracking-tight text-foreground">Contract and freelance DevRel jobs</h1>
+      <h1 className="text-[clamp(2.25rem,5.4vw,3.75rem)] font-medium leading-[1.02] tracking-[-0.04em] text-foreground">Contract and freelance DevRel jobs</h1>
       <p className="mt-3 max-w-3xl leading-relaxed text-muted-foreground">
         {result ? `${result.total.toLocaleString('en-US')} contract and freelance roles are open.` : 'Contract roles are loading.'} These come
         from company careers pages and from the Hacker News hiring and freelancer threads, We Work Remotely and RemoteOK. Check the rate and

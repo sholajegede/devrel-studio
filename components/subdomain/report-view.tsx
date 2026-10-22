@@ -81,8 +81,8 @@ function Figure({
 
   return (
     <div>
-      <p className="text-xs uppercase tracking-[0.12em] text-muted-foreground">{label}</p>
-      <p className="mt-2 text-4xl font-semibold tracking-[-0.03em] tabular-nums text-foreground">
+      <p className="text-sm text-muted-foreground">{label}</p>
+      <p className="mt-2 text-5xl font-medium tracking-[-0.045em] tabular-nums text-foreground">
         {value > 0 ? formatCompact(value) : '—'}
       </p>
 
@@ -188,7 +188,7 @@ function FeedbackForm({ slug, period }: { slug: string; period: string }) {
 
   if (sent) {
     return (
-      <div className="flex items-start gap-3 rounded-xl border border-accent/30 bg-accent/[0.04] p-5">
+      <div className="flex items-start gap-3 rounded-2xl border border-accent/30 bg-accent/[0.04] p-5">
         <Check className="mt-0.5 h-4 w-4 shrink-0 text-accent" />
         <div>
           <p className="text-sm font-medium text-foreground">Thank you — that has been sent.</p>
@@ -224,7 +224,7 @@ function FeedbackForm({ slug, period }: { slug: string; period: string }) {
   }
 
   return (
-    <div className="rounded-xl border border-border bg-card p-6">
+    <div className="rounded-2xl bg-card p-6">
       <p className="text-sm font-medium text-foreground">How was this period?</p>
       <p className="mt-1 text-sm text-muted-foreground">
         Anything you say here reaches the person who prepared the report. Optional, and only
@@ -239,7 +239,7 @@ function FeedbackForm({ slug, period }: { slug: string; period: string }) {
             onClick={() => setRating(rating === value ? null : value)}
             aria-label={`${value} out of 5`}
             aria-pressed={rating === value}
-            className={`h-9 w-9 rounded-lg border text-sm tabular-nums transition-colors ${
+            className={`h-9 w-9 rounded-xl border text-sm tabular-nums transition-colors ${
               rating === value
                 ? 'border-accent bg-accent text-accent-foreground'
                 : 'border-border text-muted-foreground hover:border-foreground/30 hover:text-foreground'
@@ -259,7 +259,7 @@ function FeedbackForm({ slug, period }: { slug: string; period: string }) {
         rows={4}
         maxLength={2000}
         placeholder="What landed well? What would you like more of next period?"
-        className="mt-4 w-full resize-y rounded-lg border border-border bg-background px-3.5 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus-visible:border-accent focus-visible:outline-none"
+        className="mt-4 w-full resize-y rounded-xl border border-border bg-background px-3.5 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus-visible:border-accent focus-visible:outline-none"
       />
 
       <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -268,13 +268,13 @@ function FeedbackForm({ slug, period }: { slug: string; period: string }) {
           onChange={(event) => setName(event.target.value)}
           maxLength={80}
           placeholder="Your name (optional)"
-          className="h-10 flex-1 rounded-lg border border-border bg-background px-3.5 text-sm text-foreground placeholder:text-muted-foreground focus-visible:border-accent focus-visible:outline-none"
+          className="h-10 flex-1 rounded-xl border border-border bg-background px-3.5 text-sm text-foreground placeholder:text-muted-foreground focus-visible:border-accent focus-visible:outline-none"
         />
         <button
           type="button"
           onClick={send}
           disabled={sending || !comment.trim()}
-          className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-foreground px-5 text-sm font-medium text-background transition-opacity hover:opacity-90 disabled:opacity-40"
+          className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-foreground px-5 text-sm font-medium text-background transition-opacity hover:opacity-90 disabled:opacity-40"
         >
           {sending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
           Send feedback
@@ -348,10 +348,10 @@ export function ReportView({ data }: { data: ReportData }) {
       <header className="border-b border-border">
         <div className="mx-auto flex max-w-3xl flex-col gap-6 px-6 py-16 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <p className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground">
+            <p className="text-sm text-muted-foreground">
               Performance report
             </p>
-            <h1 className="mt-3 text-4xl font-semibold tracking-[-0.03em] text-foreground sm:text-5xl">
+            <h1 className="mt-3 text-[clamp(2.75rem,7vw,5rem)] font-medium leading-[1] tracking-[-0.04em] text-foreground">
               {report.label}
             </h1>
             <p className="mt-3 text-[15px] text-muted-foreground">
@@ -362,7 +362,7 @@ export function ReportView({ data }: { data: ReportData }) {
           <div className="flex shrink-0 items-center gap-2">
           <a
             href="/reports"
-            className="inline-flex h-10 items-center gap-2 rounded-lg border border-border px-4 text-sm font-medium text-foreground transition-colors hover:bg-muted"
+            className="inline-flex h-10 items-center gap-2 rounded-xl border border-border px-4 text-sm font-medium text-foreground transition-colors hover:bg-muted"
           >
             All reports
           </a>
@@ -370,7 +370,7 @@ export function ReportView({ data }: { data: ReportData }) {
             type="button"
             onClick={downloadPdf}
             disabled={downloading}
-            className="inline-flex h-10 shrink-0 items-center gap-2 rounded-lg border border-border px-4 text-sm font-medium text-foreground transition-colors hover:bg-muted disabled:opacity-50"
+            className="inline-flex h-10 shrink-0 items-center gap-2 rounded-xl border border-border px-4 text-sm font-medium text-foreground transition-colors hover:bg-muted disabled:opacity-50"
           >
             {downloading ? (
               <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -391,7 +391,7 @@ export function ReportView({ data }: { data: ReportData }) {
             not the arithmetic. */}
         {notes?.summary && (
           <section className="border-b border-border py-12">
-            <h2 className="text-xs uppercase tracking-[0.12em] text-muted-foreground">
+            <h2 className="text-2xl font-medium tracking-[-0.03em] text-foreground">
               Summary
             </h2>
             <div className="mt-6 space-y-4">
@@ -409,7 +409,7 @@ export function ReportView({ data }: { data: ReportData }) {
             client that leaving it was pointless. */}
         {(notes?.responseToFeedback || (data.previousFeedback?.length ?? 0) > 0) && (
           <section className="border-b border-border py-12">
-            <h2 className="text-xs uppercase tracking-[0.12em] text-muted-foreground">
+            <h2 className="text-2xl font-medium tracking-[-0.03em] text-foreground">
               Since {data.previousPeriod ? periodLabel(data.previousPeriod) : 'last period'}
             </h2>
 
@@ -492,7 +492,7 @@ export function ReportView({ data }: { data: ReportData }) {
 
         {/* Trend */}
         <section className="border-b border-border py-12">
-          <h2 className="text-xs uppercase tracking-[0.12em] text-muted-foreground">
+          <h2 className="text-2xl font-medium tracking-[-0.03em] text-foreground">
             Reach over six months
           </h2>
           <div className="mt-8">
@@ -507,10 +507,10 @@ export function ReportView({ data }: { data: ReportData }) {
         {/* Category split */}
         {report.byCategory.length > 0 && (
           <section className="border-b border-border py-12">
-            <h2 className="text-xs uppercase tracking-[0.12em] text-muted-foreground">
+            <h2 className="text-2xl font-medium tracking-[-0.03em] text-foreground">
               What was delivered
             </h2>
-            <div className="mt-6 overflow-hidden rounded-xl border border-border">
+            <div className="mt-6 overflow-hidden rounded-2xl border border-border">
               {report.byCategory.map((row, i) => {
                 const Icon = CATEGORY_META[row.category].icon
                 return (
@@ -541,7 +541,7 @@ export function ReportView({ data }: { data: ReportData }) {
             question and the one worth answering first. */}
         {report.highlights.length > 0 && (
           <section className="border-b border-border py-12">
-            <h2 className="text-xs uppercase tracking-[0.12em] text-muted-foreground">
+            <h2 className="text-2xl font-medium tracking-[-0.03em] text-foreground">
               {report.highlights.length === 1 ? 'The standout' : `Top ${report.highlights.length}`}
             </h2>
 
@@ -555,7 +555,7 @@ export function ReportView({ data }: { data: ReportData }) {
                 return (
                   <li
                     key={entry.id ?? entry.title}
-                    className="flex items-start gap-5 rounded-xl border border-border p-5"
+                    className="flex items-start gap-5 rounded-2xl border border-border p-5"
                   >
                     <span className="mt-0.5 shrink-0 text-2xl font-semibold tabular-nums text-muted-foreground/40">
                       {index + 1}
@@ -602,7 +602,7 @@ export function ReportView({ data }: { data: ReportData }) {
 
         {/* Everything published */}
         <section className="border-b border-border py-12">
-          <h2 className="text-xs uppercase tracking-[0.12em] text-muted-foreground">
+          <h2 className="text-2xl font-medium tracking-[-0.03em] text-foreground">
             Published in {report.label}
           </h2>
 
@@ -611,7 +611,7 @@ export function ReportView({ data }: { data: ReportData }) {
               Nothing was published in this period.
             </p>
           ) : (
-            <ol className="mt-6 space-y-px overflow-hidden rounded-xl border border-border bg-border">
+            <ol className="mt-6 space-y-px overflow-hidden rounded-2xl border border-border bg-border">
               {report.published.map((item) => {
                 const category = CATEGORY_META[
                   (item.category as keyof typeof CATEGORY_META) ?? 'Written'
@@ -682,7 +682,7 @@ export function ReportView({ data }: { data: ReportData }) {
         {/* What's next */}
         {report.upcoming.length > 0 && (
           <section className="border-b border-border py-12">
-            <h2 className="text-xs uppercase tracking-[0.12em] text-muted-foreground">
+            <h2 className="text-2xl font-medium tracking-[-0.03em] text-foreground">
               In flight
             </h2>
             <ul className="mt-6 space-y-2.5">
@@ -711,7 +711,7 @@ export function ReportView({ data }: { data: ReportData }) {
             a report made only of totals quietly leaves that out. */}
         {(notes?.quotes.length ?? 0) > 0 && (
           <section className="border-b border-border py-12">
-            <h2 className="text-xs uppercase tracking-[0.12em] text-muted-foreground">
+            <h2 className="text-2xl font-medium tracking-[-0.03em] text-foreground">
               In their words
             </h2>
 
@@ -745,14 +745,14 @@ export function ReportView({ data }: { data: ReportData }) {
 
         {/* Feedback */}
         <section className="py-12">
-          <h2 className="text-xs uppercase tracking-[0.12em] text-muted-foreground">
+          <h2 className="text-2xl font-medium tracking-[-0.03em] text-foreground">
             Your response
           </h2>
 
           {data.feedback.length > 0 && (
             <ul className="mb-6 mt-6 space-y-3">
               {data.feedback.map((item) => (
-                <li key={item.id} className="rounded-xl border border-border bg-muted/30 p-4">
+                <li key={item.id} className="rounded-2xl border border-border bg-muted/30 p-4">
                   <p className="text-sm leading-relaxed text-foreground">{item.comment}</p>
                   <p className="mt-2 text-xs text-muted-foreground">
                     {item.authorName ?? 'Anonymous'}

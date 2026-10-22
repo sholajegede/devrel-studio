@@ -56,7 +56,7 @@ export default async function ReportPage({
     return (
       <div className="flex min-h-screen items-center justify-center px-6">
         <div className="max-w-sm text-center">
-          <h1 className="text-lg font-semibold text-foreground">No reports yet</h1>
+          <h1 className="text-3xl font-medium tracking-[-0.04em] text-foreground">No reports yet</h1>
           <p className="mt-2 text-sm text-muted-foreground">
             Nothing has been published for {probe.client.name} yet, so there is no period to
             report on.

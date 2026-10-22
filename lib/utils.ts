@@ -33,5 +33,5 @@ export function luminance(hex: string): number {
  * switch to dark text happens slightly earlier than a naive split would put it.
  */
 export function readableOn(hex: string): string {
-  return luminance(hex) > 0.45 ? '#10231f' : '#ffffff'
+  return luminance(hex) > 0.45 ? '#180102' : '#ffffff'
 }

@@ -143,7 +143,7 @@ function BillingPageContent() {
 
       <div className="flex items-start justify-between mb-8 gap-4">
         <div>
-          <h1 className="text-2xl font-semibold text-foreground">Billing</h1>
+          <h1 className="text-4xl font-medium leading-[1.05] tracking-[-0.04em] text-foreground sm:text-[2.75rem]">Billing</h1>
           <p className="text-sm text-muted-foreground mt-1">
             Your access window, and how to extend it.
           </p>
@@ -158,10 +158,10 @@ function BillingPageContent() {
           title="Current plan"
           description="The plan you are on now. Change it whenever you want."
         >
-          <div className="rounded-2xl bg-linear-to-br from-accent/10 via-accent/5 to-transparent border border-accent/25 p-6" data-tour="billing-plan">
+          <div className="rounded-3xl bg-linear-to-br from-accent/10 via-accent/5 to-transparent border border-accent/25 p-6" data-tour="billing-plan">
             <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-5">
               <div className="flex items-start gap-4">
-                <div className="h-11 w-11 rounded-xl bg-accent/15 border border-accent/20 flex items-center justify-center shrink-0">
+                <div className="h-11 w-11 rounded-2xl bg-accent/15 border border-accent/20 flex items-center justify-center shrink-0">
                   <CurrentIcon className="h-5 w-5 text-accent" />
                 </div>
                 <div>
@@ -288,11 +288,11 @@ function BillingPageContent() {
               return (
                 <div
                   key={planId}
-                  className={`rounded-2xl border flex flex-col transition-shadow hover:shadow-md ${
+                  className={`rounded-3xl border flex flex-col transition-shadow ${
                     isCurrent
                       ? 'border-accent ring-1 ring-accent bg-accent/5'
                       : highlight
-                        ? 'border-accent ring-1 ring-accent bg-card shadow-sm'
+                        ? 'border-accent ring-1 ring-accent bg-card'
                         : 'border-border bg-card'
                   }`}
                 >
@@ -310,7 +310,7 @@ function BillingPageContent() {
 
                   <div className="p-5 flex flex-col flex-1">
                     <div className="flex items-center gap-2 mb-3">
-                      <div className={`h-8 w-8 rounded-lg flex items-center justify-center ${highlight ? 'bg-accent/15' : 'bg-muted'}`}>
+                      <div className={`h-8 w-8 rounded-xl flex items-center justify-center ${highlight ? 'bg-accent/15' : 'bg-muted'}`}>
                         <Icon className={`h-4 w-4 ${highlight ? 'text-accent' : 'text-muted-foreground'}`} />
                       </div>
                       <p className="text-sm font-semibold text-foreground">{plan.name}</p>
@@ -421,7 +421,7 @@ function BillingPageContent() {
                   </p>
                 </div>
               ) : (
-                <div className="rounded-xl border border-dashed border-border bg-muted/20 px-6 py-12 text-center">
+                <div className="rounded-2xl border border-dashed border-border bg-muted/20 px-6 py-12 text-center">
                   <div className="mx-auto h-12 w-12 rounded-full bg-muted flex items-center justify-center mb-4">
                     <Receipt className="h-5 w-5 text-muted-foreground" />
                   </div>
@@ -452,7 +452,7 @@ function BillingPageContent() {
               <AccordionItem
                 key={q}
                 value={`faq-${i}`}
-                className="rounded-xl border border-border bg-card px-5 data-[state=open]:border-accent/40"
+                className="rounded-2xl bg-card px-5 data-[state=open]:border-accent/40"
               >
                 <AccordionTrigger className="text-sm font-medium text-foreground text-left hover:no-underline py-4">
                   {q}

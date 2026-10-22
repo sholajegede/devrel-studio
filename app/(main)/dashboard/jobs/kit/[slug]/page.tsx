@@ -76,12 +76,12 @@ export default function KitPage({ params }: { params: Promise<{ slug: string }> 
       <JobsHeader title="Application kit" description="CV bullets and a cover note for one role, built from your CV and your published work." />
 
       {data === undefined ? (
-        <div className="h-40 animate-pulse rounded-xl bg-muted" />
+        <div className="h-40 animate-pulse rounded-2xl bg-muted" />
       ) : !job ? (
         <p className="text-sm text-muted-foreground">That role is no longer listed.</p>
       ) : (
         <div className="mx-auto max-w-3xl space-y-5">
-          <div className="flex items-center gap-3 rounded-xl border border-border bg-card p-4">
+          <div className="flex items-center gap-3 rounded-2xl bg-card p-4">
             <Monogram name={job.companyName} size={44} />
             <div className="min-w-0 flex-1">
               <p className="truncate font-semibold text-foreground">{job.title}</p>
@@ -126,7 +126,7 @@ export default function KitPage({ params }: { params: Promise<{ slug: string }> 
           )}
 
           {pending && !stale && (
-            <div className="flex items-center gap-3 rounded-xl border border-border p-5 text-sm text-muted-foreground">
+            <div className="flex items-center gap-3 rounded-2xl border border-border p-5 text-sm text-muted-foreground">
               <Loader2 className="h-4 w-4 animate-spin" />
               Reading the listing and your work. This takes about 20 seconds.
             </div>
@@ -134,7 +134,7 @@ export default function KitPage({ params }: { params: Promise<{ slug: string }> 
 
           {kit?.status === 'ready' && (
             <div className="space-y-5">
-              <section className="rounded-xl border border-border bg-card p-5">
+              <section className="rounded-2xl bg-card p-5">
                 <div className="mb-3 flex items-center justify-between">
                   <h2 className="font-medium text-foreground">Summary and bullets</h2>
                   <CopyButton text={[kit.summary, ...(kit.bullets ?? []).map((b) => `- ${b}`)].join('\n')} label="Copy" />
@@ -147,7 +147,7 @@ export default function KitPage({ params }: { params: Promise<{ slug: string }> 
                 </ul>
               </section>
 
-              <section className="rounded-xl border border-border bg-card p-5">
+              <section className="rounded-2xl bg-card p-5">
                 <div className="mb-3 flex items-center justify-between">
                   <h2 className="font-medium text-foreground">Cover note</h2>
                   <CopyButton text={kit.coverNote ?? ''} label="Copy" />
@@ -156,7 +156,7 @@ export default function KitPage({ params }: { params: Promise<{ slug: string }> 
               </section>
 
               {kit.gaps && kit.gaps.length > 0 && (
-                <section className="rounded-xl border border-border p-5">
+                <section className="rounded-2xl border border-border p-5">
                   <h2 className="mb-2 font-medium text-foreground">What the role asks for that your CV does not show</h2>
                   <ul className="list-disc space-y-1 pl-5 text-sm text-muted-foreground">
                     {kit.gaps.map((gap, index) => (

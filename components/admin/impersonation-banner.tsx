@@ -61,10 +61,10 @@ export function ImpersonationBanner() {
     <>
       <div
         role="status"
-        className="fixed inset-x-0 top-0 z-[60] flex flex-wrap items-center justify-center gap-x-3 gap-y-1 border-b border-amber-600/40 bg-amber-500/15 px-4 py-2 text-sm backdrop-blur"
+        className="fixed inset-x-0 top-0 z-[60] flex flex-wrap items-center justify-center gap-x-3 gap-y-1 bg-ochre px-4 py-2 text-sm text-ink"
       >
         <span className="flex items-center gap-2 text-foreground">
-          <Eye className="h-4 w-4 shrink-0 text-amber-600 dark:text-amber-500" />
+          <Eye className="h-4 w-4 shrink-0 text-amber-600" />
           Viewing{' '}
           <strong className="font-medium">{session.subjectEmail ?? 'another account'}</strong>{' '}
           read-only

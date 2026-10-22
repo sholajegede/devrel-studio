@@ -38,21 +38,21 @@ export function AccessBanner() {
 
   return (
     <div
-      className={`mb-6 flex flex-col gap-3 rounded-lg border px-4 py-3 sm:flex-row sm:items-center sm:justify-between ${
+      className={`mb-6 flex flex-col gap-3 rounded-xl border px-4 py-3 sm:flex-row sm:items-center sm:justify-between ${
         expired
-          ? 'border-amber-300 bg-amber-50/60 dark:border-amber-500/30 dark:bg-amber-500/10'
+          ? 'border-amber-300 bg-amber-50/60'
           : 'border-border bg-muted/40'
       }`}
     >
       <p className="flex items-start gap-2.5 text-sm">
         {expired ? (
-          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
+          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
         ) : (
           <Clock className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
         )}
         <span
           className={
-            expired ? 'text-amber-900 dark:text-amber-200' : 'text-muted-foreground'
+            expired ? 'text-amber-900' : 'text-muted-foreground'
           }
         >
           {message}
@@ -61,7 +61,7 @@ export function AccessBanner() {
 
       <Link
         href="/dashboard/billing"
-        className="inline-flex h-9 shrink-0 items-center justify-center rounded-lg bg-foreground px-4 text-sm font-medium text-background transition-opacity hover:opacity-90"
+        className="inline-flex h-9 shrink-0 items-center justify-center rounded-xl bg-foreground px-4 text-sm font-medium text-background transition-opacity hover:opacity-90"
       >
         {expired ? 'Get access' : 'Extend access'}
       </Link>

@@ -19,7 +19,7 @@ const SCOPE_NOTE = {
 
 function Locked() {
   return (
-    <div className="mx-auto max-w-xl rounded-2xl border border-dashed border-border p-10 text-center">
+    <div className="mx-auto max-w-xl rounded-3xl border border-dashed border-border p-10 text-center">
       <Lock className="mx-auto mb-3 h-5 w-5 text-muted-foreground" />
       <p className="font-medium text-foreground">Pay benchmarks and the hiring view are part of Jobs Pro</p>
       <p className="mt-1 text-sm text-muted-foreground">
@@ -51,12 +51,12 @@ export default function MarketPage() {
       <JobsHeader title="Market" description="What roles pay and who is hiring, from live listings." />
 
       {status === undefined ? (
-        <div className="h-40 animate-pulse rounded-xl bg-muted" />
+        <div className="h-40 animate-pulse rounded-2xl bg-muted" />
       ) : !pro ? (
         <Locked />
       ) : (
         <div className="space-y-8">
-          <section className="rounded-2xl border border-border bg-card p-5">
+          <section className="rounded-3xl bg-card p-5">
             <h2 className="mb-4 font-medium text-foreground">Pay benchmark</h2>
             <div className="flex flex-wrap gap-3">
               <select value={family} onChange={(e) => setFamily(e.target.value)} aria-label="Role type" className="h-9 rounded-md border border-border bg-background px-2 text-sm">
@@ -85,7 +85,7 @@ export default function MarketPage() {
             </div>
 
             {benchmark === undefined ? (
-              <div className="mt-5 h-24 animate-pulse rounded-lg bg-muted" />
+              <div className="mt-5 h-24 animate-pulse rounded-xl bg-muted" />
             ) : benchmark === null ? (
               <p className="mt-5 text-sm text-muted-foreground">Fewer than three listings show pay for this role type, so there is nothing reliable to report yet.</p>
             ) : (
@@ -97,7 +97,7 @@ export default function MarketPage() {
                     { label: 'Upper quartile', value: benchmark.p75 },
                     { label: 'Highest listed', value: benchmark.high },
                   ].map((item) => (
-                    <div key={item.label} className="rounded-xl border border-border p-4">
+                    <div key={item.label} className="rounded-2xl border border-border p-4">
                       <p className="text-xs text-muted-foreground">{item.label}</p>
                       <p className="text-xl font-semibold tabular-nums text-foreground">{compactUsd(item.value)}</p>
                     </div>
@@ -126,7 +126,7 @@ export default function MarketPage() {
           <section className="space-y-4">
             <h2 className="font-medium text-foreground">Hiring view</h2>
             {hiring === undefined ? (
-              <div className="h-40 animate-pulse rounded-xl bg-muted" />
+              <div className="h-40 animate-pulse rounded-2xl bg-muted" />
             ) : (
               <div className="grid gap-4 lg:grid-cols-2">
                 <Panel title="Hiring again and again" note="Open roles per company, repeated titles first">
@@ -161,7 +161,7 @@ export default function MarketPage() {
 function Panel({ title, note, children }: { title: string; note: string; children: React.ReactNode }) {
   const items = Array.isArray(children) ? children : [children]
   return (
-    <div className="rounded-2xl border border-border bg-card p-5">
+    <div className="rounded-3xl bg-card p-5">
       <p className="font-medium text-foreground">{title}</p>
       <p className="mb-3 text-xs text-muted-foreground">{note}</p>
       {items.length === 0 ? <p className="text-sm text-muted-foreground">Nothing yet.</p> : <ul className="space-y-2">{children}</ul>}

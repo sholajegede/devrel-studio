@@ -57,7 +57,7 @@ export default async function CompanyPage({ params }: { params: Promise<{ compan
       <header className="mb-8 flex items-center gap-4">
         <Monogram name={name} size={52} />
         <div>
-          <h1 className="text-3xl font-semibold tracking-tight text-foreground">{name} DevRel jobs</h1>
+          <h1 className="text-[clamp(2.25rem,5.4vw,3.75rem)] font-medium leading-[1.02] tracking-[-0.04em] text-foreground">{name} DevRel jobs</h1>
           <p className="mt-1 text-muted-foreground">
             {initial.total} open {initial.total === 1 ? 'role' : 'roles'}
           </p>

@@ -13,8 +13,8 @@ export function CurrencyPicker({ current }: { current: CurrencyCode }) {
   const codes = Object.keys(CURRENCIES) as CurrencyCode[]
 
   return (
-    <div className="mt-8 flex items-center justify-center gap-1.5">
-      <span className="mr-1 text-xs text-muted-foreground">Show prices in</span>
+    <div className="mt-9 flex flex-wrap items-center justify-center gap-1.5">
+      <span className="mr-2 text-sm text-muted-foreground">Show prices in</span>
       {codes.map((code) => {
         const active = code === current
         return (
@@ -23,10 +23,10 @@ export function CurrencyPicker({ current }: { current: CurrencyCode }) {
             href={`/pricing?currency=${code}`}
             scroll={false}
             aria-current={active ? 'true' : undefined}
-            className={`rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
+            className={`rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors ${
               active
-                ? 'bg-foreground text-background'
-                : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                ? 'bg-ink text-paper'
+                : 'bg-sand text-foreground hover:bg-sand-deep'
             }`}
           >
             {CURRENCIES[code].symbol} {code}

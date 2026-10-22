@@ -28,34 +28,33 @@ export default async function JobsPage() {
       <JsonLd data={faqLd(faq)} />
       {initial && <JsonLd data={itemListLd(origin, 'DevRel jobs', initial.items)} />}
 
-      <header className="relative mb-10 overflow-hidden rounded-3xl border border-border bg-gradient-to-br from-accent/10 via-background to-background px-6 py-10 sm:px-10 sm:py-12">
-        <div aria-hidden className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-accent/15 blur-3xl" />
-        <div className="relative max-w-3xl">
-          <p className="text-sm font-medium text-accent">Updated three times a day</p>
-          <h1 className="mt-2 text-4xl font-semibold tracking-tight text-foreground sm:text-5xl">
-            Every DevRel job, in one place
-          </h1>
-          <p className="mt-4 text-base leading-relaxed text-muted-foreground">{marketSummary(stats)}</p>
-        </div>
+      <header className="mb-14 text-center">
+        <h1 className="mx-auto max-w-4xl text-[clamp(2.75rem,7vw,5.25rem)] font-medium leading-[1] tracking-[-0.035em] text-foreground">
+          Every DevRel job,
+          <br />
+          in one place
+        </h1>
+        <p className="mx-auto mt-7 max-w-2xl text-lg leading-relaxed text-muted-foreground">{marketSummary(stats)}</p>
         {stats && stats.total > 0 && (
-          <dl className="relative mt-8 grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <dl className="mx-auto mt-12 grid max-w-5xl grid-cols-2 gap-3 text-left sm:grid-cols-4">
             {[
-              { label: 'Open roles', value: stats.total.toLocaleString('en-US') },
-              { label: 'Companies hiring', value: stats.byCompany.length.toLocaleString('en-US') },
-              { label: 'Remote', value: `${Math.round((stats.remote / stats.total) * 100)}%` },
-              { label: 'Posted this week', value: stats.postedThisWeek.toLocaleString('en-US') },
+              { label: 'Open roles', value: stats.total.toLocaleString('en-US'), tone: 'bg-ochre' },
+              { label: 'Companies hiring', value: stats.byCompany.length.toLocaleString('en-US'), tone: 'bg-blue' },
+              { label: 'Remote', value: `${Math.round((stats.remote / stats.total) * 100)}%`, tone: 'bg-green' },
+              { label: 'Posted this week', value: stats.postedThisWeek.toLocaleString('en-US'), tone: 'bg-sand' },
             ].map((item) => (
-              <div key={item.label} className="rounded-2xl border border-border bg-card/70 p-4 backdrop-blur">
-                <dd className="text-2xl font-semibold tabular-nums text-foreground">{item.value}</dd>
-                <dt className="text-xs text-muted-foreground">{item.label}</dt>
+              <div key={item.label} className={`rounded-[1.5rem] p-6 text-ink ${item.tone}`}>
+                <dd className="text-4xl font-medium tabular-nums tracking-[-0.04em]">{item.value}</dd>
+                <dt className="mt-1 text-sm text-ink/70">{item.label}</dt>
               </div>
             ))}
           </dl>
         )}
-        <div className="relative mt-6 flex flex-wrap items-center gap-3">
+        <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
           <HubLinks />
           <JobsTour variant="jobs-public" />
         </div>
+        <p className="mt-4 text-sm text-muted-foreground">Updated three times a day</p>
       </header>
 
       <Suspense

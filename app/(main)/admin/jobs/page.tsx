@@ -35,7 +35,7 @@ export default function AdminJobsPage() {
     }
   }
 
-  if (data === undefined) return <div className="h-40 animate-pulse rounded-xl bg-muted" />
+  if (data === undefined) return <div className="h-40 animate-pulse rounded-2xl bg-muted" />
   if (data === null) return <p className="text-sm text-muted-foreground">Not available.</p>
 
   const failing = data.sources.filter((source) => source.lastOk === false).length
@@ -44,7 +44,7 @@ export default function AdminJobsPage() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold text-foreground">Jobs</h1>
+          <h1 className="text-4xl font-medium leading-[1.05] tracking-[-0.04em] text-foreground sm:text-[2.75rem]">Jobs</h1>
           <p className="text-sm text-muted-foreground">
             {data.activeJobs} live roles from {data.sources.length} feeds, {data.clicks} apply clicks
             {failing ? `, ${failing} feeds failing` : ''}. Feeds sync three times a day.

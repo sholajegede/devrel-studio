@@ -22,7 +22,7 @@ export default function AdminRevenuePage() {
   return (
     <>
       <div className="mb-6">
-        <h1 className="text-2xl font-semibold text-foreground">Revenue</h1>
+        <h1 className="text-4xl font-medium leading-[1.05] tracking-[-0.04em] text-foreground sm:text-[2.75rem]">Revenue</h1>
         <p className="text-sm text-muted-foreground">
           What was agreed, over the last year. Every payment is a transfer collected
           by hand, so nothing here is reconciled against a bank.
@@ -74,7 +74,7 @@ export default function AdminRevenuePage() {
                   <span
                     className={`flex items-center gap-1 tabular-nums ${
                       row.daysLeft <= 14
-                        ? 'font-medium text-amber-600 dark:text-amber-500'
+                        ? 'font-medium text-amber-600'
                         : 'text-muted-foreground'
                     }`}
                   >

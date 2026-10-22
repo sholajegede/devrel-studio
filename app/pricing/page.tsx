@@ -10,6 +10,7 @@ import {
 } from '@/components/ui/accordion'
 import { MarketingNav } from '@/components/marketing/nav'
 import { MarketingFooter } from '@/components/marketing/footer'
+import { Display, Lede, Wrap } from '@/components/marketing/primitives'
 import {
   PLANS,
   PURCHASABLE_PLANS,
@@ -135,8 +136,8 @@ const FAQ = [
 // ─── Pieces ───────────────────────────────────────────────────────────────────
 
 function Cell({ value }: { value: string | boolean }) {
-  if (value === true) return <Check className="mx-auto h-4 w-4 text-accent" />
-  if (value === false) return <Minus className="mx-auto h-4 w-4 text-muted-foreground/30" />
+  if (value === true) return <Check className="mx-auto h-4 w-4 text-green" />
+  if (value === false) return <Minus className="mx-auto h-4 w-4 text-ink/20" />
   return <span className="text-sm text-foreground">{value}</span>
 }
 
@@ -147,44 +148,46 @@ function PlanCard({ id, currency }: { id: PlanId; currency: CurrencyCode }) {
 
   return (
     <div
-      className={`relative flex flex-col rounded-xl border p-6 ${
-        isHighlight ? 'border-accent/40 bg-accent/[0.03]' : 'border-border bg-background'
+      className={`relative flex flex-col rounded-[2rem] p-7 ${
+        isHighlight ? 'bg-ink text-paper' : 'bg-sand text-foreground'
       }`}
     >
       {isHighlight && (
-        <span className="absolute -top-2.5 left-6 rounded-full bg-foreground px-2.5 py-0.5 text-[10px] font-medium uppercase tracking-wider text-background">
+        <span className="absolute right-6 top-6 rounded-md bg-orange px-2.5 py-1 text-xs font-medium text-paper">
           Most popular
         </span>
       )}
 
-      <h2 className="text-[15px] font-medium text-foreground">{plan.name}</h2>
-      <p className="mt-1 text-sm text-muted-foreground">{BLURB[id]}</p>
+      <h2 className="text-2xl font-medium tracking-[-0.03em]">{plan.name}</h2>
+      <p className={`mt-1 text-[15px] ${isHighlight ? 'text-paper/65' : 'text-muted-foreground'}`}>{BLURB[id]}</p>
 
-      <div className="mt-5 flex items-baseline gap-1.5">
-        <span className="text-4xl font-semibold tracking-[-0.03em] text-foreground">
+      <div className="mt-8 flex items-baseline gap-1.5">
+        <span className="text-5xl font-medium tracking-[-0.04em]">
           {formatPrice(monthlyPrice(id, currency), currency)}
         </span>
-        <span className="text-sm text-muted-foreground">
+        <span className={`text-sm ${isHighlight ? 'text-paper/65' : 'text-muted-foreground'}`}>
           {isFree ? 'for 14 days' : '/month'}
         </span>
       </div>
 
       <Link
         href={isFree ? '/dashboard' : `/dashboard/billing#plans`}
-        className={`mt-6 inline-flex h-10 items-center justify-center gap-1.5 rounded-lg text-sm font-medium transition-opacity hover:opacity-90 ${
-          isHighlight || !isFree
-            ? 'bg-foreground text-background'
-            : 'border border-border text-foreground hover:bg-muted'
+        className={`mt-7 inline-flex h-12 items-center justify-center gap-2 text-base font-medium transition-colors ${
+          isHighlight
+            ? 'rounded-[2rem_0.5rem_0.5rem_2rem] bg-orange text-paper hover:bg-paper hover:text-ink'
+            : isFree
+              ? 'rounded-full border border-ink/25 text-foreground hover:border-ink hover:bg-paper'
+              : 'rounded-[2rem_0.5rem_0.5rem_2rem] bg-accent text-accent-foreground hover:bg-ink'
         }`}
       >
         {isFree ? 'Start free' : `Get ${plan.name}`}
-        <ArrowRight className="h-3.5 w-3.5" />
+        <ArrowRight className="h-4 w-4" />
       </Link>
 
-      <ul className="mt-6 space-y-2.5 border-t border-border pt-6">
+      <ul className={`mt-7 space-y-3 border-t pt-7 ${isHighlight ? 'border-paper/15' : 'border-ink/10'}`}>
         {plan.features.map((feature) => (
-          <li key={feature} className="flex items-start gap-2.5 text-sm text-muted-foreground">
-            <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-accent" />
+          <li key={feature} className={`flex items-start gap-2.5 text-[15px] ${isHighlight ? 'text-paper/80' : 'text-muted-foreground'}`}>
+            <Check className={`mt-1 h-3.5 w-3.5 shrink-0 ${isHighlight ? 'text-orange' : 'text-green'}`} />
             {feature}
           </li>
         ))}
@@ -223,24 +226,22 @@ export default async function PricingPage({
     <div className="min-h-screen bg-background">
       <MarketingNav />
 
-      <section className="mx-auto max-w-3xl px-6 pt-24 pb-16 text-center">
-        <span className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
-          Pricing
-        </span>
-        <h1 className="mt-3 text-4xl sm:text-5xl font-semibold tracking-[-0.03em] text-foreground leading-[1.1]">
-          Pricing
-        </h1>
-        <p className="mx-auto mt-5 max-w-lg text-[15px] leading-relaxed text-muted-foreground">
-          Start free for 14 days. No card. After that you buy the months you want.
-          Longer terms cost less. The DevRel job board is free, and Jobs Pro is a separate
-          one-off pass for a year.
-        </p>
+      <section className="px-4 pb-14 pt-12 text-center sm:px-8 sm:pt-20">
+        <Display as="h1" size="xl">
+          Pay for the months
+          <br />
+          you actually use
+        </Display>
+        <Lede className="mt-7">
+          Start free for 14 days, no card. After that you buy the months you want, and longer terms cost less. The
+          DevRel job board is free, and Jobs Pro is a separate one-off pass for a year.
+        </Lede>
 
         <CurrencyPicker current={currency} />
       </section>
 
-      <section className="mx-auto max-w-6xl px-6 pb-20">
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+      <section className="mx-auto max-w-[1600px] px-4 pb-20 sm:px-8">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {ALL_PLANS.map((id) => (
             <PlanCard key={id} id={id} currency={currency} />
           ))}
@@ -248,10 +249,10 @@ export default async function PricingPage({
       </section>
 
       {/* Terms */}
-      <section className="mx-auto max-w-5xl px-6 pb-24">
-        <div className="rounded-xl border border-border">
-          <div className="border-b border-border px-6 py-5">
-            <h2 className="text-[15px] font-medium text-foreground">Buy months at a time</h2>
+      <section className="mx-auto max-w-5xl px-4 pb-24 sm:px-8">
+        <div className="rounded-[2rem] bg-sand">
+          <div className="border-b border-ink/10 px-7 py-7">
+            <h2 className="text-2xl font-medium tracking-[-0.03em] text-foreground">Buy months at a time</h2>
             <p className="mt-1 text-sm text-muted-foreground">
               We handle each payment by hand, not through a card form. Longer terms cost less,
               for you and for us.
@@ -261,10 +262,10 @@ export default async function PricingPage({
           <div className="overflow-x-auto">
             <table className="w-full min-w-[560px] border-collapse text-left">
               <thead>
-                <tr className="border-b border-border">
-                  <th className="px-6 py-3 text-sm font-medium text-muted-foreground">Term</th>
+                <tr className="border-b border-ink/10">
+                  <th className="px-7 py-4 text-sm font-medium text-muted-foreground">Term</th>
                   {PURCHASABLE_PLANS.map((id) => (
-                    <th key={id} className="px-6 py-3 text-center text-sm font-medium text-foreground">
+                    <th key={id} className="px-7 py-4 text-center text-sm font-medium text-foreground">
                       {PLANS[id].name}
                     </th>
                   ))}
@@ -272,17 +273,17 @@ export default async function PricingPage({
               </thead>
               <tbody>
                 {TERMS.map((term) => (
-                  <tr key={term.months} className="border-b border-border last:border-b-0">
-                    <td className="px-6 py-3.5 text-sm text-foreground">
+                  <tr key={term.months} className="border-b border-ink/10 last:border-b-0">
+                    <td className="px-7 py-4 text-sm text-foreground">
                       {term.label}
                       {term.discount > 0 && (
-                        <span className="ml-2 rounded-full bg-accent/10 px-2 py-0.5 text-[11px] text-accent">
+                        <span className="ml-2 rounded-md bg-green px-2 py-0.5 text-[11px] text-paper">
                           save {term.discount}%
                         </span>
                       )}
                     </td>
                     {PURCHASABLE_PLANS.map((id) => (
-                      <td key={id} className="px-6 py-3.5 text-center">
+                      <td key={id} className="px-7 py-4 text-center">
                         <span className="text-sm tabular-nums text-foreground">
                           {formatPrice(termPriceIn(id, term, currency), currency)}
                         </span>
@@ -304,23 +305,18 @@ export default async function PricingPage({
       <JobsPricing currency={currency} />
 
       {/* Comparison */}
-      <section className="border-t border-border bg-card/40 py-24">
-        <div className="mx-auto max-w-5xl px-6">
+      <section className="pb-24">
+        <div className="mx-auto max-w-5xl px-4 sm:px-8">
           <div className="mx-auto max-w-2xl text-center">
-            <span className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
-              Compare
-            </span>
-            <h2 className="mt-3 text-3xl font-semibold tracking-[-0.02em] text-foreground">
-              Every plan, side by side
-            </h2>
+            <Display>Every plan,<br />side by side</Display>
           </div>
 
           {/* Wide table on a narrow screen has to scroll in its own container,
               or the whole page scrolls sideways. */}
-          <div className="mt-12 overflow-x-auto rounded-xl border border-border bg-background">
+          <div className="mt-12 overflow-x-auto rounded-[2rem] bg-sand">
             <table className="w-full min-w-[640px] border-collapse text-left">
               <thead>
-                <tr className="border-b border-border">
+                <tr className="border-b border-ink/10">
                   <th className="px-5 py-4 text-sm font-medium text-muted-foreground">
                     Feature
                   </th>
@@ -336,7 +332,7 @@ export default async function PricingPage({
               </thead>
               <tbody>
                 {CAPABILITY_ROWS.map((row) => (
-                  <tr key={row.label} className="border-b border-border last:border-b-0">
+                  <tr key={row.label} className="border-b border-ink/10 last:border-b-0">
                     <td className="px-5 py-3.5 text-sm text-muted-foreground">{row.label}</td>
                     {ALL_PLANS.map((id) => (
                       <td key={id} className="px-5 py-3.5 text-center">
@@ -352,43 +348,25 @@ export default async function PricingPage({
       </section>
 
       {/* FAQ */}
-      <section className="mx-auto max-w-3xl px-6 py-24">
-        <div className="text-center">
-          <span className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
-            FAQ
-          </span>
-          <h2 className="mt-3 text-3xl font-semibold tracking-[-0.02em] text-foreground">
-            Questions, answered
-          </h2>
-        </div>
+      <section className="px-4 pb-24 sm:px-8">
+        <Display className="text-center">Questions, answered</Display>
 
-        <Accordion
-          type="single"
-          collapsible
-          className="mt-12 overflow-hidden rounded-xl border border-border"
-        >
+        <Accordion type="single" collapsible className="mx-auto mt-14 max-w-3xl space-y-3">
           {FAQ.map(({ q, a }, i) => (
-            <AccordionItem
-              key={q}
-              value={`item-${i}`}
-              className={`px-6 ${i > 0 ? 'border-t border-border' : ''} border-b-0`}
-            >
-              <AccordionTrigger className="py-5 text-left text-sm font-medium text-foreground hover:no-underline">
+            <AccordionItem key={q} value={`item-${i}`} className="rounded-[1.5rem] border-b-0 bg-sand px-7">
+              <AccordionTrigger className="py-6 text-left text-lg font-medium tracking-[-0.02em] text-foreground hover:no-underline">
                 {q}
               </AccordionTrigger>
-              <AccordionContent className="pb-5 text-sm leading-relaxed text-muted-foreground">
+              <AccordionContent className="pb-6 text-[15px] leading-relaxed text-muted-foreground">
                 {a}
               </AccordionContent>
             </AccordionItem>
           ))}
         </Accordion>
 
-        <p className="mt-8 text-center text-sm text-muted-foreground">
+        <p className="mt-10 text-center text-[15px] text-muted-foreground">
           Something missing?{' '}
-          <Link
-            href="/contact"
-            className="text-foreground underline underline-offset-4 hover:text-accent"
-          >
+          <Link href="/contact" className="font-medium text-foreground underline underline-offset-4 decoration-ink/30 hover:text-accent hover:decoration-accent">
             Get in touch
           </Link>
         </p>

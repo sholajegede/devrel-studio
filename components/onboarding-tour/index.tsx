@@ -271,14 +271,14 @@ export function OnboardingTour({
       {/* Overlay — box-shadow cutout for highlighted steps, solid overlay otherwise */}
       {hlBox ? (
         <div
-          className="fixed z-[9999] pointer-events-none rounded-xl transition-all duration-300 ease-out"
+          className="fixed z-[9999] pointer-events-none rounded-2xl transition-all duration-300 ease-out"
           style={{
             top:    hlBox.top,
             left:   hlBox.left,
             width:  hlBox.width,
             height: hlBox.height,
-            border: "2px solid hsl(var(--accent))",
-            boxShadow: "0 0 0 9999px rgba(0,0,0,0.72)",
+            border: "2px solid var(--accent)",
+            boxShadow: "0 0 0 9999px rgba(24,1,2,0.72)",
           }}
         />
       ) : (
@@ -300,9 +300,9 @@ export function OnboardingTour({
           transition: "opacity 0.18s ease, transform 0.18s ease",
         }}
       >
-        <div className="bg-card border border-border/60 rounded-xl shadow-2xl overflow-hidden">
+        <div className="bg-popover rounded-[2rem] overflow-hidden border border-ink/10">
           {/* Accent stripe */}
-          <div className="h-[3px] bg-gradient-to-r from-accent to-accent/20" />
+          <div className="h-1 bg-accent" />
 
           <div className="p-5">
             {/* Title + close */}

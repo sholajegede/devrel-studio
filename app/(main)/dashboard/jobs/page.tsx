@@ -36,7 +36,7 @@ export default function DiscoverPage() {
       />
 
       {profile && (!profile.exists || profile.skills.length === 0) && (
-        <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-dashed border-border bg-card p-4">
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-dashed border-border bg-card p-4">
           <div>
             <p className="font-medium text-foreground">Rank every role against your CV</p>
             <p className="text-sm text-muted-foreground">

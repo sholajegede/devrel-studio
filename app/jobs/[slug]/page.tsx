@@ -91,7 +91,7 @@ export default async function JobPage({ params }: { params: Promise<{ slug: stri
       />
 
       {expired && (
-        <div className="mb-6 rounded-xl border border-border bg-secondary p-4 text-sm text-secondary-foreground">
+        <div className="mb-6 rounded-2xl border border-border bg-secondary p-4 text-sm text-secondary-foreground">
           This role is no longer listed on {job.companyName}’s careers page. Similar open roles are below.
         </div>
       )}
@@ -101,7 +101,7 @@ export default async function JobPage({ params }: { params: Promise<{ slug: stri
           <div className="flex items-start gap-4">
             <Monogram name={job.companyName} size={52} />
             <div>
-              <h1 className="text-2xl font-semibold tracking-tight text-foreground [overflow-wrap:anywhere] sm:text-3xl">{job.title}</h1>
+              <h1 className="text-[clamp(1.9rem,4.4vw,3rem)] font-medium leading-[1.05] tracking-[-0.035em] text-foreground [overflow-wrap:anywhere]">{job.title}</h1>
               <p className="mt-1 text-muted-foreground">
                 <Link href={`/jobs/companies/${job.companySlug}`} className="font-medium text-foreground hover:underline">
                   {job.companyName}
@@ -158,7 +158,7 @@ export default async function JobPage({ params }: { params: Promise<{ slug: stri
         </article>
 
         <aside className="space-y-4 lg:sticky lg:top-24 lg:self-start">
-          <div className="space-y-3 rounded-xl border border-border bg-card p-5">
+          <div className="space-y-3 rounded-2xl bg-card p-5">
             {expired ? (
               <Button asChild className="w-full">
                 <Link href="/jobs">See open roles</Link>
@@ -211,7 +211,7 @@ export default async function JobPage({ params }: { params: Promise<{ slug: stri
           )}
 
           {benchmarkLine && (
-            <div className="rounded-xl border border-border bg-card p-4 text-sm leading-relaxed text-muted-foreground">
+            <div className="rounded-2xl bg-card p-4 text-sm leading-relaxed text-muted-foreground">
               <p className="mb-1 flex items-center gap-1.5 font-medium text-foreground">
                 <Clock3 className="h-3.5 w-3.5" />
                 Pay in context
@@ -221,7 +221,7 @@ export default async function JobPage({ params }: { params: Promise<{ slug: stri
           )}
 
           {alsoOpenIn.length > 0 && (
-            <div className="rounded-xl border border-border bg-card p-4 text-sm">
+            <div className="rounded-2xl bg-card p-4 text-sm">
               <p className="mb-2 font-medium text-foreground">Also open in</p>
               <ul className="space-y-1">
                 {alsoOpenIn.map((other) => (
@@ -235,7 +235,7 @@ export default async function JobPage({ params }: { params: Promise<{ slug: stri
             </div>
           )}
 
-          <div className="rounded-xl border border-dashed border-border p-4 text-sm text-muted-foreground">
+          <div className="rounded-2xl border border-dashed border-border p-4 text-sm text-muted-foreground">
             <p className="font-medium text-foreground">Apply with proof of work</p>
             <p className="mt-1 leading-relaxed">
               Put your content, talks and metrics on a public portfolio at devrel.studio/@you and link it in your application.

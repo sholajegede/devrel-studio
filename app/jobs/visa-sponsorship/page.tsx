@@ -44,7 +44,7 @@ export default async function VisaSponsorshipPage() {
       />
       {result && <JsonLd data={itemListLd(origin, 'DevRel jobs with visa sponsorship', result.items)} />}
       <Crumbs trail={[{ name: 'DevRel jobs', href: '/jobs' }, { name: 'Visa sponsorship' }]} />
-      <h1 className="text-3xl font-semibold tracking-tight text-foreground">DevRel jobs with visa sponsorship</h1>
+      <h1 className="text-[clamp(2.25rem,5.4vw,3.75rem)] font-medium leading-[1.02] tracking-[-0.04em] text-foreground">DevRel jobs with visa sponsorship</h1>
       <p className="mt-3 max-w-3xl leading-relaxed text-muted-foreground">
         {result ? `${result.total.toLocaleString('en-US')} open roles mention visa sponsorship.` : 'Roles are loading.'} Each label comes
         from the text of the posting. Many postings do not mention visas at all, so a missing label does not mean no.

@@ -569,7 +569,7 @@ export default function ReportsPage() {
       <RoleNotice />
 
       <div className="mb-8">
-        <h1 className="text-2xl font-semibold text-foreground">Reports</h1>
+        <h1 className="text-4xl font-medium leading-[1.05] tracking-[-0.04em] text-foreground sm:text-[2.75rem]">Reports</h1>
         <p className="mt-1 text-sm text-muted-foreground">
           Who receives each client&apos;s monthly report, when it goes out, and a way to send
           any month by hand.

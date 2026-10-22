@@ -81,25 +81,25 @@ export interface ReportData {
 
 const C = {
   white:        '#ffffff',
-  fg:           '#0f172a',
-  muted:        '#64748b',
-  accent:       '#0d9488',
-  border:       '#e2e8f0',
-  cardBg:       '#f8fafc',
-  mutedBg:      '#f1f5f9',
-  rowAlt:       '#fafbfc',
+  fg:           '#180102',
+  muted:        '#6e625b',
+  accent:       '#f16b46',
+  border:       '#e1d7c5',
+  cardBg:       '#f8f0e3',
+  mutedBg:      '#ece4d7',
+  rowAlt:       '#fbf6ec',
   // status
-  pubBg:        '#f0fdf9', pubFg:  '#0d9488',
-  draftBg:      '#f8fafc', draftFg: '#64748b',
-  reviewBg:     '#fffbeb', reviewFg: '#b45309',
-  scheduledBg:  '#f1f5f9', scheduledFg: '#475569',
+  pubBg:        '#e6f5f0', pubFg:  '#226b59',
+  draftBg:      '#ece4d7', draftFg: '#6e625b',
+  reviewBg:     '#f6e8c1', reviewFg: '#86621c',
+  scheduledBg:  '#d4e6ee', scheduledFg: '#366579',
   // category
-  written:  '#1d4ed8',
-  video:    '#dc2626',
-  event:    '#7c3aed',
-  podcast:  '#ea580c',
-  package:  '#059669',
-  demo:     '#0f766e',
+  written:  '#f16b46',
+  video:    '#437f98',
+  event:    '#a98027',
+  podcast:  '#2b856f',
+  package:  '#98587f',
+  demo:     '#867b6f',
 }
 
 // ── Styles ────────────────────────────────────────────────────────────────────

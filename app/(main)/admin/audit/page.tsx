@@ -46,7 +46,7 @@ export default function AdminAuditPage() {
   return (
     <>
       <div className="mb-6">
-        <h1 className="text-2xl font-semibold text-foreground">Audit</h1>
+        <h1 className="text-4xl font-medium leading-[1.05] tracking-[-0.04em] text-foreground sm:text-[2.75rem]">Audit</h1>
         <p className="text-sm text-muted-foreground">
           Every privileged action, appended and never edited.
         </p>

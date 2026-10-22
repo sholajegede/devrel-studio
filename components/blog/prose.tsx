@@ -11,7 +11,7 @@ function Inlines({ nodes }: { nodes: Inline[] }) {
             return <span key={index}>{node.v}</span>
           case 'code':
             return (
-              <code key={index} className="rounded bg-muted px-1.5 py-0.5 font-mono text-[0.9em] text-foreground">
+              <code key={index} className="rounded-md bg-sand px-1.5 py-0.5 font-mono text-[0.9em] text-foreground">
                 {node.v}
               </code>
             )
@@ -43,11 +43,11 @@ export function Prose({ blocks }: { blocks: Block[] }) {
         switch (block.t) {
           case 'h':
             return block.level === 2 ? (
-              <h2 key={index} id={block.id} className="scroll-mt-24 pt-6 text-2xl font-semibold tracking-tight text-foreground">
+              <h2 key={index} id={block.id} className="scroll-mt-24 pt-6 text-3xl font-medium tracking-[-0.035em] text-foreground">
                 <Inlines nodes={block.c} />
               </h2>
             ) : (
-              <h3 key={index} id={block.id} className="scroll-mt-24 pt-2 text-xl font-semibold text-foreground">
+              <h3 key={index} id={block.id} className="scroll-mt-24 pt-2 text-xl font-medium tracking-[-0.02em] text-foreground">
                 <Inlines nodes={block.c} />
               </h3>
             )
@@ -67,13 +67,13 @@ export function Prose({ blocks }: { blocks: Block[] }) {
             )
           case 'quote':
             return (
-              <blockquote key={index} className="border-l-2 border-accent pl-4 text-muted-foreground">
+              <blockquote key={index} className="border-l-4 border-accent pl-5 text-lg text-foreground">
                 <Inlines nodes={block.c} />
               </blockquote>
             )
           case 'code':
             return (
-              <pre key={index} className="overflow-x-auto rounded-xl border border-border bg-muted/60 p-4 text-sm leading-relaxed">
+              <pre key={index} className="overflow-x-auto rounded-[1.5rem] bg-ink p-5 text-paper text-sm leading-relaxed">
                 <code className="font-mono">{block.v}</code>
               </pre>
             )
@@ -81,7 +81,7 @@ export function Prose({ blocks }: { blocks: Block[] }) {
             const svg = sanitizeSvg(block.v)
             if (!svg) return null
             return (
-              <figure key={index} className="my-8 rounded-xl border border-border bg-card p-4">
+              <figure key={index} className="my-8 rounded-[2rem] bg-sand p-6">
                 <div
                   className="mx-auto max-w-full overflow-x-auto text-foreground [&_svg]:mx-auto [&_svg]:h-auto [&_svg]:max-w-full"
                   dangerouslySetInnerHTML={{ __html: svg }}

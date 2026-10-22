@@ -193,7 +193,7 @@ function TrafficTooltip({
       })
 
   return (
-    <div className="rounded-lg border bg-popover px-3 py-2 text-xs shadow-sm">
+    <div className="rounded-xl border bg-popover px-3 py-2 text-xs">
       <div className="font-medium text-popover-foreground">{heading}</div>
       <div className="mt-1 tabular-nums text-popover-foreground">
         {point.views.toLocaleString()} page views
@@ -460,7 +460,7 @@ export function RecentSessions({
         </EmptyRow>
       ) : (
         <>
-          <ul className="divide-y rounded-lg border">
+          <ul className="divide-y rounded-xl border">
             {rows.map((row) => (
               <SessionItem key={row.id} row={row} now={now} />
             ))}

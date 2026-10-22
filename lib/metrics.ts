@@ -26,12 +26,12 @@ export const CATEGORY_METRIC: Record<Category, { key: MetricKey; label: string }
 
 /** Hex colours for the PDF report, which cannot use Tailwind classes. */
 export const CATEGORY_PDF_COLOR: Record<Category, string> = {
-  Written: '#1d4ed8',
-  Video:   '#dc2626',
-  Event:   '#7c3aed',
-  Podcast: '#ea580c',
-  Package: '#059669',
-  Demo:    '#0f766e',
+  Written: '#f16b46',
+  Video:   '#63a4bc',
+  Event:   '#dbb154',
+  Podcast: '#3dac91',
+  Package: '#e0a5d0',
+  Demo:    '#8f8566',
 }
 
 /**

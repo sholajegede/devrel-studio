@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import Image from 'next/image'
+import { Wordmark } from '@/components/brand/wordmark'
 import { usePathname } from 'next/navigation'
 import { useState, useEffect } from 'react'
 import { cn } from '@/lib/utils'
@@ -14,7 +15,6 @@ import { Button } from '@/components/ui/button'
 import { useUserContext } from '@/contexts/user-context'
 import { WorkspaceSwitcher } from '@/components/dashboard/workspace-switcher'
 import { ClientSwitcher } from '@/components/dashboard/client-switcher'
-import { ThemeToggle } from '@/components/theme-toggle'
 import { LogoutLink } from '@kinde-oss/kinde-auth-nextjs'
 
 const NAV_ITEMS = [
@@ -47,24 +47,13 @@ function SidebarInner({ onClose }: { onClose?: () => void }) {
     <div className="flex h-full flex-col">
 
       {/* Logo bar */}
-      <div className="flex h-14 shrink-0 items-center justify-between border-b border-border px-4">
-        <Link href="/dashboard" className="flex items-center gap-2.5" onClick={onClose}>
-          <Image
-            src="/images/devrel-logo.png"
-            alt="DevRel Studio"
-            width={28}
-            height={28}
-            className="rounded"
-          />
-          <span className="text-base font-semibold text-foreground">
-            devrel<span className="text-muted-foreground">.studio</span>
-          </span>
-        </Link>
+      <div className="flex h-16 shrink-0 items-center justify-between px-5 pt-2">
+        <Wordmark href="/dashboard" size="sm" onClick={onClose} />
         {onClose && (
           <button
             type="button"
             onClick={onClose}
-            className="rounded-md p-1 hover:bg-muted transition-colors"
+            className="rounded-full p-1.5 transition-colors hover:bg-paper"
             aria-label="Close menu"
           >
             <X className="h-4 w-4 text-muted-foreground" />
@@ -88,11 +77,11 @@ function SidebarInner({ onClose }: { onClose?: () => void }) {
             )
             onClose?.()
           }}
-          className="flex w-full items-center gap-2 rounded-md border border-border px-2.5 py-1.5 text-left text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+          className="flex w-full items-center gap-2 rounded-full bg-paper px-3.5 py-2 text-left text-sm text-muted-foreground transition-colors hover:text-foreground"
         >
           <Search className="h-3.5 w-3.5 shrink-0" />
           <span className="flex-1">Search</span>
-          <kbd className="rounded border border-border bg-muted px-1.5 py-0.5 font-mono text-[10px]">
+          <kbd className="rounded-md bg-sand px-1.5 py-0.5 font-mono text-[10px]">
             ⌘K
           </kbd>
         </button>
@@ -110,10 +99,10 @@ function SidebarInner({ onClose }: { onClose?: () => void }) {
               href={item.href}
               onClick={onClose}
               className={cn(
-                'flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-colors',
+                'flex items-center gap-2.5 rounded-full px-3.5 py-2 text-sm transition-colors',
                 isActive
-                  ? 'bg-secondary font-medium text-foreground'
-                  : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                  ? 'bg-paper font-medium text-accent'
+                  : 'text-foreground/80 hover:bg-paper/60 hover:text-foreground'
               )}
             >
               <item.icon className="h-4 w-4 shrink-0" />
@@ -131,10 +120,7 @@ function SidebarInner({ onClose }: { onClose?: () => void }) {
         {/* Divider + action button */}
         <div className="pt-5">
           <Link href="/dashboard/add" onClick={onClose}>
-            <Button
-              size="sm"
-              className="w-full justify-start gap-2 bg-accent text-accent-foreground hover:bg-accent/90"
-            >
+            <Button className="w-full justify-center gap-2">
               <PlusCircle className="h-4 w-4 shrink-0" />
               Add New Entry
             </Button>
@@ -143,9 +129,9 @@ function SidebarInner({ onClose }: { onClose?: () => void }) {
       </nav>
 
       {/* Footer: user */}
-      <div className="shrink-0 border-t border-border px-3 py-3">
+      <div className="shrink-0 border-t border-ink/10 px-3 py-3">
         {profile && (
-          <div className="flex items-center gap-2.5 rounded-lg px-3 py-2">
+          <div className="flex items-center gap-2.5 rounded-xl px-3 py-2">
             {profile.imageUrl ? (
               <Image
                 src={profile.imageUrl}
@@ -155,19 +141,18 @@ function SidebarInner({ onClose }: { onClose?: () => void }) {
                 className="rounded-full shrink-0"
               />
             ) : (
-              <div className="h-7 w-7 rounded-full bg-primary flex items-center justify-center shrink-0">
-                <span className="text-xs font-semibold text-primary-foreground">{initials}</span>
+              <div className="h-7 w-7 rounded-full bg-ink flex items-center justify-center shrink-0">
+                <span className="text-xs font-semibold text-paper">{initials}</span>
               </div>
             )}
             <div className="min-w-0 flex-1">
               <p className="text-sm font-medium text-foreground truncate">{displayName}</p>
               <p className="text-xs text-muted-foreground truncate">{profile.email}</p>
             </div>
-            <ThemeToggle className="h-7 w-7 shrink-0" />
             <LogoutLink>
               <button
                 type="button"
-                className="shrink-0 rounded-md p-1 hover:bg-muted transition-colors"
+                className="shrink-0 rounded-full p-1.5 transition-colors hover:bg-paper"
                 title="Sign out"
               >
                 <LogOut className="h-3.5 w-3.5 text-muted-foreground" />
@@ -190,28 +175,17 @@ export function DashboardSidebar() {
   return (
     <>
       {/* Desktop sidebar */}
-      <aside className="hidden lg:fixed lg:inset-y-0 lg:left-0 lg:z-40 lg:flex lg:w-60 lg:flex-col lg:border-r lg:border-border lg:bg-card">
+      <aside className="hidden lg:fixed lg:inset-y-3 lg:left-3 lg:z-40 lg:flex lg:w-60 lg:flex-col lg:overflow-hidden lg:rounded-[2rem] lg:bg-sidebar">
         <SidebarInner />
       </aside>
 
       {/* Mobile top bar */}
-      <div className="fixed top-0 left-0 right-0 z-30 flex h-14 items-center justify-between border-b border-border bg-card px-4 lg:hidden">
-        <Link href="/dashboard" className="flex items-center gap-2.5">
-          <Image
-            src="/images/devrel-logo.png"
-            alt="DevRel Studio"
-            width={28}
-            height={28}
-            className="rounded"
-          />
-          <span className="text-base font-semibold text-foreground">
-            devrel<span className="text-muted-foreground">.studio</span>
-          </span>
-        </Link>
+      <div className="fixed top-0 left-0 right-0 z-30 flex h-14 items-center justify-between bg-background px-4 lg:hidden">
+        <Wordmark href="/dashboard" size="sm" />
         <button
           type="button"
           onClick={() => setMobileOpen(true)}
-          className="rounded-md p-2 hover:bg-muted transition-colors"
+          className="rounded-full p-2 transition-colors hover:bg-sand"
           aria-label="Open navigation"
           aria-expanded={mobileOpen}
           aria-controls="dashboard-nav"
@@ -224,10 +198,10 @@ export function DashboardSidebar() {
       {mobileOpen && (
         <>
           <div
-            className="fixed inset-0 z-40 bg-black/50"
+            className="fixed inset-0 z-40 bg-ink/40"
             onClick={() => setMobileOpen(false)}
           />
-          <aside className="fixed inset-y-0 left-0 z-50 w-72 bg-card border-r border-border">
+          <aside className="fixed inset-y-2 left-2 z-50 w-72 overflow-hidden rounded-[2rem] bg-sidebar">
             <SidebarInner
               onClose={() => setMobileOpen(false)}
             />

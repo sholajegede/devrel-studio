@@ -40,29 +40,33 @@ export default async function BlogIndex() {
           })),
         }}
       />
-      <header className="mb-10">
-        <h1 className="text-4xl font-semibold tracking-tight text-foreground">The DevRel Studio blog</h1>
-        <p className="mt-3 max-w-2xl text-lg text-muted-foreground">{DESCRIPTION}</p>
-        <p className="mt-3 text-sm text-muted-foreground">
-          <a href="/blog/feed.xml" className="underline underline-offset-2 hover:text-foreground">RSS feed</a>
+      <header className="mb-14 text-center">
+        <h1 className="text-[clamp(2.75rem,7vw,5.25rem)] font-medium leading-[1] tracking-[-0.035em] text-foreground">
+          Notes on proving
+          <br />
+          DevRel work
+        </h1>
+        <p className="mx-auto mt-7 max-w-xl text-lg leading-relaxed text-muted-foreground">{DESCRIPTION}</p>
+        <p className="mt-4 text-sm text-muted-foreground">
+          <a href="/blog/feed.xml" className="underline underline-offset-4 decoration-ink/30 hover:text-accent hover:decoration-accent">RSS feed</a>
         </p>
       </header>
 
       {posts.length === 0 ? (
-        <p className="rounded-xl border border-dashed border-border p-10 text-center text-muted-foreground">
+        <p className="rounded-[2rem] bg-sand p-12 text-center text-muted-foreground">
           The first posts are on the way.
         </p>
       ) : (
-        <ul className="divide-y divide-border">
+        <ul className="space-y-3">
           {posts.map((post) => (
-            <li key={post.slug} className="py-6 first:pt-0">
-              <p className="text-xs text-muted-foreground">
-                {dateLabel(post.publishedAt)} · {post.readingMinutes} min read
-              </p>
-              <h2 className="mt-1 text-xl font-semibold text-foreground">
-                <Link href={`/blog/${post.slug}`} className="hover:underline">{post.title}</Link>
-              </h2>
-              <p className="mt-2 text-muted-foreground">{post.description}</p>
+            <li key={post.slug}>
+              <Link href={`/blog/${post.slug}`} className="block rounded-[2rem] bg-sand p-7 transition-colors hover:bg-sand-deep sm:p-9">
+                <p className="text-sm text-muted-foreground">
+                  {dateLabel(post.publishedAt)} · {post.readingMinutes} min read
+                </p>
+                <h2 className="mt-2 text-2xl font-medium leading-[1.1] tracking-[-0.03em] text-foreground sm:text-3xl">{post.title}</h2>
+                <p className="mt-3 text-[15px] leading-relaxed text-muted-foreground">{post.description}</p>
+              </Link>
             </li>
           ))}
         </ul>

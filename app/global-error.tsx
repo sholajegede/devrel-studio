@@ -34,35 +34,26 @@ export default function GlobalError({
           padding: '1rem',
           fontFamily:
             '-apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif',
-          background: '#f5f5f5',
-          color: '#1a1a1a',
+          background: '#f8f0e3',
+          color: '#180102',
         }}
       >
-        <style>{`
-          @media (prefers-color-scheme: dark) {
-            body { background: #14181d !important; color: #e6e9ec !important; }
-            .panel { background: #1b2027 !important; border-color: #2b323b !important; }
-            .muted { color: #9aa5b1 !important; }
-          }
-        `}</style>
-
         <div
           className="panel"
           style={{
             maxWidth: '28rem',
             width: '100%',
             textAlign: 'center',
-            background: '#ffffff',
-            border: '1px solid #e2e8f0',
-            borderRadius: '0.75rem',
-            padding: '2rem',
+            background: '#ece4d7',
+            borderRadius: '2rem',
+            padding: '2.5rem',
           }}
         >
-          <h1 style={{ fontSize: '1.125rem', fontWeight: 600, margin: '0 0 0.5rem' }}>
+          <h1 style={{ fontSize: '1.9rem', fontWeight: 500, letterSpacing: '-0.04em', margin: '0 0 0.75rem' }}>
             Something went wrong
           </h1>
 
-          <p className="muted" style={{ fontSize: '0.875rem', color: '#718096', margin: 0 }}>
+          <p className="muted" style={{ fontSize: '0.875rem', color: '#6e625b', margin: 0 }}>
             DevRel Studio failed to load. Your data is unaffected.
           </p>
 
@@ -72,7 +63,7 @@ export default function GlobalError({
               style={{
                 fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
                 fontSize: '0.75rem',
-                color: '#718096',
+                color: '#6e625b',
                 marginTop: '0.75rem',
               }}
             >
@@ -84,11 +75,11 @@ export default function GlobalError({
             onClick={reset}
             style={{
               marginTop: '1.5rem',
-              background: '#38b2ac',
-              color: '#ffffff',
+              background: '#f16b46',
+              color: '#f8f0e3',
               border: 'none',
-              borderRadius: '0.5rem',
-              padding: '0.6rem 1.1rem',
+              borderRadius: '2rem 0.5rem 0.5rem 2rem',
+              padding: '0.8rem 1.5rem',
               fontSize: '0.875rem',
               fontWeight: 500,
               cursor: 'pointer',

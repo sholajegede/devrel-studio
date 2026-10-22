@@ -28,7 +28,7 @@ export default async function RemotePage() {
       />
       {result && <JsonLd data={itemListLd(origin, 'Remote DevRel jobs', result.items)} />}
       <Crumbs trail={[{ name: 'DevRel jobs', href: '/jobs' }, { name: 'Remote' }]} />
-      <h1 className="text-3xl font-semibold tracking-tight text-foreground">Remote DevRel jobs</h1>
+      <h1 className="text-[clamp(2.25rem,5.4vw,3.75rem)] font-medium leading-[1.02] tracking-[-0.04em] text-foreground">Remote DevRel jobs</h1>
       <p className="mt-3 max-w-3xl leading-relaxed text-muted-foreground">
         {result ? `${result.total.toLocaleString('en-US')} remote roles are open.` : 'Remote roles are loading.'} Remote does not
         always mean anywhere: open a role to see whether it is worldwide, limited to a region or limited to one country.

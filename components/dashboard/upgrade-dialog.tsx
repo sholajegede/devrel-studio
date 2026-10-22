@@ -114,7 +114,7 @@ export function UpgradeDialog({
               </DialogDescription>
             </DialogHeader>
 
-            <div className="rounded-lg border border-border bg-muted/30 p-4 text-sm leading-relaxed text-muted-foreground">
+            <div className="rounded-xl border border-border bg-muted/30 p-4 text-sm leading-relaxed text-muted-foreground">
               We reply within one working day with the transfer details. Your access opens
               once the payment clears. Your trial runs as normal until then.
             </div>
@@ -147,7 +147,7 @@ export function UpgradeDialog({
                         type="button"
                         onClick={() => setMonths(option.months)}
                         aria-pressed={active}
-                        className={`rounded-lg border px-2 py-2.5 text-center transition-colors ${
+                        className={`rounded-xl border px-2 py-2.5 text-center transition-colors ${
                           active
                             ? 'border-foreground bg-foreground text-background'
                             : 'border-border text-foreground hover:bg-muted'
@@ -163,7 +163,7 @@ export function UpgradeDialog({
                 </div>
               </div>
 
-              <div className="rounded-lg border border-border p-4">
+              <div className="rounded-xl border border-border p-4">
                 <div className="flex items-baseline justify-between">
                   <span className="text-sm text-muted-foreground">Total</span>
                   <span className="text-2xl font-semibold tabular-nums text-foreground">

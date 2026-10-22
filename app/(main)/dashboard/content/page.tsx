@@ -387,7 +387,7 @@ export default function ContentListPage() {
     switch (status) {
       case 'Published':        return <Badge variant="secondary" className="gap-1 font-normal"><CheckCircle2 className="h-3 w-3" />Published</Badge>
       case 'Draft':            return <Badge variant="outline"   className="gap-1 font-normal"><Pencil className="h-3 w-3" />Draft</Badge>
-      case 'Waiting Approval': return <Badge variant="outline"   className="gap-1 font-normal text-amber-600 border-amber-300 dark:text-amber-400 dark:border-amber-500/40"><AlertCircle className="h-3 w-3" />Waiting</Badge>
+      case 'Waiting Approval': return <Badge variant="outline"   className="gap-1 font-normal text-amber-600 border-amber-300"><AlertCircle className="h-3 w-3" />Waiting</Badge>
       case 'Scheduled':        return <Badge variant="outline"   className="gap-1 font-normal"><Clock className="h-3 w-3" />Scheduled</Badge>
       default:                 return <Badge variant="secondary">{status}</Badge>
     }
@@ -422,7 +422,7 @@ export default function ContentListPage() {
       {/* Header */}
       <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-foreground">All Content</h1>
+          <h1 className="text-4xl font-medium leading-[1.05] tracking-[-0.04em] text-foreground sm:text-[2.75rem]">All Content</h1>
           <p className="text-sm text-muted-foreground">
             {filteredContent.length} {hasActiveFilters ? 'matching ' : ''}
             {filteredContent.length === 1 ? 'entry' : 'entries'}
@@ -597,7 +597,7 @@ export default function ContentListPage() {
           Sticky, because a selection made at the bottom of forty rows is acted
           on from wherever the reader happens to be. */}
       {can.edit && selectedVisible.length > 0 && (
-        <div className="sticky top-4 z-20 mb-3 flex flex-wrap items-center gap-3 rounded-xl border border-accent/30 bg-card/95 px-4 py-3 shadow-sm backdrop-blur">
+        <div className="sticky top-4 z-20 mb-3 flex flex-wrap items-center gap-3 rounded-[1.5rem] bg-ink px-5 py-3 text-paper">
           <span className="text-sm font-medium text-foreground">
             {selectedVisible.length} selected
           </span>

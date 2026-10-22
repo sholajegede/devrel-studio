@@ -125,7 +125,7 @@ export default function ProfilePage() {
       />
 
       <div className="grid gap-6 lg:grid-cols-2">
-        <section className="space-y-4 rounded-xl border border-border bg-card p-5">
+        <section className="space-y-4 rounded-2xl bg-card p-5">
           <h2 className="font-medium text-foreground">Your CV</h2>
 
           <div
@@ -140,7 +140,7 @@ export default function ProfilePage() {
               const file = event.dataTransfer.files?.[0]
               if (file) void upload(file)
             }}
-            className={`flex flex-col items-center gap-2 rounded-lg border border-dashed p-8 text-center transition-colors ${
+            className={`flex flex-col items-center gap-2 rounded-xl border border-dashed p-8 text-center transition-colors ${
               dragging ? 'border-accent bg-accent/5' : 'border-border'
             }`}
           >
@@ -170,7 +170,7 @@ export default function ProfilePage() {
           </div>
 
           {hasCv && profile && profile.exists && (
-            <div className="flex items-center justify-between gap-3 rounded-lg bg-muted p-3 text-sm">
+            <div className="flex items-center justify-between gap-3 rounded-xl bg-muted p-3 text-sm">
               <span className="flex min-w-0 items-center gap-2">
                 <FileText className="h-4 w-4 shrink-0 text-muted-foreground" />
                 <span className="truncate">{profile.cvFileName ?? 'CV'}</span>
@@ -225,7 +225,7 @@ export default function ProfilePage() {
           </div>
         </section>
 
-        <section className="space-y-5 rounded-xl border border-border bg-card p-5">
+        <section className="space-y-5 rounded-2xl bg-card p-5">
           <h2 className="font-medium text-foreground">What you are looking for</h2>
 
           <div className="space-y-2">

@@ -69,7 +69,6 @@ import {
   OnboardingTour,
   TourTriggerButton,
 } from "@/components/onboarding-tour";
-import { ThemeToggle } from "@/components/theme-toggle";
 
 // ─── Skeleton components ──────────────────────────────────────────────────────
 
@@ -79,7 +78,7 @@ function SkeletonBlock({ className }: { className?: string }) {
 
 function StatCardSkeleton() {
   return (
-    <div className="rounded-xl border border-border bg-card p-5">
+    <div className="rounded-[1.5rem] bg-sand p-6">
       <SkeletonBlock className="h-4 w-20 mb-3" />
       <SkeletonBlock className="h-8 w-12" />
     </div>
@@ -115,7 +114,7 @@ function DashboardSkeleton({ clientName }: { clientName: string }) {
             <SkeletonBlock className="h-9 w-32 rounded-md" />
           </div>
         </div>
-        <div className="rounded-lg border border-border bg-card overflow-hidden">
+        <div className="rounded-[1.5rem] bg-sand overflow-hidden">
           <table className="w-full">
             <thead>
               <tr className="border-b border-border bg-muted/50">
@@ -153,19 +152,13 @@ function DashboardHeader({
   // becomes a line of attribution underneath. Without one it stays as it was —
   // a client who has uploaded nothing should not get a hole where a logo goes.
   const logo = branding?.logoUrl ?? null;
-  const logoDark = branding?.logoDarkUrl ?? logo;
 
   return (
-    <header className="sticky top-0 z-10 border-b border-border bg-card">
+    <header className="sticky top-0 z-10 bg-background">
       <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between">
           <div className="flex items-center gap-3">
             {logo ? (
-              // Both grounds, swapped by CSS rather than by reading the theme in
-              // JavaScript: the class is already on the document when the first
-              // paint happens, so there is no flash of the wrong one and no
-              // hydration mismatch to reconcile.
-              //
               // Their own files, so the dimensions are unknown — bounded rather
               // than cropped, because a squashed logo is worse than a small one.
               <>
@@ -173,13 +166,7 @@ function DashboardHeader({
                 <img
                   src={logo}
                   alt={clientName}
-                  className="h-8 max-w-[140px] object-contain dark:hidden"
-                />
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={logoDark ?? logo}
-                  alt={clientName}
-                  className="hidden h-8 max-w-[140px] object-contain dark:block"
+                  className="h-8 max-w-[140px] object-contain"
                 />
               </>
             ) : (
@@ -197,7 +184,6 @@ function DashboardHeader({
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <ThemeToggle />
             {tourControls && <TourTriggerButton onStartTour={tourControls.startTour} />}
             {!logo && (
               <Badge variant="outline" className="bg-accent/10 text-accent border-accent/20">
@@ -277,15 +263,15 @@ function CategoryBadge({ category }: { category?: Category }) {
 function getStatusConfig(status: string) {
   switch (status) {
     case "Published":
-      return { icon: CheckCircle2, label: "Published", className: "bg-accent/10 text-accent border-accent/20" };
+      return { icon: CheckCircle2, label: "Published", className: "bg-green text-paper border-transparent" };
     case "Draft":
-      return { icon: FileEdit, label: "Draft", className: "bg-stone-50 text-stone-600 border-stone-200 dark:bg-stone-500/10 dark:text-stone-300 dark:border-stone-500/25" };
+      return { icon: FileEdit, label: "Draft", className: "bg-sand-deep text-ink border-transparent" };
     case "Waiting Approval":
-      return { icon: Clock, label: "In Review", className: "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-500/10 dark:text-amber-300 dark:border-amber-500/25" };
+      return { icon: Clock, label: "In Review", className: "bg-ochre text-ink border-transparent" };
     case "Scheduled":
-      return { icon: Calendar, label: "Scheduled", className: "bg-slate-50 text-slate-600 border-slate-200 dark:bg-slate-500/10 dark:text-slate-300 dark:border-slate-500/25" };
+      return { icon: Calendar, label: "Scheduled", className: "bg-blue text-paper border-transparent" };
     default:
-      return { icon: Clock, label: status, className: "bg-stone-50 text-stone-600 border-stone-200 dark:bg-stone-500/10 dark:text-stone-300 dark:border-stone-500/25" };
+      return { icon: Clock, label: status, className: "bg-sand-deep text-ink border-transparent" };
   }
 }
 
@@ -589,59 +575,59 @@ export default function ClientDashboard({
 
         {/* ── Stat cards ── */}
         <div className="mb-8 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4" data-tour="stats-cards">
-          <div className="rounded-xl border border-border bg-card p-5">
+          <div className="rounded-[1.5rem] bg-sand p-6">
             <p className="text-sm text-muted-foreground">Published</p>
-            <p className="mt-1 text-3xl font-semibold text-foreground">{totals.published}</p>
+            <p className="mt-1 text-4xl font-medium tracking-[-0.04em] text-foreground">{totals.published}</p>
             {deltas && activeMonth && (
               <MonthContribution delta={deltas.published} month={activeMonth} />
             )}
           </div>
-          <div className="rounded-xl border border-border bg-card p-5">
+          <div className="rounded-[1.5rem] bg-sand p-6">
             <p className="text-sm text-muted-foreground">In Progress</p>
-            <p className="mt-1 text-3xl font-semibold text-foreground">{totals.inProgress}</p>
+            <p className="mt-1 text-4xl font-medium tracking-[-0.04em] text-foreground">{totals.inProgress}</p>
           </div>
-          <div className="rounded-xl border border-border bg-card p-5">
+          <div className="rounded-[1.5rem] bg-sand p-6">
             <div className="flex items-center gap-1.5 mb-1">
               <Eye className="h-3.5 w-3.5 text-muted-foreground" />
               <p className="text-sm text-muted-foreground">Views</p>
             </div>
-            <p className="text-3xl font-semibold text-foreground">
+            <p className="text-4xl font-medium tracking-[-0.04em] text-foreground">
               {totals.views > 0 ? totals.views.toLocaleString() : "—"}
             </p>
             {deltas && activeMonth && (
               <MonthContribution delta={deltas.views} month={activeMonth} />
             )}
           </div>
-          <div className="rounded-xl border border-border bg-card p-5">
+          <div className="rounded-[1.5rem] bg-sand p-6">
             <div className="flex items-center gap-1.5 mb-1">
               <Download className="h-3.5 w-3.5 text-muted-foreground" />
               <p className="text-sm text-muted-foreground">Downloads</p>
             </div>
-            <p className="text-3xl font-semibold text-foreground">
+            <p className="text-4xl font-medium tracking-[-0.04em] text-foreground">
               {totals.downloads > 0 ? totals.downloads.toLocaleString() : "—"}
             </p>
             {deltas && activeMonth && (
               <MonthContribution delta={deltas.downloads} month={activeMonth} />
             )}
           </div>
-          <div className="rounded-xl border border-border bg-card p-5">
+          <div className="rounded-[1.5rem] bg-sand p-6">
             <div className="flex items-center gap-1.5 mb-1">
               <Users className="h-3.5 w-3.5 text-muted-foreground" />
               <p className="text-sm text-muted-foreground">Attendees</p>
             </div>
-            <p className="text-3xl font-semibold text-foreground">
+            <p className="text-4xl font-medium tracking-[-0.04em] text-foreground">
               {totals.attendees > 0 ? totals.attendees.toLocaleString() : "—"}
             </p>
             {deltas && activeMonth && (
               <MonthContribution delta={deltas.attendees} month={activeMonth} />
             )}
           </div>
-          <div className="rounded-xl border border-border bg-card p-5">
+          <div className="rounded-[1.5rem] bg-sand p-6">
             <div className="flex items-center gap-1.5 mb-1">
               <Star className="h-3.5 w-3.5 text-muted-foreground" />
               <p className="text-sm text-muted-foreground">Stars</p>
             </div>
-            <p className="text-3xl font-semibold text-foreground">
+            <p className="text-4xl font-medium tracking-[-0.04em] text-foreground">
               {totals.stars > 0 ? totals.stars.toLocaleString() : "—"}
             </p>
             {deltas && activeMonth && (
@@ -662,7 +648,7 @@ export default function ClientDashboard({
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search titles..."
-                className="pl-9 bg-card h-9"
+                className="pl-9 bg-sand h-10 rounded-full border-transparent"
               />
               {searchQuery && (
                 <button
@@ -679,7 +665,7 @@ export default function ClientDashboard({
             <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
               {/* Month */}
               <Select value={selectedMonth} onValueChange={handleMonthChange} disabled={!!dateRange?.from}>
-                <SelectTrigger className="w-full sm:w-36 bg-card h-9 text-sm">
+                <SelectTrigger className="w-full sm:w-36 bg-sand h-10 rounded-full border-transparent text-sm">
                   <Calendar className="hidden sm:flex h-3.5 w-3.5 text-muted-foreground shrink-0" />
                   <SelectValue placeholder="Month" />
                 </SelectTrigger>
@@ -723,7 +709,7 @@ export default function ClientDashboard({
 
               {/* Platform */}
               <Select value={platformFilter} onValueChange={setPlatformFilter}>
-                <SelectTrigger className="w-full sm:w-36 bg-card h-9 text-sm">
+                <SelectTrigger className="w-full sm:w-36 bg-sand h-10 rounded-full border-transparent text-sm">
                   <SelectValue placeholder="Platform" />
                 </SelectTrigger>
                 <SelectContent>
@@ -736,7 +722,7 @@ export default function ClientDashboard({
 
               {/* Status */}
               <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-full sm:w-32 bg-card h-9 text-sm">
+                <SelectTrigger className="w-full sm:w-32 bg-sand h-10 rounded-full border-transparent text-sm">
                   <SelectValue placeholder="Status" />
                 </SelectTrigger>
                 <SelectContent>
@@ -795,8 +781,8 @@ export default function ClientDashboard({
               onClick={() => setCategoryFilter("all")}
               className={`shrink-0 rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
                 categoryFilter === "all"
-                  ? "bg-foreground text-background"
-                  : "border border-border bg-card text-muted-foreground hover:text-foreground hover:border-foreground/30"
+                  ? "bg-ink text-paper"
+                  : "bg-sand text-foreground hover:bg-sand-deep"
               }`}
             >
               All
@@ -815,8 +801,8 @@ export default function ClientDashboard({
                   onClick={() => setCategoryFilter(cat)}
                   className={`shrink-0 flex items-center gap-1.5 rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
                     categoryFilter === cat
-                      ? "bg-foreground text-background"
-                      : "border border-border bg-card text-muted-foreground hover:text-foreground hover:border-foreground/30"
+                      ? "bg-ink text-paper"
+                      : "bg-sand text-foreground hover:bg-sand-deep"
                   }`}
                 >
                   <Icon className="h-3.5 w-3.5" />
@@ -875,7 +861,7 @@ export default function ClientDashboard({
                   </div>
 
                   <div
-                    className="overflow-x-auto -mx-4 sm:mx-0 sm:overflow-hidden rounded-lg border border-border bg-card"
+                    className="overflow-x-auto -mx-4 sm:mx-0 sm:overflow-hidden rounded-[1.5rem] bg-sand"
                     data-tour={monthIndex === 0 ? "content-table" : undefined}
                   >
                     <table className="w-full min-w-full">
@@ -1061,7 +1047,7 @@ export default function ClientDashboard({
                                               (reshare: { platform: string; link: string; date: string }, idx: number) => (
                                                 <div
                                                   key={idx}
-                                                  className="flex items-center gap-3 p-3 bg-card rounded-lg border border-border"
+                                                  className="flex items-center gap-3 p-3 bg-sand rounded-[1.25rem]"
                                                 >
                                                   <PlatformIcon platform={reshare.platform} size={20} />
                                                   <div className="flex-1 min-w-0">
@@ -1122,12 +1108,12 @@ export default function ClientDashboard({
         </div>
 
         {filteredContent.length === 0 && (
-          <div className="rounded-lg border border-border bg-card py-16 text-center">
+          <div className="rounded-[1.5rem] bg-sand py-16 text-center">
             <p className="text-muted-foreground">No content found for this period.</p>
           </div>
         )}
 
-        <footer className="mt-12 pt-6 border-t border-border">
+        <footer className="mt-12 pt-6 border-t border-ink/10">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Image src="/assets/logo-dark.png" alt="DevRel Studio" width={20} height={20} className="rounded opacity-90" />

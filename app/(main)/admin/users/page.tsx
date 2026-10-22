@@ -30,7 +30,7 @@ export default function AdminUsersPage() {
   return (
     <>
       <div className="mb-6">
-        <h1 className="text-2xl font-semibold text-foreground">Accounts</h1>
+        <h1 className="text-4xl font-medium leading-[1.05] tracking-[-0.04em] text-foreground sm:text-[2.75rem]">Accounts</h1>
         <p className="text-sm text-muted-foreground">
           {loading
             ? 'Loading…'
@@ -76,7 +76,7 @@ export default function AdminUsersPage() {
             <Link
               key={row.id}
               href={`/admin/users/${row.id}`}
-              className="block rounded-xl border border-border bg-card p-4 transition-colors hover:border-foreground/20 hover:bg-muted/40"
+              className="block rounded-2xl bg-card p-4 transition-colors hover:border-foreground/20 hover:bg-muted/40"
             >
               <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
                 <div className="min-w-0">
@@ -131,8 +131,8 @@ function AccessChip({
   until: number | null
 }) {
   const tone: Record<string, string> = {
-    comped: 'border-violet-600/30 text-violet-700 dark:text-violet-400',
-    active: 'border-emerald-600/30 text-emerald-700 dark:text-emerald-400',
+    comped: 'border-violet-600/30 text-violet-700',
+    active: 'border-emerald-600/30 text-emerald-700',
     trial: 'border-border text-muted-foreground',
     expired: 'border-border text-muted-foreground',
   }

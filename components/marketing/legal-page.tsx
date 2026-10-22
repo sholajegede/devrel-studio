@@ -23,26 +23,23 @@ export function LegalPage({
     <div className="min-h-screen bg-background">
       <MarketingNav />
 
-      <article className="mx-auto max-w-2xl px-6 py-24">
-        <span className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
-          Legal
-        </span>
-        <h1 className="mt-3 text-4xl font-semibold tracking-[-0.03em] text-foreground">
+      <article className="mx-auto max-w-3xl px-4 pb-8 pt-12 sm:px-8 sm:pt-20">
+        <h1 className="text-[clamp(2.5rem,6vw,4.5rem)] font-medium leading-[1] tracking-[-0.04em] text-foreground">
           {title}
         </h1>
-        <p className="mt-3 text-sm text-muted-foreground">Last updated {updated}</p>
+        <p className="mt-4 text-sm text-muted-foreground">Last updated {updated}</p>
 
         {intro && (
-          <p className="mt-8 text-[15px] leading-relaxed text-muted-foreground">{intro}</p>
+          <p className="mt-10 rounded-[1.5rem] bg-sand p-7 text-lg leading-relaxed text-foreground">{intro}</p>
         )}
 
-        <div className="mt-10 space-y-8">{children}</div>
+        <div className="mt-12 space-y-10">{children}</div>
 
-        <p className="mt-16 border-t border-border pt-6 text-sm text-muted-foreground">
+        <p className="mt-16 border-t border-ink/10 pt-6 text-[15px] text-muted-foreground">
           Questions about this page?{' '}
           <Link
             href="/contact"
-            className="text-foreground underline underline-offset-4 hover:text-accent"
+            className="font-medium text-foreground underline underline-offset-4 decoration-ink/30 hover:text-accent hover:decoration-accent"
           >
             Get in touch
           </Link>
@@ -64,8 +61,8 @@ export function Section({
 }) {
   return (
     <section>
-      <h2 className="text-[15px] font-medium text-foreground">{heading}</h2>
-      <div className="mt-3 space-y-3 text-[15px] leading-relaxed text-muted-foreground">
+      <h2 className="text-2xl font-medium tracking-[-0.03em] text-foreground">{heading}</h2>
+      <div className="mt-3 space-y-3 text-base leading-relaxed text-muted-foreground">
         {children}
       </div>
     </section>

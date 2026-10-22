@@ -42,13 +42,13 @@ export default async function AdminLoginPage() {
     <main className="flex min-h-screen items-center justify-center bg-background px-6">
       <div className="w-full max-w-sm">
         <div className="mb-8 flex items-center gap-2.5">
-          <ShieldCheck className="h-5 w-5 text-muted-foreground" />
-          <span className="text-sm font-semibold text-foreground">
+          <ShieldCheck className="h-5 w-5 text-accent" />
+          <span className="text-base font-bold tracking-[-0.03em] text-foreground">
             devrel.studio admin
           </span>
         </div>
 
-        <h1 className="text-2xl font-semibold text-foreground">Sign in</h1>
+        <h1 className="text-4xl font-medium leading-[1.05] tracking-[-0.04em] text-foreground sm:text-[2.75rem]">Sign in</h1>
         <p className="mt-2 text-sm text-muted-foreground">
           Running the platform, as distinct from running a workspace. Everything
           here is recorded against the account that signs in.
@@ -62,7 +62,7 @@ export default async function AdminLoginPage() {
         */}
         <LoginLink
           postLoginRedirectURL={backHere}
-          className="mt-6 flex h-10 w-full items-center justify-center rounded-md bg-foreground text-sm font-medium text-background transition-opacity hover:opacity-90"
+          className="mt-8 flex h-12 w-full items-center justify-center rounded-[2rem_0.5rem_0.5rem_2rem] bg-ink text-base font-medium text-paper transition-colors hover:bg-accent"
         >
           Continue
         </LoginLink>

@@ -24,7 +24,7 @@ export default function EditContentPage() {
     return (
       <main className="mx-auto max-w-4xl px-6 py-8">
         <div className="text-center space-y-4">
-          <h1 className="text-2xl font-bold text-foreground">Entry Not Found</h1>
+          <h1 className="text-4xl font-medium leading-[1.05] tracking-[-0.04em] text-foreground sm:text-[2.75rem]">Entry Not Found</h1>
           <p className="text-muted-foreground">The content entry you&apos;re looking for doesn&apos;t exist.</p>
           <button
             type="button"
@@ -41,7 +41,7 @@ export default function EditContentPage() {
   return (
     <main className="mx-auto max-w-4xl px-6 py-8">
       <div className="mb-8">
-        <h1 className="text-2xl font-semibold text-foreground">Edit Entry</h1>
+        <h1 className="text-4xl font-medium leading-[1.05] tracking-[-0.04em] text-foreground sm:text-[2.75rem]">Edit Entry</h1>
         <p className="text-sm text-muted-foreground mt-1">Update the details for this entry</p>
       </div>
       <ContentForm existingEntry={entry as ContentEntry} onSuccess={() => router.push('/dashboard/content')} />

@@ -5,6 +5,10 @@ import { logoUrl } from '@/lib/jobs/logos'
 import { slugify } from '@/lib/jobs/normalize'
 import { initials, monogramHue } from '@/lib/jobs/ui'
 
+// Flat palette tints. A company with no logo gets one of five, picked by a hash
+// of its name so the same company is always the same colour.
+const MONOGRAM_TINTS = ['var(--ochre)', 'var(--blue)', 'var(--green)', 'var(--pink)', 'var(--orange)']
+
 export function CompanyLogo({ name, size = 40 }: { name: string; size?: number }) {
   const [failed, setFailed] = useState(false)
   const image = useRef<HTMLImageElement>(null)
@@ -18,7 +22,7 @@ export function CompanyLogo({ name, size = 40 }: { name: string; size?: number }
   const radius = Math.round(size * 0.24)
 
   if (failed) {
-    const hue = monogramHue(name)
+    const tint = MONOGRAM_TINTS[monogramHue(name) % MONOGRAM_TINTS.length]
     return (
       <div
         aria-hidden
@@ -28,8 +32,8 @@ export function CompanyLogo({ name, size = 40 }: { name: string; size?: number }
           height: size,
           borderRadius: radius,
           fontSize: Math.max(10, Math.round(size * 0.32)),
-          background: `linear-gradient(135deg, hsl(${hue} 60% 94%), hsl(${hue} 55% 86%))`,
-          color: `hsl(${hue} 45% 26%)`,
+          background: tint,
+          color: 'var(--ink)',
         }}
       >
         {initials(name)}
@@ -40,7 +44,7 @@ export function CompanyLogo({ name, size = 40 }: { name: string; size?: number }
   return (
     <span
       aria-hidden
-      className="flex shrink-0 items-center justify-center overflow-hidden border border-border bg-white"
+      className="flex shrink-0 items-center justify-center overflow-hidden bg-white"
       style={{ width: size, height: size, borderRadius: radius }}
     >
       {/* eslint-disable-next-line @next/next/no-img-element */}

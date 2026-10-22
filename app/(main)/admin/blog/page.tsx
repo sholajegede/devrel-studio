@@ -13,9 +13,9 @@ import { timeAgo } from '@/lib/jobs/ui'
 import { cn } from '@/lib/utils'
 
 const STATUS_STYLE: Record<string, string> = {
-  published: 'text-emerald-600 dark:text-emerald-400',
-  pending: 'text-amber-600 dark:text-amber-400',
-  failed: 'text-red-600 dark:text-red-400',
+  published: 'text-emerald-600',
+  pending: 'text-amber-600',
+  failed: 'text-red-600',
   rejected: 'text-muted-foreground',
 }
 
@@ -23,7 +23,7 @@ function Open({ id }: { id: Id<'blogPosts'> }) {
   const post = useQuery(api.blog.adminGet, { id })
   const decide = useMutation(api.blog.adminDecide)
   const [busy, setBusy] = useState(false)
-  if (!post) return <div className="h-24 animate-pulse rounded-xl bg-muted" />
+  if (!post) return <div className="h-24 animate-pulse rounded-2xl bg-muted" />
   return (
     <ReviewEditor
       post={post}
@@ -60,13 +60,13 @@ export default function AdminBlogPage() {
     }
   }
 
-  if (posts === undefined) return <div className="h-40 animate-pulse rounded-xl bg-muted" />
+  if (posts === undefined) return <div className="h-40 animate-pulse rounded-2xl bg-muted" />
 
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold text-foreground">Blog</h1>
+          <h1 className="text-4xl font-medium leading-[1.05] tracking-[-0.04em] text-foreground sm:text-[2.75rem]">Blog</h1>
           <p className="text-sm text-muted-foreground">
             A draft is written on Monday, Wednesday and Friday, fact-checked, and emailed for review. Nothing is public until you publish it.{' '}
             <Link href="/blog" className="underline underline-offset-2">Open the blog</Link>
@@ -78,7 +78,7 @@ export default function AdminBlogPage() {
       </div>
 
       {posts.length === 0 ? (
-        <p className="rounded-xl border border-dashed border-border p-10 text-center text-sm text-muted-foreground">No posts yet.</p>
+        <p className="rounded-2xl border border-dashed border-border p-10 text-center text-sm text-muted-foreground">No posts yet.</p>
       ) : (
         <div className="space-y-3">
           {posts.map((post) => (
@@ -92,7 +92,7 @@ export default function AdminBlogPage() {
                     {post.verified + post.flagged > 0 ? ` · ${post.verified}/${post.verified + post.flagged} claims verified` : ''}
                     {post.problems ? ` · ${post.problems} style checks failing` : ''}
                   </p>
-                  {post.error && <p className="mt-1 text-xs text-red-600 dark:text-red-400">{post.error}</p>}
+                  {post.error && <p className="mt-1 text-xs text-red-600">{post.error}</p>}
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {post.status === 'published' && (

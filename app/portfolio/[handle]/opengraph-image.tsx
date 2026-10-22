@@ -46,7 +46,7 @@ export default async function Image({ params }: { params: Promise<{ handle: stri
           display: 'flex',
           flexDirection: 'column',
           justifyContent: 'space-between',
-          background: '#14181d',
+          background: '#f8f0e3',
           padding: 72,
           fontFamily: 'sans-serif',
         }}
@@ -56,7 +56,7 @@ export default async function Image({ params }: { params: Promise<{ handle: stri
             style={{
               display: 'flex',
               fontSize: 22,
-              color: '#4fd1c5',
+              color: '#f16b46',
               letterSpacing: 2,
               textTransform: 'uppercase',
             }}
@@ -70,14 +70,14 @@ export default async function Image({ params }: { params: Promise<{ handle: stri
               marginTop: 24,
               fontSize: 78,
               fontWeight: 600,
-              color: '#e6e9ec',
+              color: '#180102',
               letterSpacing: -2,
             }}
           >
             {name}
           </div>
 
-          <div style={{ display: 'flex', marginTop: 12, fontSize: 30, color: '#9aa5b1' }}>
+          <div style={{ display: 'flex', marginTop: 12, fontSize: 30, color: '#6e625b' }}>
             @{data?.profile.handle ?? handle}
           </div>
         </div>
@@ -85,10 +85,10 @@ export default async function Image({ params }: { params: Promise<{ handle: stri
         <div style={{ display: 'flex', gap: 56 }}>
           {stats.map((stat) => (
             <div key={stat.label} style={{ display: 'flex', flexDirection: 'column' }}>
-              <div style={{ display: 'flex', fontSize: 46, fontWeight: 600, color: '#e6e9ec' }}>
+              <div style={{ display: 'flex', fontSize: 46, fontWeight: 600, color: '#180102' }}>
                 {stat.value}
               </div>
-              <div style={{ display: 'flex', fontSize: 22, color: '#9aa5b1', marginTop: 4 }}>
+              <div style={{ display: 'flex', fontSize: 22, color: '#6e625b', marginTop: 4 }}>
                 {stat.label}
               </div>
             </div>
@@ -100,7 +100,7 @@ export default async function Image({ params }: { params: Promise<{ handle: stri
               marginLeft: 'auto',
               alignItems: 'flex-end',
               fontSize: 24,
-              color: '#4a5561',
+              color: '#867b6f',
             }}
           >
             devrel.studio

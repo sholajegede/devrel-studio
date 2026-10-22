@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { useTheme } from 'next-themes'
 import { useMutation, useQuery } from 'convex/react'
 import { api } from '@/convex/_generated/api'
 import { Id } from '@/convex/_generated/dataModel'
@@ -50,7 +49,6 @@ import {
 export function CommandPalette() {
   const [open, setOpen] = useState(false)
   const router = useRouter()
-  const { setTheme } = useTheme()
   const { can } = useWorkspaceRole()
   const { scope, setScope, clients: scopeClients } = useClientScope()
 
@@ -278,21 +276,6 @@ export function CommandPalette() {
           </>
         )}
 
-        <CommandSeparator />
-        <CommandGroup heading="Theme">
-          <CommandItem onSelect={() => run(() => setTheme('light'))}>
-            <Sun className="h-4 w-4" />
-            Light
-          </CommandItem>
-          <CommandItem onSelect={() => run(() => setTheme('dark'))}>
-            <Moon className="h-4 w-4" />
-            Dark
-          </CommandItem>
-          <CommandItem onSelect={() => run(() => setTheme('system'))}>
-            <Monitor className="h-4 w-4" />
-            System
-          </CommandItem>
-        </CommandGroup>
       </CommandList>
     </CommandDialog>
   )

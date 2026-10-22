@@ -294,9 +294,9 @@ export function ContentForm({ existingEntry, onSuccess }: ContentFormProps) {
                   key={cat}
                   type="button"
                   onClick={() => handleCategoryChange(cat)}
-                  className={`flex flex-col items-center gap-2 rounded-xl border-2 p-4 text-center transition-all hover:shadow-sm ${
+                  className={`flex flex-col items-center gap-2 rounded-2xl border-2 p-4 text-center transition-all ${
                     isSelected
-                      ? meta.selectorClass + " border-current shadow-sm"
+                      ? meta.selectorClass + " border-current"
                       : "border-border bg-background text-muted-foreground hover:border-foreground/30"
                   }`}
                 >
@@ -779,7 +779,7 @@ export function ContentForm({ existingEntry, onSuccess }: ContentFormProps) {
               {reshares.map((reshare, index) => (
                 <div
                   key={index}
-                  className="flex items-center gap-2 p-3 bg-muted rounded-lg"
+                  className="flex items-center gap-2 p-3 bg-muted rounded-xl"
                 >
                   <div className="flex-1 grid grid-cols-3 gap-2 text-sm">
                     <span className="font-medium text-foreground">{reshare.platform}</span>
@@ -808,7 +808,7 @@ export function ContentForm({ existingEntry, onSuccess }: ContentFormProps) {
             </div>
           )}
 
-          <div className="space-y-3 p-4 border border-border rounded-lg">
+          <div className="space-y-3 p-4 border border-border rounded-xl">
             <Label className="text-sm font-medium text-foreground">Add Reshare</Label>
             <div className="grid gap-3 md:grid-cols-3">
               <Select

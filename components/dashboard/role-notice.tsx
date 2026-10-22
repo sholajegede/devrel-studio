@@ -17,7 +17,7 @@ export function RoleNotice() {
   if (isLoading || role !== 'viewer') return null
 
   return (
-    <div className="mb-6 flex items-start gap-2.5 rounded-lg border border-border bg-muted/40 px-3.5 py-2.5">
+    <div className="mb-6 flex items-start gap-2.5 rounded-xl border border-border bg-muted/40 px-3.5 py-2.5">
       <Eye className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
       <p className="text-xs leading-relaxed text-muted-foreground">
         <span className="font-medium text-foreground">You have view-only access</span> to this

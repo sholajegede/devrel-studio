@@ -141,7 +141,7 @@ export function RateChangeDialog({
           </div>
 
           {preview.length > 1 && (
-            <div className="rounded-lg border bg-muted/30 p-3">
+            <div className="rounded-xl border bg-muted/30 p-3">
               <p className="text-xs font-medium">After this change</p>
               <ul className="mt-2 space-y-1">
                 {preview.map((segment, index) => (

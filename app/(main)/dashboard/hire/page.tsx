@@ -88,14 +88,14 @@ function Rows<T extends object>({
   fields: { key: keyof T & string; label: string; wide?: boolean; area?: boolean }[]
 }) {
   return (
-    <section className="space-y-3 rounded-xl border border-border bg-card p-5">
+    <section className="space-y-3 rounded-2xl bg-card p-5">
       <div className="flex items-center justify-between">
         <h2 className="font-medium text-foreground">{title}</h2>
         <Button type="button" variant="outline" size="sm" onClick={() => onChange([...rows, { ...blank }])}><Plus className="h-4 w-4" /> Add</Button>
       </div>
       {rows.length === 0 && <p className="text-sm text-muted-foreground">Nothing added yet.</p>}
       {rows.map((row, index) => (
-        <div key={index} className="grid gap-2 rounded-lg border border-border p-3 sm:grid-cols-2">
+        <div key={index} className="grid gap-2 rounded-xl border border-border p-3 sm:grid-cols-2">
           {fields.map((field) => {
             const value = String((row as Record<string, unknown>)[field.key] ?? '')
             const update = (next: string) => onChange(rows.map((item, at) => (at === index ? { ...item, [field.key]: next || undefined } : item)))
@@ -182,13 +182,13 @@ export default function HireProfilePage() {
       <RoleNotice />
       <div className="mb-6 flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold text-foreground">Hire profile</h1>
+          <h1 className="text-4xl font-medium leading-[1.05] tracking-[-0.04em] text-foreground sm:text-[2.75rem]">Hire profile</h1>
           <p className="text-sm text-muted-foreground">How recruiters see you on devrel.studio/hire. Nothing is public until you switch your listing on.</p>
         </div>
         <Button onClick={persist} disabled={saving} className="bg-accent text-accent-foreground hover:bg-accent/90">{saving ? 'Saving' : 'Save profile'}</Button>
       </div>
 
-      <section className="mb-6 rounded-xl border border-border bg-card p-5">
+      <section className="mb-6 rounded-2xl bg-card p-5">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
             <p className="font-medium text-foreground">{mine.listed ? 'You are listed' : 'You are not listed'}</p>
@@ -219,7 +219,7 @@ export default function HireProfilePage() {
         </p>
       </section>
 
-      <div className="mb-6 flex flex-wrap items-center gap-3 rounded-xl border border-dashed border-border p-4">
+      <div className="mb-6 flex flex-wrap items-center gap-3 rounded-2xl border border-dashed border-border p-4">
         <Sparkles className="h-4 w-4 text-accent" />
         <p className="flex-1 text-sm text-muted-foreground">
           {mine.hasCv ? 'Fill experience, education, projects and communities from your saved CV. You review everything before it is saved.' : 'Upload your CV under Jobs, CV & preferences and this page can fill itself from it.'}
@@ -230,7 +230,7 @@ export default function HireProfilePage() {
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
-        <section className="space-y-4 rounded-xl border border-border bg-card p-5">
+        <section className="space-y-4 rounded-2xl bg-card p-5">
           <h2 className="font-medium text-foreground">About you</h2>
           <Field label="Headline"><Input value={form.headline ?? ''} maxLength={120} onChange={(event) => patch({ headline: event.target.value })} placeholder="Developer advocate for developer infrastructure and AI" /></Field>
           <Field label="Summary"><Textarea rows={5} maxLength={900} value={form.summary ?? ''} onChange={(event) => patch({ summary: event.target.value })} placeholder="Two to four plain sentences in the first person" /></Field>
@@ -247,7 +247,7 @@ export default function HireProfilePage() {
           </div>
         </section>
 
-        <section className="space-y-4 rounded-xl border border-border bg-card p-5">
+        <section className="space-y-4 rounded-2xl bg-card p-5">
           <h2 className="font-medium text-foreground">What you are looking for</h2>
           <Field label="When can you start?">
             <select value={form.availability ?? ''} onChange={(event) => patch({ availability: event.target.value || undefined })} className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm">
@@ -266,7 +266,7 @@ export default function HireProfilePage() {
           <Field label="Focus"><Choice options={FAMILIES.map((family) => family.id)} values={form.families} onChange={(families) => patch({ families })} /></Field>
         </section>
 
-        <section className="space-y-4 rounded-xl border border-border bg-card p-5">
+        <section className="space-y-4 rounded-2xl bg-card p-5">
           <h2 className="font-medium text-foreground">Skills and languages</h2>
           <Field label="Skills (press Enter to add)"><Tags values={form.skills} onChange={(skills) => patch({ skills })} placeholder="TypeScript, Technical writing, Convex" /></Field>
           <Field label="Spoken languages"><Tags values={form.languages} onChange={(languages) => patch({ languages })} placeholder="English, Yoruba" /></Field>
@@ -302,7 +302,7 @@ export default function HireProfilePage() {
         />
       </div>
 
-      <section className="mt-8 rounded-xl border border-border bg-card p-5">
+      <section className="mt-8 rounded-2xl bg-card p-5">
         <h2 className="mb-3 font-medium text-foreground">Messages from recruiters</h2>
         {!contacts?.length ? (
           <p className="text-sm text-muted-foreground">No messages yet. Each one also arrives by email.</p>

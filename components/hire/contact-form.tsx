@@ -32,17 +32,17 @@ export function ContactForm({ handle, firstName }: { handle: string; firstName: 
 
   if (state === 'sent') {
     return (
-      <div className="rounded-xl border border-border bg-card p-5">
-        <p className="font-medium text-foreground">Message sent</p>
-        <p className="mt-1 text-sm text-muted-foreground">{firstName} will reply to {form.email}.</p>
+      <div className="rounded-[2rem] bg-green p-8 text-paper">
+        <p className="text-2xl font-medium tracking-[-0.03em]">Message sent</p>
+        <p className="mt-2 text-[15px] text-paper/85">{firstName} will reply to {form.email}.</p>
       </div>
     )
   }
 
   return (
-    <form onSubmit={submit} className="space-y-3 rounded-xl border border-border bg-card p-5" id="contact">
-      <h2 className="font-medium text-foreground">Contact {firstName}</h2>
-      <p className="text-sm text-muted-foreground">Describe the role. The message goes to {firstName} by email, and replies come straight to you.</p>
+    <form onSubmit={submit} className="space-y-3 rounded-[2rem] bg-ochre p-7 text-ink sm:p-9" id="contact">
+      <h2 className="text-2xl font-medium tracking-[-0.03em]">Contact {firstName}</h2>
+      <p className="text-[15px] text-ink/75">Describe the role. The message goes to {firstName} by email, and replies come straight to you.</p>
       <div className="grid gap-3 sm:grid-cols-2">
         <Input placeholder="Your name" value={form.name} onChange={set('name')} autoComplete="name" required />
         <Input placeholder="Company" value={form.company} onChange={set('company')} autoComplete="organization" required />
@@ -51,7 +51,7 @@ export function ContactForm({ handle, firstName }: { handle: string; firstName: 
       <Textarea placeholder="The role, the team, pay range if you can share it, and how to take the next step" rows={5} value={form.message} onChange={set('message')} required />
       {/* Honeypot. Hidden from people, filled in by scripts. */}
       <input tabIndex={-1} autoComplete="off" aria-hidden="true" value={form.website} onChange={set('website')} className="absolute -left-[9999px] h-0 w-0 opacity-0" />
-      <Button type="submit" disabled={state === 'sending'} className="bg-accent text-accent-foreground hover:bg-accent/90">
+      <Button type="submit" disabled={state === 'sending'}>
         {state === 'sending' ? 'Sending' : 'Send message'}
       </Button>
     </form>

@@ -106,8 +106,8 @@ const EMPTY_FORM: ClientFormData = {
 }
 
 const STATUS_STYLES: Record<ClientStatus, string> = {
-  Active: 'bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-300 dark:border-emerald-500/25',
-  Paused: 'bg-yellow-100 text-yellow-700 border-yellow-200 dark:bg-yellow-500/10 dark:text-yellow-300 dark:border-yellow-500/25',
+  Active: 'bg-emerald-100 text-emerald-700 border-emerald-200',
+  Paused: 'bg-yellow-100 text-yellow-700 border-yellow-200',
   Ended:  'bg-muted text-muted-foreground border-border',
 }
 
@@ -119,12 +119,12 @@ const CURRENCY_SYMBOL: Record<Currency, string> = {
 
 function avatarColor(name: string) {
   const colors = [
-    'bg-violet-100 text-violet-700 dark:bg-violet-500/10 dark:text-violet-300',
-    'bg-blue-100 text-blue-700 dark:bg-blue-500/10 dark:text-blue-300',
-    'bg-teal-100 text-teal-700 dark:bg-teal-500/10 dark:text-teal-300',
-    'bg-rose-100 text-rose-700 dark:bg-rose-500/10 dark:text-rose-300',
-    'bg-orange-100 text-orange-700 dark:bg-orange-500/10 dark:text-orange-300',
-    'bg-indigo-100 text-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-300',
+    'bg-violet-100 text-violet-700',
+    'bg-blue-100 text-blue-700',
+    'bg-teal-100 text-teal-700',
+    'bg-rose-100 text-rose-700',
+    'bg-orange-100 text-orange-700',
+    'bg-indigo-100 text-indigo-700',
   ]
   return colors[name.charCodeAt(0) % colors.length]
 }
@@ -376,40 +376,11 @@ function ClientFormDialog({
               </p>
             </div>
 
-            {/* Two, because a wordmark drawn for a white page disappears on a
-                dark one and the dashboard follows the reader's own theme.
-                Either alone is used for both, so one upload is no worse than
-                before this existed. */}
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div className="space-y-1.5">
-                <Label htmlFor="logo" className="text-xs font-normal text-muted-foreground">
-                  On a light background
-                </Label>
-                <LogoField
-                  id="logo"
-                  storageId={form.logoStorageId}
-                  onChange={(id) => set('logoStorageId', id)}
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="logo-dark" className="text-xs font-normal text-muted-foreground">
-                  On a dark background
-                </Label>
-                <LogoField
-                  id="logo-dark"
-                  storageId={form.logoDarkStorageId}
-                  onChange={(id) => set('logoDarkStorageId', id)}
-                  dark
-                />
-              </div>
-            </div>
-
-            {(form.logoStorageId || form.logoDarkStorageId) &&
-              !(form.logoStorageId && form.logoDarkStorageId) && (
-                <p className="text-xs text-muted-foreground">
-                  Only one uploaded — it will be used on both backgrounds.
-                </p>
-              )}
+            <LogoField
+              id="logo"
+              storageId={form.logoStorageId}
+              onChange={(id) => set('logoStorageId', id)}
+            />
           </div>
 
           <div className="space-y-1.5">
@@ -420,7 +391,7 @@ function ClientFormDialog({
               <input
                 id="brandColor"
                 type="color"
-                value={form.brandColor || '#38b2ac'}
+                value={form.brandColor || '#f16b46'}
                 onChange={(e) => set('brandColor', e.target.value)}
                 className="h-9 w-12 cursor-pointer rounded-md border border-border bg-transparent p-1"
                 aria-label="Brand colour"
@@ -428,7 +399,7 @@ function ClientFormDialog({
               <Input
                 value={form.brandColor}
                 onChange={(e) => set('brandColor', e.target.value)}
-                placeholder="#38b2ac"
+                placeholder="#f16b46"
                 className="font-mono text-sm"
               />
               {form.brandColor && (
@@ -650,7 +621,7 @@ export default function ClientsPage() {
       {/* Header */}
       <div className="flex items-center justify-between mb-8 gap-4">
         <div>
-          <h1 className="text-2xl font-semibold text-foreground">Clients</h1>
+          <h1 className="text-4xl font-medium leading-[1.05] tracking-[-0.04em] text-foreground sm:text-[2.75rem]">Clients</h1>
           <p className="text-sm text-muted-foreground mt-1">
             Manage your client engagements, retainers, and contact details.
           </p>
@@ -685,7 +656,7 @@ export default function ClientsPage() {
         ].map(({ label, value, icon: Icon, prefix = '', suffix = '', hint }) => (
           <Card key={label}>
             <CardContent className="p-5 flex items-center gap-4">
-              <div className="h-10 w-10 rounded-lg bg-accent/10 flex items-center justify-center shrink-0">
+              <div className="h-10 w-10 rounded-xl bg-accent/10 flex items-center justify-center shrink-0">
                 <Icon className="h-5 w-5 text-accent" />
               </div>
               <div className="min-w-0">
@@ -719,12 +690,12 @@ export default function ClientsPage() {
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3" data-tour="clients-list">
           {clients.map((client) => (
-            <Card key={client._id} className="group relative flex flex-col hover:shadow-md transition-shadow">
+            <Card key={client._id} className="group relative flex flex-col transition-shadow">
               <CardContent className="p-5 flex flex-col gap-4 flex-1">
                 {/* Header row */}
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-center gap-3">
-                    <div className={`h-10 w-10 rounded-xl flex items-center justify-center text-sm font-bold shrink-0 ${avatarColor(client.name)}`}>
+                    <div className={`h-10 w-10 rounded-2xl flex items-center justify-center text-sm font-bold shrink-0 ${avatarColor(client.name)}`}>
                       {initials(client.name)}
                     </div>
                     <div className="min-w-0">
@@ -884,7 +855,7 @@ export default function ClientsPage() {
                   const isEstimate = client.status === 'Paused' && !onHold
 
                   return (
-                    <div className="rounded-lg border border-border bg-muted/30 p-3">
+                    <div className="rounded-xl border border-border bg-muted/30 p-3">
                       <div className="flex items-baseline justify-between gap-2">
                         <span className="text-xs text-muted-foreground">
                           {isEstimate ? 'Est. earned' : client.status === 'Ended' ? 'Total earned' : 'Earned to date'}
@@ -955,7 +926,7 @@ export default function ClientsPage() {
                       )}
 
                       {isEstimate && (
-                        <p className="mt-2 text-[11px] text-amber-700 dark:text-amber-300">
+                        <p className="mt-2 text-[11px] text-amber-700">
                           Marked paused with no dates — set a pause date to exclude those months.
                         </p>
                       )}
@@ -990,8 +961,8 @@ export default function ClientsPage() {
                         }
                         className={`inline-flex items-center gap-1 rounded-md px-1.5 py-1 text-xs ${
                           client.accessCodeHash && !client.isPublic
-                            ? 'text-emerald-700 bg-emerald-50 dark:text-emerald-300 dark:bg-emerald-500/10'
-                            : 'text-amber-700 bg-amber-50 dark:text-amber-300 dark:bg-amber-500/10'
+                            ? 'text-emerald-700 bg-emerald-50'
+                            : 'text-amber-700 bg-amber-50'
                         }`}
                       >
                         <KeyRound className="h-3 w-3" />
@@ -1006,7 +977,7 @@ export default function ClientsPage() {
                         await navigator.clipboard.writeText(dashboardUrlFor(client.slug!))
                         toast.success('Dashboard link copied')
                       }}
-                      className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-muted/50 px-2.5 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors shrink-0"
+                      className="inline-flex items-center gap-1.5 rounded-xl border border-border bg-muted/50 px-2.5 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors shrink-0"
                       aria-label={`Copy the dashboard link for ${client.company || client.name}`}
                     >
                       <Copy className="h-3 w-3" />
@@ -1016,7 +987,7 @@ export default function ClientsPage() {
                       href={dashboardUrlFor(client.slug!)}
                       target="_blank"
                       rel="noreferrer"
-                      className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-muted/50 px-2.5 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors shrink-0"
+                      className="inline-flex items-center gap-1.5 rounded-xl border border-border bg-muted/50 px-2.5 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors shrink-0"
                     >
                       <ExternalLink className="h-3 w-3" />
                       View

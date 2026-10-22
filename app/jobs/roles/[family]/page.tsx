@@ -55,7 +55,7 @@ export default async function RolePage({ params }: { params: Promise<{ family: s
 
       <Crumbs trail={[{ name: 'DevRel jobs', href: '/jobs' }, { name: info.label }]} />
       <header className="mb-8 max-w-3xl">
-        <h1 className="text-3xl font-semibold tracking-tight text-foreground">{info.label} jobs</h1>
+        <h1 className="text-[clamp(2.25rem,5.4vw,3.75rem)] font-medium leading-[1.02] tracking-[-0.04em] text-foreground">{info.label} jobs</h1>
         <p className="mt-3 leading-relaxed text-muted-foreground">
           {info.blurb} {count.toLocaleString('en-US')} {count === 1 ? 'role is' : 'roles are'} open right now
           {pay ? `, and the median listed salary is ${compactUsd(pay.median)} a year across ${pay.n} roles that list pay` : ''}.
@@ -65,7 +65,7 @@ export default async function RolePage({ params }: { params: Promise<{ family: s
             <Link
               key={other.id}
               href={`/jobs/roles/${other.id}`}
-              className="rounded-full border border-border bg-card px-3 py-1 text-sm text-muted-foreground hover:text-foreground"
+              className="rounded-full bg-card px-3 py-1 text-sm text-muted-foreground hover:text-foreground"
             >
               {other.label}
             </Link>

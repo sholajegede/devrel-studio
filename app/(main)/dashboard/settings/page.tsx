@@ -11,7 +11,6 @@ import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
 import { toast } from 'sonner'
-import { useTheme } from 'next-themes'
 import {
   Loader2,
   AlertTriangle,
@@ -53,53 +52,6 @@ function SettingSection({
       </div>
       <div>{children}</div>
     </div>
-  )
-}
-
-// ── Appearance ────────────────────────────────────────────────────────────────
-
-const THEME_OPTIONS = [
-  { value: 'light', label: 'Light', icon: Sun },
-  { value: 'dark', label: 'Dark', icon: Moon },
-  { value: 'system', label: 'System', icon: Monitor },
-] as const
-
-function ThemeSetting() {
-  const { theme, setTheme } = useTheme()
-  const [mounted, setMounted] = useState(false)
-
-  // The server has no idea which theme the browser resolved, so rendering the
-  // selection before mount would flag a hydration mismatch and briefly show the
-  // wrong option as active.
-  useEffect(() => setMounted(true), [])
-
-  return (
-    <Card data-tour="settings-appearance">
-      <CardContent className="p-6">
-        <div className="grid gap-3 sm:grid-cols-3">
-          {THEME_OPTIONS.map((option) => {
-            const isActive = mounted && theme === option.value
-            return (
-              <button
-                key={option.value}
-                type="button"
-                onClick={() => setTheme(option.value)}
-                aria-pressed={isActive}
-                className={`flex items-center gap-2.5 rounded-lg border p-3 text-sm transition-colors ${
-                  isActive
-                    ? 'border-accent bg-accent/10 text-foreground'
-                    : 'border-border text-muted-foreground hover:border-foreground/20 hover:text-foreground'
-                }`}
-              >
-                <option.icon className="h-4 w-4 shrink-0" />
-                {option.label}
-                {isActive && <Check className="ml-auto h-3.5 w-3.5 text-accent" />}
-              </button>
-            )
-          })}
-        </div>
-      </CardContent>
-    </Card>
   )
 }
 
@@ -249,7 +201,7 @@ function PortfolioSettings() {
           </div>
 
           {portfolioUrl && (
-            <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-muted/40 px-3 py-2.5">
+            <div className="flex flex-wrap items-center gap-2 rounded-xl border border-border bg-muted/40 px-3 py-2.5">
               <span className="flex-1 truncate font-mono text-xs text-muted-foreground">
                 {portfolioUrl}
               </span>
@@ -286,7 +238,7 @@ function PortfolioSettings() {
                   role="radio"
                   aria-checked={mode === value}
                   onClick={() => setMode(value)}
-                  className={`rounded-lg border px-3 py-2.5 text-left transition-colors ${
+                  className={`rounded-xl border px-3 py-2.5 text-left transition-colors ${
                     mode === value
                       ? 'border-accent bg-accent/10'
                       : 'border-border hover:bg-muted/50'
@@ -453,8 +405,8 @@ export default function SettingsPage() {
 
       <div className="flex items-start justify-between mb-8 gap-4">
         <div>
-          <h1 className="text-2xl font-semibold text-foreground">Settings</h1>
-          <p className="text-sm text-muted-foreground mt-1">Your profile, your theme and your public handle.</p>
+          <h1 className="text-4xl font-medium leading-[1.05] tracking-[-0.04em] text-foreground sm:text-[2.75rem]">Settings</h1>
+          <p className="text-sm text-muted-foreground mt-1">Your profile and your public handle.</p>
         </div>
         <AdminTourTriggerButton onStartTour={() => tourControls?.startTour()} />
       </div>
@@ -506,16 +458,6 @@ export default function SettingsPage() {
               </form>
             </CardContent>
           </Card>
-        </SettingSection>
-
-        <Separator />
-
-        {/* Appearance */}
-        <SettingSection
-          title="Appearance"
-          description="Choose a theme. System follows your operating system setting and changes with it."
-        >
-          <ThemeSetting />
         </SettingSection>
 
         <Separator />

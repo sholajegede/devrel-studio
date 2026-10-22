@@ -16,7 +16,7 @@ export function JobsShell({ children }: { children: React.ReactNode }) {
     <div className="min-h-screen bg-background">
       <JobsAnalytics />
       <MarketingNav />
-      <main className="mx-auto max-w-7xl px-6 py-10">{children}</main>
+      <main className="mx-auto max-w-[1600px] px-4 py-8 sm:px-8 sm:py-10">{children}</main>
       <MarketingFooter />
     </div>
   )
@@ -49,7 +49,7 @@ export function StaticJobList({ jobs }: { jobs: CardJob[] }) {
       {jobs.map((job) => {
         const pay = payLabel(job)
         return (
-          <li key={job._id} className="flex gap-4 rounded-xl border border-border bg-card p-4">
+          <li key={job._id} className="flex gap-4 rounded-[1.5rem] bg-sand p-5">
             <Monogram name={job.companyName} />
             <div className="min-w-0">
               <Link href={`/jobs/${job.slug}`} className="text-[15px] font-semibold text-foreground hover:underline">
@@ -82,7 +82,7 @@ export function HubLinks() {
         <Link
           key={link.href}
           href={link.href}
-          className="rounded-full border border-border bg-card px-3 py-1 text-sm text-muted-foreground transition-colors hover:border-foreground/20 hover:text-foreground"
+          className="rounded-full bg-card px-3 py-1 text-sm text-muted-foreground transition-colors hover:border-foreground/20 hover:text-foreground"
         >
           {link.label}
         </Link>
@@ -93,15 +93,15 @@ export function HubLinks() {
 
 export function Faq({ items }: { items: { q: string; a: string }[] }) {
   return (
-    <section aria-labelledby="faq" className="mt-16">
-      <h2 id="faq" className="text-xl font-semibold text-foreground">
-        Frequently asked questions
+    <section aria-labelledby="faq" className="mx-auto mt-24 max-w-3xl">
+      <h2 id="faq" className="text-center text-[clamp(2rem,4.5vw,3.25rem)] font-medium leading-[1.05] tracking-[-0.035em] text-foreground">
+        Questions, answered
       </h2>
-      <dl className="mt-4 divide-y divide-border rounded-xl border border-border bg-card">
+      <dl className="mt-10 space-y-3">
         {items.map((item) => (
-          <div key={item.q} className="p-5">
-            <dt className="font-medium text-foreground">{item.q}</dt>
-            <dd className="mt-1.5 text-sm leading-relaxed text-muted-foreground">{item.a}</dd>
+          <div key={item.q} className="rounded-[1.5rem] bg-sand p-7">
+            <dt className="text-lg font-medium tracking-[-0.02em] text-foreground">{item.q}</dt>
+            <dd className="mt-2 text-[15px] leading-relaxed text-muted-foreground">{item.a}</dd>
           </div>
         ))}
       </dl>

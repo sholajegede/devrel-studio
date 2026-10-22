@@ -86,16 +86,16 @@ async function send(args: {
 function layout(body: string): string {
   return `<!doctype html>
 <html>
-  <body style="margin:0;padding:24px;background:#f5f5f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;color:#1a1a1a;">
-    <table role="presentation" cellpadding="0" cellspacing="0" style="max-width:520px;margin:0 auto;background:#ffffff;border:1px solid #e2e8f0;border-radius:12px;">
+  <body style="margin:0;padding:24px;background:#f8f0e3;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;color:#180102;">
+    <table role="presentation" cellpadding="0" cellspacing="0" style="max-width:520px;margin:0 auto;background:#ffffff;border:1px solid #e1d7c5;border-radius:24px;">
       <tr>
         <td style="padding:28px 32px;">
-          <p style="margin:0 0 20px;font-size:15px;font-weight:600;">devrel<span style="color:#718096;">.studio</span></p>
+          <p style="margin:0 0 20px;font-size:15px;font-weight:600;">devrel<span style="color:#6e625b;">.studio</span></p>
           ${body}
         </td>
       </tr>
     </table>
-    <p style="max-width:520px;margin:16px auto 0;font-size:12px;color:#718096;text-align:center;">
+    <p style="max-width:520px;margin:16px auto 0;font-size:12px;color:#6e625b;text-align:center;">
       Sent by DevRel Studio
     </p>
   </body>
@@ -103,7 +103,7 @@ function layout(body: string): string {
 }
 
 function button(href: string, label: string): string {
-  return `<a href="${href}" style="display:inline-block;background:#38b2ac;color:#ffffff;text-decoration:none;padding:10px 18px;border-radius:8px;font-size:14px;font-weight:500;">${label}</a>`
+  return `<a href="${href}" style="display:inline-block;background:#f16b46;color:#ffffff;text-decoration:none;padding:12px 22px;border-radius:24px 6px 6px 24px;font-size:14px;font-weight:500;">${label}</a>`
 }
 
 // ── Senders ───────────────────────────────────────────────────────────────────
@@ -135,7 +135,7 @@ export const sendWorkspaceInvite = internalAction({
           Create an account to accept it. The invitation expires in 14 days.
         </p>
         <p style="margin:0 0 22px;">${button(args.signUpUrl, 'Accept invitation')}</p>
-        <p style="margin:0;font-size:13px;line-height:1.6;color:#718096;">
+        <p style="margin:0;font-size:13px;line-height:1.6;color:#6e625b;">
           If you weren't expecting this, you can ignore this email.
         </p>
       `),
@@ -166,11 +166,11 @@ export const sendManagerAccessCode = internalAction({
         <p style="margin:0 0 14px;font-size:15px;line-height:1.6;">
           Here is your access code for the <strong>${args.clientName}</strong> performance dashboard.
         </p>
-        <p style="margin:0 0 20px;padding:14px;background:#f7fafc;border:1px solid #e2e8f0;border-radius:8px;text-align:center;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:22px;letter-spacing:4px;">
+        <p style="margin:0 0 20px;padding:14px;background:#ece4d7;border:1px solid #e1d7c5;border-radius:8px;text-align:center;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:22px;letter-spacing:4px;">
           ${args.code}
         </p>
         <p style="margin:0 0 22px;">${button(args.dashboardUrl, 'Open the dashboard')}</p>
-        <p style="margin:0;font-size:13px;line-height:1.6;color:#718096;">
+        <p style="margin:0;font-size:13px;line-height:1.6;color:#6e625b;">
           The code is not case sensitive and the dashes are optional. Your session stays active on that device for 30 days.
         </p>
       `),
@@ -210,11 +210,11 @@ export const sendManagerAccessCodePublic = action({
         <p style="margin:0 0 14px;font-size:15px;line-height:1.6;">
           Here is your access code for the <strong>${client.company || client.name}</strong> performance dashboard.
         </p>
-        <p style="margin:0 0 20px;padding:14px;background:#f7fafc;border:1px solid #e2e8f0;border-radius:8px;text-align:center;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:22px;letter-spacing:4px;">
+        <p style="margin:0 0 20px;padding:14px;background:#ece4d7;border:1px solid #e1d7c5;border-radius:8px;text-align:center;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:22px;letter-spacing:4px;">
           ${args.code}
         </p>
         <p style="margin:0 0 22px;">${button(args.dashboardUrl, 'Open the dashboard')}</p>
-        <p style="margin:0;font-size:13px;line-height:1.6;color:#718096;">
+        <p style="margin:0;font-size:13px;line-height:1.6;color:#6e625b;">
           The code is not case sensitive and the dashes are optional. Your session stays active on that device for 30 days.
         </p>
       `),
@@ -251,7 +251,7 @@ export const sendFeedbackNotification = internalAction({
         <p style="margin:0 0 14px;font-size:15px;line-height:1.6;">
           <strong>${who}</strong> left feedback on the ${args.period} report.${stars}
         </p>
-        <blockquote style="margin:0 0 22px;padding:14px 16px;background:#f7fafc;border-left:3px solid #38b2ac;border-radius:0 8px 8px 0;font-size:15px;line-height:1.6;color:#2d3748;">
+        <blockquote style="margin:0 0 22px;padding:14px 16px;background:#ece4d7;border-left:3px solid #f16b46;border-radius:0 8px 8px 0;font-size:15px;line-height:1.6;color:#180102;">
           ${args.comment}
         </blockquote>
         <p style="margin:0;">${button(args.reportUrl, 'Open the report')}</p>
@@ -296,7 +296,7 @@ export const sendMonthlyReportReady = internalAction({
           ${args.publishedCount} ${piece} published this period.
         </p>
         <p style="margin:0 0 22px;">${button(args.dashboardUrl, 'Read the report')}</p>
-        <p style="margin:0;font-size:13px;line-height:1.6;color:#718096;">
+        <p style="margin:0;font-size:13px;line-height:1.6;color:#6e625b;">
           The report covers the full period and compares it with the one before. A space at the end
           takes your reply. The same page has a PDF download.
         </p>
@@ -358,8 +358,8 @@ export const sendWeeklyDigest = internalAction({
       .map(
         (client) =>
           `<tr>
-             <td style="padding:6px 0;font-size:14px;color:#2d3748;">${client.name}</td>
-             <td style="padding:6px 0;font-size:14px;color:#718096;text-align:right;">${client.views}</td>
+             <td style="padding:6px 0;font-size:14px;color:#180102;">${client.name}</td>
+             <td style="padding:6px 0;font-size:14px;color:#6e625b;text-align:right;">${client.views}</td>
            </tr>`,
       )
       .join('')
@@ -381,7 +381,7 @@ export const sendWeeklyDigest = internalAction({
             : ''
         }
         <p style="margin:0 0 22px;">${button(args.dashboardUrl, 'See who has been reading')}</p>
-        <p style="margin:0;font-size:13px;line-height:1.6;color:#718096;">
+        <p style="margin:0;font-size:13px;line-height:1.6;color:#6e625b;">
           Sent on the weeks something happened — a quiet week gets no email. Country-level only;
           nobody is identifiable.
         </p>
@@ -441,7 +441,7 @@ export const sendTrialEndingSoon = internalAction({
           until you pick a plan.
         </p>
         <p style="margin:0 0 22px;">${button(args.billingUrl, 'Pick a plan')}</p>
-        <p style="margin:0;font-size:13px;line-height:1.6;color:#718096;">
+        <p style="margin:0;font-size:13px;line-height:1.6;color:#6e625b;">
           Payment is by bank transfer, so picking a plan opens an email to us
           rather than a checkout. Reply here if you would rather just ask a
           question first.
@@ -487,7 +487,7 @@ export const sendTrialEnded = internalAction({
           back the moment you do, exactly as you left it.
         </p>
         <p style="margin:0 0 22px;">${button(args.billingUrl, 'Pick a plan')}</p>
-        <p style="margin:0;font-size:13px;line-height:1.6;color:#718096;">
+        <p style="margin:0;font-size:13px;line-height:1.6;color:#6e625b;">
           If it was not for you, no action is needed and we will stop emailing
           about it. A reply telling us what was missing would help.
         </p>
@@ -544,12 +544,12 @@ export const sendAccessGranted = internalAction({
           ${opening} Thank you.
         </p>
         <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 22px;font-size:15px;line-height:1.9;">
-          <tr><td style="padding-right:16px;color:#718096;">Plan</td><td>${args.planName}</td></tr>
-          <tr><td style="padding-right:16px;color:#718096;">Term</td><td>${term}</td></tr>
-          <tr><td style="padding-right:16px;color:#718096;">Runs until</td><td><strong>${ends}</strong></td></tr>
+          <tr><td style="padding-right:16px;color:#6e625b;">Plan</td><td>${args.planName}</td></tr>
+          <tr><td style="padding-right:16px;color:#6e625b;">Term</td><td>${term}</td></tr>
+          <tr><td style="padding-right:16px;color:#6e625b;">Runs until</td><td><strong>${ends}</strong></td></tr>
         </table>
         <p style="margin:0 0 22px;">${button(`${origin}/dashboard`, 'Open your dashboard')}</p>
-        <p style="margin:0;font-size:13px;line-height:1.6;color:#718096;">
+        <p style="margin:0;font-size:13px;line-height:1.6;color:#6e625b;">
           Nothing renews automatically and there is no card on file — we will
           write before this runs out. Reply to this email if anything looks
           wrong.
@@ -597,16 +597,16 @@ export const sendAccessRequest = internalAction({
           <strong>${who}</strong> asked for <strong>${args.planName}</strong> access.
         </p>
         <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 22px;font-size:15px;line-height:1.9;">
-          <tr><td style="padding-right:16px;color:#718096;">Plan</td><td>${args.planName}</td></tr>
-          <tr><td style="padding-right:16px;color:#718096;">Term</td><td>${term}</td></tr>
-          <tr><td style="padding-right:16px;color:#718096;">Total</td><td><strong>${total}</strong></td></tr>
+          <tr><td style="padding-right:16px;color:#6e625b;">Plan</td><td>${args.planName}</td></tr>
+          <tr><td style="padding-right:16px;color:#6e625b;">Term</td><td>${term}</td></tr>
+          <tr><td style="padding-right:16px;color:#6e625b;">Total</td><td><strong>${total}</strong></td></tr>
         </table>
         ${
           args.note
-            ? `<blockquote style="margin:0 0 22px;padding:14px 16px;background:#f7fafc;border-left:3px solid #38b2ac;border-radius:0 8px 8px 0;font-size:15px;line-height:1.6;">${args.note}</blockquote>`
+            ? `<blockquote style="margin:0 0 22px;padding:14px 16px;background:#ece4d7;border-left:3px solid #f16b46;border-radius:0 8px 8px 0;font-size:15px;line-height:1.6;">${args.note}</blockquote>`
             : ''
         }
-        <p style="margin:0;font-size:13px;line-height:1.6;color:#718096;">
+        <p style="margin:0;font-size:13px;line-height:1.6;color:#6e625b;">
           Reply to this email to reach them. Send the transfer details, then open
           their window with migrations:grantAccess once it clears.
         </p>
@@ -631,7 +631,7 @@ export const sendAccessRequest = internalAction({
           opens once the payment clears. Nothing changes on your account until
           then, and your trial runs as normal.
         </p>
-        <p style="margin:0;font-size:13px;line-height:1.6;color:#718096;">
+        <p style="margin:0;font-size:13px;line-height:1.6;color:#6e625b;">
           Replying to this email reaches a person, not a bot. Tell us if you need
           an invoice with particular details on it.
         </p>
@@ -672,8 +672,8 @@ export const sendJobAlert = internalAction({
       .map(
         (job) => `<tr>
           <td style="padding:10px 0;border-bottom:1px solid #edf2f7;">
-            <a href="${job.url}" style="font-size:15px;font-weight:600;color:#1a1a1a;text-decoration:none;">${escapeHtml(job.title)}</a>
-            <div style="font-size:13px;color:#718096;margin-top:2px;">${escapeHtml(job.company)} · ${escapeHtml(job.location)}${job.pay ? ` · ${escapeHtml(job.pay)}` : ''}</div>
+            <a href="${job.url}" style="font-size:15px;font-weight:600;color:#180102;text-decoration:none;">${escapeHtml(job.title)}</a>
+            <div style="font-size:13px;color:#6e625b;margin-top:2px;">${escapeHtml(job.company)} · ${escapeHtml(job.location)}${job.pay ? ` · ${escapeHtml(job.pay)}` : ''}</div>
           </td>
         </tr>`,
       )
@@ -689,8 +689,8 @@ export const sendJobAlert = internalAction({
         </p>
         <table style="width:100%;border-collapse:collapse;margin:0 0 22px;">${rows}</table>
         <p style="margin:0 0 22px;">${button(args.boardUrl, 'See all matches')}</p>
-        <p style="margin:0;font-size:13px;line-height:1.6;color:#718096;">
-          You get this when something new matches. <a href="${args.manageUrl}" style="color:#718096;">Change or stop this alert</a>.
+        <p style="margin:0;font-size:13px;line-height:1.6;color:#6e625b;">
+          You get this when something new matches. <a href="${args.manageUrl}" style="color:#6e625b;">Change or stop this alert</a>.
         </p>
       `),
       text: `${count} new ${noun} matched your alert "${args.alertName}".\n\n${args.jobs
@@ -723,7 +723,7 @@ export const sendBlogReview = internalAction({
       .map(
         (item) => `<tr><td style="padding:8px 0;border-bottom:1px solid #edf2f7;font-size:14px;line-height:1.5;">
           <strong style="color:${item.verdict === 'wrong' ? '#c53030' : '#b7791f'};">${escapeHtml(item.verdict)}</strong>
-          ${escapeHtml(item.claim)}${item.note ? `<div style="color:#718096;font-size:13px;margin-top:2px;">${escapeHtml(item.note)}</div>` : ''}
+          ${escapeHtml(item.claim)}${item.note ? `<div style="color:#6e625b;font-size:13px;margin-top:2px;">${escapeHtml(item.note)}</div>` : ''}
         </td></tr>`,
       )
       .join('')
@@ -733,10 +733,10 @@ export const sendBlogReview = internalAction({
       to: args.to,
       subject: `Review: ${args.title}`,
       html: layout(`
-        <p style="margin:0 0 6px;font-size:13px;color:#718096;">Blog draft to review</p>
+        <p style="margin:0 0 6px;font-size:13px;color:#6e625b;">Blog draft to review</p>
         <p style="margin:0 0 12px;font-size:19px;font-weight:600;line-height:1.35;">${escapeHtml(args.title)}</p>
         <p style="margin:0 0 14px;font-size:15px;line-height:1.6;color:#4a5568;">${escapeHtml(args.description)}</p>
-        <p style="margin:0 0 18px;font-size:13px;line-height:1.7;color:#718096;">
+        <p style="margin:0 0 18px;font-size:13px;line-height:1.7;color:#6e625b;">
           Search phrase: ${escapeHtml(args.keyword)} · ${args.words} words${args.whyNow ? `<br>Why now: ${escapeHtml(args.whyNow)}` : ''}
         </p>
         <p style="margin:0 0 6px;font-size:14px;font-weight:600;">Fact check</p>
@@ -745,9 +745,9 @@ export const sendBlogReview = internalAction({
         </p>
         ${flaggedRows ? `<table style="width:100%;border-collapse:collapse;margin:0 0 18px;">${flaggedRows}</table>` : ''}
         ${problemList ? `<p style="margin:0 0 6px;font-size:14px;font-weight:600;">Style checks still failing</p><ul style="margin:0 0 18px;padding-left:18px;font-size:14px;line-height:1.5;">${problemList}</ul>` : ''}
-        <blockquote style="margin:0 0 22px;padding:14px 16px;background:#f7fafc;border-left:3px solid #38b2ac;border-radius:0 8px 8px 0;font-size:14px;line-height:1.6;">${escapeHtml(args.opening)}</blockquote>
+        <blockquote style="margin:0 0 22px;padding:14px 16px;background:#ece4d7;border-left:3px solid #f16b46;border-radius:0 8px 8px 0;font-size:14px;line-height:1.6;">${escapeHtml(args.opening)}</blockquote>
         <p style="margin:0 0 14px;">${button(args.reviewUrl, 'Read, edit and decide')}</p>
-        <p style="margin:0;font-size:12px;line-height:1.6;color:#718096;">
+        <p style="margin:0;font-size:12px;line-height:1.6;color:#6e625b;">
           Nothing is published until you choose Publish on that page. The link works for you only.
         </p>
       `),
@@ -767,8 +767,8 @@ export const sendTalentContact = internalAction({
       html: layout(`
         <p style="margin:0 0 12px;font-size:15px;line-height:1.6;">Hi ${escapeHtml(args.talentName)},</p>
         <p style="margin:0 0 16px;font-size:15px;line-height:1.6;"><strong>${escapeHtml(args.fromName)}</strong> at <strong>${escapeHtml(args.company)}</strong> sent you a message from your /hire page. Reply to this email to answer them directly.</p>
-        <p style="margin:0 0 16px;padding:14px 16px;background:#f7fafc;border-radius:8px;font-size:14px;line-height:1.6;white-space:pre-wrap;">${escapeHtml(args.message)}</p>
-        <p style="margin:0;font-size:13px;color:#718096;">Their email: ${escapeHtml(args.fromEmail)}. We have not verified who they are, so check the company before you share details.</p>`),
+        <p style="margin:0 0 16px;padding:14px 16px;background:#ece4d7;border-radius:8px;font-size:14px;line-height:1.6;white-space:pre-wrap;">${escapeHtml(args.message)}</p>
+        <p style="margin:0;font-size:13px;color:#6e625b;">Their email: ${escapeHtml(args.fromEmail)}. We have not verified who they are, so check the company before you share details.</p>`),
       text: `${args.fromName} at ${args.company} wrote to you from your /hire page.\n\n${args.message}\n\nReply to this email to answer them. Their email: ${args.fromEmail}. We have not verified who they are.`,
     })
   },

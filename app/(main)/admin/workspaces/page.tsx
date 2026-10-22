@@ -27,7 +27,7 @@ export default function AdminWorkspacesPage() {
   return (
     <>
       <div className="mb-6">
-        <h1 className="text-2xl font-semibold text-foreground">Workspaces</h1>
+        <h1 className="text-4xl font-medium leading-[1.05] tracking-[-0.04em] text-foreground sm:text-[2.75rem]">Workspaces</h1>
         <p className="text-sm text-muted-foreground">
           {loading
             ? 'Loading…'
@@ -58,13 +58,13 @@ export default function AdminWorkspacesPage() {
               <Link
                 key={row.id}
                 href={`/admin/workspaces/${row.id}`}
-                className="block rounded-xl border border-border bg-card p-4 transition-colors hover:border-foreground/20 hover:bg-muted/40"
+                className="block rounded-2xl bg-card p-4 transition-colors hover:border-foreground/20 hover:bg-muted/40"
               >
                 <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-2">
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
                       {flagged && (
-                        <AlertTriangle className="h-3.5 w-3.5 shrink-0 text-amber-600 dark:text-amber-500" />
+                        <AlertTriangle className="h-3.5 w-3.5 shrink-0 text-amber-600" />
                       )}
                       <span className="font-medium text-foreground">{row.name}</span>
                       {row.isPersonal && (
@@ -95,7 +95,7 @@ export default function AdminWorkspacesPage() {
                     />
                     <span
                       className={`flex items-center gap-1 tabular-nums ${
-                        row.over.seats ? 'text-amber-600 dark:text-amber-500' : 'text-muted-foreground'
+                        row.over.seats ? 'text-amber-600' : 'text-muted-foreground'
                       }`}
                       title="Members against seats"
                     >
@@ -132,7 +132,7 @@ function Meter({
 }) {
   return (
     <span
-      className={`tabular-nums ${over ? 'font-medium text-amber-600 dark:text-amber-500' : 'text-muted-foreground'}`}
+      className={`tabular-nums ${over ? 'font-medium text-amber-600' : 'text-muted-foreground'}`}
       title={`${label}: ${count}${limit === null ? ' (unlimited)' : ` of ${limit}`}`}
     >
       {limit === null ? count : `${count}/${limit}`}{' '}

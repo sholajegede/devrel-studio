@@ -4,17 +4,9 @@ import Link from 'next/link'
 import { Menu } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetClose, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
+import { NAV_LINKS } from '@/components/marketing/nav-links'
 
-export const NAV_LINKS = [
-  { href: '/#features', label: 'Features' },
-  { href: '/#how-it-works', label: 'How it works' },
-  { href: '/jobs', label: 'Jobs' },
-  { href: '/hire', label: 'Hire' },
-  { href: '/blog', label: 'Blog' },
-  { href: '/pricing', label: 'Pricing' },
-]
-
-/** Phone menu. Shown below the `md` breakpoint, where the inline links are hidden. */
+/** Phone menu. Shown below the `md` breakpoint, where the pill of links is hidden. */
 export function MobileMenu() {
   return (
     <Sheet>
@@ -23,17 +15,17 @@ export function MobileMenu() {
           <Menu className="h-5 w-5" />
         </Button>
       </SheetTrigger>
-      <SheetContent side="right" className="w-72">
+      <SheetContent side="right" className="w-[min(22rem,88vw)] bg-background">
         <SheetHeader>
-          <SheetTitle>Menu</SheetTitle>
+          <SheetTitle className="text-2xl font-medium tracking-[-0.03em]">Menu</SheetTitle>
           <SheetDescription className="sr-only">Site navigation</SheetDescription>
         </SheetHeader>
-        <nav className="flex flex-col px-4" aria-label="Mobile">
+        <nav className="flex flex-col gap-1 px-4" aria-label="Mobile">
           {NAV_LINKS.map((link) => (
             <SheetClose asChild key={link.href}>
               <Link
                 href={link.href}
-                className="border-b border-border/60 py-3 text-base text-foreground transition-colors hover:text-accent"
+                className="rounded-2xl px-4 py-3.5 text-2xl font-medium tracking-[-0.03em] text-foreground transition-colors hover:bg-sand hover:text-accent"
               >
                 {link.label}
               </Link>

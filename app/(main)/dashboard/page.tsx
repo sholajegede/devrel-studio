@@ -45,8 +45,8 @@ import PageLoader from '@/components/page-loader'
 import { AdminTour, AdminTourTriggerButton } from '@/components/admin-onboarding-tour'
 
 const chartConfig = {
-  published:  { label: 'Published',   color: 'hsl(var(--accent))' },
-  inProgress: { label: 'In Progress', color: 'hsl(var(--muted-foreground))' },
+  published:  { label: 'Published',   color: 'var(--accent)' },
+  inProgress: { label: 'In Progress', color: 'var(--muted-foreground)' },
 } satisfies ChartConfig
 
 function currentMonthKey() {
@@ -230,7 +230,7 @@ export default function DashboardPage() {
     switch (status) {
       case 'Published':       return <Badge variant="secondary" className="gap-1 font-normal text-xs shrink-0"><CheckCircle2 className="h-3 w-3" />Published</Badge>
       case 'Draft':           return <Badge variant="outline"   className="gap-1 font-normal text-xs shrink-0"><Pencil className="h-3 w-3" />Draft</Badge>
-      case 'Waiting Approval':return <Badge variant="outline"   className="gap-1 font-normal text-xs text-amber-600 border-amber-300 dark:text-amber-400 dark:border-amber-500/40 shrink-0"><AlertCircle className="h-3 w-3" />Waiting</Badge>
+      case 'Waiting Approval':return <Badge variant="outline"   className="gap-1 font-normal text-xs text-amber-600 border-amber-300 shrink-0"><AlertCircle className="h-3 w-3" />Waiting</Badge>
       case 'Scheduled':       return <Badge variant="outline"   className="gap-1 font-normal text-xs shrink-0"><Clock className="h-3 w-3" />Scheduled</Badge>
       default:                return <Badge variant="secondary" className="text-xs shrink-0">{status}</Badge>
     }
@@ -253,7 +253,7 @@ export default function DashboardPage() {
             in a week where nobody opened anything — a line that is always there
             saying "0" is a line people stop reading. */}
         {since && (
-          <div className="mb-6 flex flex-wrap items-center gap-x-2 gap-y-1 rounded-xl border border-accent/25 bg-accent/5 px-4 py-3 text-sm">
+          <div className="mb-6 flex flex-wrap items-center gap-x-2 gap-y-1 rounded-2xl border border-accent/25 bg-accent/5 px-4 py-3 text-sm">
             <Eye className="h-4 w-4 shrink-0 text-accent" />
             <span className="text-foreground">
               <strong className="font-medium">{since.visitors}</strong>{' '}
@@ -297,7 +297,7 @@ export default function DashboardPage() {
         {/* Page heading */}
         <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-2xl font-semibold text-foreground">Overview</h1>
+            <h1 className="text-4xl font-medium leading-[1.05] tracking-[-0.04em] text-foreground sm:text-[2.75rem]">Overview</h1>
             <p className="text-sm text-muted-foreground">
               {filteredContent.length} {filteredContent.length === 1 ? 'entry' : 'entries'} this period
             </p>
@@ -383,7 +383,7 @@ export default function DashboardPage() {
             { label: 'Attendees',   value: totals.attendees,  icon: Users },
             { label: 'Stars',       value: totals.stars,      icon: Star },
           ].map(({ label, value, icon: Icon }) => (
-            <div key={label} className="rounded-xl border border-border bg-card p-5">
+            <div key={label} className="rounded-2xl bg-card p-5">
               {Icon && (
                 <div className="flex items-center gap-1.5 mb-1">
                   <Icon className="h-3.5 w-3.5 text-muted-foreground" />
@@ -410,16 +410,16 @@ export default function DashboardPage() {
               <CardContent>
                 <ChartContainer config={chartConfig} className="h-50 w-full">
                   <BarChart data={chartData} barCategoryGap="30%">
-                    <CartesianGrid vertical={false} stroke="hsl(var(--border))" />
+                    <CartesianGrid vertical={false} stroke="var(--border)" />
                     <XAxis
                       dataKey="month"
-                      tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
+                      tick={{ fontSize: 11, fill: 'var(--muted-foreground)' }}
                       axisLine={false}
                       tickLine={false}
                     />
                     <YAxis
                       allowDecimals={false}
-                      tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
+                      tick={{ fontSize: 11, fill: 'var(--muted-foreground)' }}
                       axisLine={false}
                       tickLine={false}
                       width={28}
@@ -482,7 +482,7 @@ export default function DashboardPage() {
               const monthTotals = aggregate(entries)
 
               return (
-                <div key={month} className="rounded-xl border border-border bg-card overflow-hidden">
+                <div key={month} className="rounded-2xl bg-card overflow-hidden">
                   <div className="flex items-start sm:items-center justify-between border-b border-border px-4 py-3 bg-muted/30">
                     <h3 className="font-medium text-foreground">{month}</h3>
                     <div className="flex flex-col sm:flex-row items-end sm:items-center gap-1 sm:gap-3 text-xs text-muted-foreground ml-auto">
@@ -564,7 +564,7 @@ export default function DashboardPage() {
         </div>
 
         {filteredContent.length === 0 && (
-          <div className="rounded-xl border border-border bg-card py-16 text-center">
+          <div className="rounded-2xl bg-card py-16 text-center">
             <FileText className="mx-auto mb-4 h-10 w-10 text-muted-foreground/40" />
             <p className="text-muted-foreground mb-4">No content found for this period.</p>
             <Link href="/dashboard/add"><Button size="sm">Add Content</Button></Link>

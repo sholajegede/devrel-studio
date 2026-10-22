@@ -1,9 +1,6 @@
 import Link from 'next/link'
 import Image from 'next/image'
-import {
-  FileText, Video, MapPin, Mic, Package, Rocket,
-  Check, ArrowRight, Minus,
-} from 'lucide-react'
+import { FileText, Video, MapPin, Mic, Package, Rocket, ArrowRight } from 'lucide-react'
 import {
   Accordion,
   AccordionContent,
@@ -14,87 +11,20 @@ import { MarketingNav } from '@/components/marketing/nav'
 import { MarketingFooter } from '@/components/marketing/footer'
 import { SignedInSwitch, LocalPriceAnswer } from '@/components/marketing/auth-aware'
 import { FeatureBento } from '@/components/marketing/bento'
+import { Shape, type ShapeColor, type ShapeName } from '@/components/marketing/shapes'
+import { BlueLink, Display, Lede, OutlineLink, PrimaryLink, Wrap } from '@/components/marketing/primitives'
 
-// ─── Shared pieces ────────────────────────────────────────────────────────────
+// ─── Page rhythm ──────────────────────────────────────────────────────────────
 //
-// The page is built from three primitives so the rhythm stays consistent all the
-// way down: an eyebrow, a heading block, and two button styles. Every section
-// uses them rather than inventing its own spacing and type sizes.
-//
-// Type is deliberately restrained — semibold rather than bold, negative tracking
-// on headings, one accent colour used sparingly. Colour is carried by the
-// product screenshot and the accent, not by the headings.
-
-function Eyebrow({ children }: { children: React.ReactNode }) {
-  return (
-    <span className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
-      {children}
-    </span>
-  )
-}
-
-function SectionHeading({
-  eyebrow,
-  title,
-  lede,
-  align = 'center',
-}: {
-  eyebrow?: string
-  title: React.ReactNode
-  lede?: React.ReactNode
-  align?: 'center' | 'left'
-}) {
-  return (
-    <div className={align === 'center' ? 'mx-auto max-w-2xl text-center' : 'max-w-2xl'}>
-      {eyebrow && <Eyebrow>{eyebrow}</Eyebrow>}
-      <h2 className="mt-3 text-3xl sm:text-4xl font-semibold tracking-[-0.02em] text-foreground leading-[1.15]">
-        {title}
-      </h2>
-      {lede && (
-        <p className="mt-4 text-[15px] leading-relaxed text-muted-foreground">{lede}</p>
-      )}
-    </div>
-  )
-}
-
-/** High-contrast primary. Inverts with the theme, the way Linear's does. */
-function PrimaryLink({ href, children }: { href: string; children: React.ReactNode }) {
-  return (
-    <Link
-      href={href}
-      className="inline-flex h-10 items-center gap-1.5 rounded-lg bg-foreground px-5 text-sm font-medium text-background transition-opacity hover:opacity-90"
-    >
-      {children}
-    </Link>
-  )
-}
-
-function GhostLink({ href, children }: { href: string; children: React.ReactNode }) {
-  return (
-    <Link
-      href={href}
-      className="inline-flex h-10 items-center gap-1.5 rounded-lg border border-border px-5 text-sm font-medium text-foreground transition-colors hover:bg-muted"
-    >
-      {children}
-    </Link>
-  )
-}
+// Every section follows the same beat: a short two-line headline on bare paper,
+// then flat rounded blocks in sand or a single accent colour. No gradients, no
+// shadows, no glow. Depth comes from tone and from radius.
 
 function StartOrOpen() {
   return (
     <SignedInSwitch
-      signedIn={
-        <PrimaryLink href="/dashboard">
-          Open dashboard
-          <ArrowRight className="h-3.5 w-3.5" />
-        </PrimaryLink>
-      }
-      signedOut={
-        <PrimaryLink href="/sign-up">
-          Start free
-          <ArrowRight className="h-3.5 w-3.5" />
-        </PrimaryLink>
-      }
+      signedIn={<PrimaryLink href="/dashboard">Open your dashboard</PrimaryLink>}
+      signedOut={<PrimaryLink href="/sign-up">Start free</PrimaryLink>}
     />
   )
 }
@@ -103,104 +33,49 @@ function StartOrOpen() {
 
 function Hero() {
   return (
-    <section className="relative overflow-hidden">
-      {/* Hairline grid, fading out before it reaches the content. Pure texture —
-          it should register as depth, not as a visible pattern. */}
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0 opacity-[0.35] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,black,transparent)]"
-        style={{
-          backgroundImage:
-            'linear-gradient(to right, var(--border) 1px, transparent 1px), linear-gradient(to bottom, var(--border) 1px, transparent 1px)',
-          backgroundSize: '56px 56px',
-        }}
-      />
-      <div
-        aria-hidden
-        className="pointer-events-none absolute left-1/2 top-0 h-[420px] w-[820px] -translate-x-1/2 rounded-full bg-accent/10 blur-[120px]"
-      />
-
-      <div className="relative mx-auto max-w-6xl px-6 pt-24 text-center">
-        <Link
-          href="/pricing"
-          className="inline-flex items-center gap-2 rounded-full border border-border bg-card/60 py-1 pl-1 pr-3 text-xs text-muted-foreground backdrop-blur transition-colors hover:text-foreground"
-        >
-          <span className="rounded-full bg-foreground px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-background">
-            New
-          </span>
-          Free for 14 days. No card needed
-          <ArrowRight className="h-3 w-3" />
-        </Link>
-
-        <h1 className="mx-auto mt-8 max-w-3xl text-[2.6rem] font-semibold leading-[1.05] tracking-[-0.035em] text-foreground sm:text-6xl lg:text-[4rem]">
-          Show clients what your DevRel work delivers
-        </h1>
-
-        <p className="mx-auto mt-6 max-w-xl text-[17px] leading-relaxed text-muted-foreground">
-          Log every piece of content in one place. Track what it earns. Give each
-          client a live dashboard they can open any time.
-        </p>
-
-        <div className="mt-9 flex flex-col items-center justify-center gap-2.5 sm:flex-row">
-          <StartOrOpen />
-          <GhostLink href="/demo">Explore the demo</GhostLink>
-        </div>
-
-        {/* The trial line is a reason to sign up. Someone already signed up does
-            not need reassuring about a card they never entered. */}
-        <SignedInSwitch
-          signedOut={
-            <p className="mt-5 text-[13px] text-muted-foreground">
-              14-day free trial · No card required
-            </p>
-          }
-        />
-
-        {/* Product shot. The one place on the page allowed to carry colour. */}
-        <div className="relative mx-auto mt-20 max-w-5xl">
-          <div
-            aria-hidden
-            className="pointer-events-none absolute -inset-x-20 -top-10 bottom-20 rounded-full bg-accent/10 blur-[100px]"
-          />
-
-          <div className="relative overflow-hidden rounded-xl border border-border bg-card shadow-2xl shadow-foreground/[0.06]">
-            <div className="flex items-center gap-2 border-b border-border bg-muted/40 px-3 py-2.5">
-              <div className="flex gap-1.5">
-                <span className="h-2.5 w-2.5 rounded-full bg-foreground/15" />
-                <span className="h-2.5 w-2.5 rounded-full bg-foreground/15" />
-                <span className="h-2.5 w-2.5 rounded-full bg-foreground/15" />
-              </div>
-              <div className="mx-auto rounded-md border border-border bg-background px-3 py-0.5 text-[11px] text-muted-foreground">
-                client.devrel.studio
-              </div>
-              <div className="w-12" />
-            </div>
-
-            <Image
-              src="/images/dashboard-screenshot.png"
-              alt="A client dashboard listing published content with views, downloads and attendees"
-              width={1728}
-              height={1084}
-              className="block h-auto w-full"
-              priority
-            />
+    <section className="pt-10 sm:pt-16">
+      <Wrap>
+        <div className="mx-auto max-w-4xl text-center">
+          <Display as="h1" size="xl">
+            Content shipped.
+            <br />
+            Impact shown.
+          </Display>
+          <Lede className="mt-7">
+            DevRel Studio is where advocates log every article, talk, video and package, and where each client opens a
+            live dashboard of what it earned.
+          </Lede>
+          <div className="mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row">
+            <StartOrOpen />
+            <OutlineLink href="/demo">Explore the demo</OutlineLink>
           </div>
+          {/* A reason to sign up. Someone already signed up needs no reassurance about a card. */}
+          <SignedInSwitch
+            signedOut={<p className="mt-5 text-sm text-muted-foreground">14 days free. No card.</p>}
+          />
         </div>
-      </div>
+
+        <div className="mt-14 overflow-hidden rounded-[2rem] bg-sand p-3 sm:mt-20 sm:rounded-[2.5rem] sm:p-5">
+          <Image
+            src="/images/dashboard-screenshot.png"
+            alt="A client dashboard listing published content with views, downloads and attendees"
+            width={1728}
+            height={1084}
+            className="block h-auto w-full rounded-[1.25rem] sm:rounded-[1.75rem]"
+            priority
+          />
+        </div>
+      </Wrap>
     </section>
   )
 }
 
 // ─── Social proof ─────────────────────────────────────────────────────────────
 
-// Only companies where someone who has used DevRel Studio has written or
-// worked. Inngest, Anthropic, Perplexity and Auth0 were removed: their logos
-// were here without that being true, which is the same class of claim as the
-// fabricated testimonials that used to sit further down this page.
-//
-// The heading matters as much as the list. "Trusted by teams at" would claim
-// these companies are customers, which they are not — the accurate claim is
-// that advocates working with them have tracked their output here.
+// Only companies where someone who has used DevRel Studio has written or worked.
+// The heading matters as much as the list: "trusted by" would claim these are
+// customers, which they are not. The accurate claim is that advocates working
+// with them have tracked their output here.
 const SOCIAL_PROOF_LOGOS = [
   { src: '/assets/logos/kinde.svg',        alt: 'Kinde',         width: 80,  height: 28 },
   { src: '/assets/logos/convex.png',       alt: 'Convex',        width: 90,  height: 28 },
@@ -213,25 +88,75 @@ const SOCIAL_PROOF_LOGOS = [
 
 function SocialProof() {
   return (
-    <section className="mt-28 overflow-hidden border-y border-border py-14">
-      <p className="mb-9 px-6 text-center text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
+    <section className="mt-20 overflow-hidden sm:mt-28">
+      <p className="mb-8 px-6 text-center text-sm text-muted-foreground">
         Advocates who write for these teams track their work here
       </p>
-      {/* Edges fade so logos enter and leave rather than being clipped. */}
-      <div className="relative [mask-image:linear-gradient(to_right,transparent,black_12%,black_88%,transparent)]">
-        <div className="animate-marquee flex items-center gap-16 opacity-60 grayscale">
-          {[...SOCIAL_PROOF_LOGOS, ...SOCIAL_PROOF_LOGOS].map((logo, i) => (
+      <div className="animate-marquee flex items-stretch gap-3">
+        {[...SOCIAL_PROOF_LOGOS, ...SOCIAL_PROOF_LOGOS].map((logo, i) => (
+          <div
+            key={`${logo.alt}-${i}`}
+            className={`flex h-20 w-56 shrink-0 items-center justify-center bg-sand ${
+              i % 2 === 0 ? 'rounded-[2.5rem_0.75rem_0.75rem_2.5rem]' : 'rounded-xl'
+            }`}
+          >
             <Image
-              key={`${logo.alt}-${i}`}
               src={logo.src}
               alt={logo.alt}
               width={logo.width}
               height={logo.height}
-              className="shrink-0 object-contain"
+              className="object-contain opacity-70 grayscale"
             />
+          </div>
+        ))}
+      </div>
+    </section>
+  )
+}
+
+// ─── Who it is for ────────────────────────────────────────────────────────────
+
+const AUDIENCES: { title: string; body: string; shapes: [ShapeName, ShapeColor][] }[] = [
+  {
+    title: 'For advocates',
+    body: 'Log a post, a talk or a release in thirty seconds. The numbers fill in on their own.',
+    shapes: [['square', 'pink'], ['tab', 'blue']],
+  },
+  {
+    title: 'For clients',
+    body: 'One link that always shows the current picture. No login, no waiting for the report.',
+    shapes: [['dome', 'orange'], ['square', 'olive']],
+  },
+  {
+    title: 'For agencies',
+    body: 'Run every client from one workspace, with seats and roles for the whole team.',
+    shapes: [['circle', 'ochre'], ['quarter', 'orange']],
+  },
+]
+
+function Audiences() {
+  return (
+    <section className="py-24 sm:py-32">
+      <Wrap>
+        <Display className="text-center">
+          Log it once.
+          <br />
+          Show it always.
+        </Display>
+        <div className="mx-auto mt-16 grid max-w-5xl gap-12 sm:grid-cols-3">
+          {AUDIENCES.map((a) => (
+            <div key={a.title} className="text-center">
+              <div className="mx-auto mb-5 flex h-14 w-24 items-end justify-center gap-1.5">
+                {a.shapes.map(([name, color]) => (
+                  <Shape key={name + color} name={name} color={color} className="h-11 w-11" />
+                ))}
+              </div>
+              <h3 className="text-2xl font-medium tracking-[-0.03em] text-foreground">{a.title}</h3>
+              <p className="mx-auto mt-3 max-w-[16rem] text-[15px] leading-relaxed text-muted-foreground">{a.body}</p>
+            </div>
           ))}
         </div>
-      </div>
+      </Wrap>
     </section>
   )
 }
@@ -239,63 +164,57 @@ function SocialProof() {
 // ─── Before / after ───────────────────────────────────────────────────────────
 
 const BEFORE = [
-  'You update a sprawling Google Sheet every month',
-  'You copy numbers from YouTube, Dev.to, npm and Luma',
-  'You build a PDF by hand, with screenshots',
-  'Clients email to ask when the report arrives',
-  'Nobody sees anything between reports',
-  'Old numbers are gone, so trends are guesswork',
+  'A sprawling Google Sheet, updated by hand every month',
+  'Numbers copied from YouTube, Dev.to, npm and Luma',
+  'A PDF assembled from screenshots',
+  'Clients emailing to ask when the report is coming',
+  'Nothing visible between reports, and no history to compare',
 ]
 
 const AFTER = [
-  'One system holds all six content types',
-  'An entry takes 30 seconds. Numbers update on their own',
-  'Clients open one link whenever they want',
-  'Nobody asks where the report is',
+  'One workspace for all six kinds of content',
+  'An entry takes thirty seconds, and the numbers refresh themselves',
+  'Clients open one link whenever they like',
   'Trends sit on the page, with filters and export',
-  'Each month compares itself to the last',
+  'Each month measures itself against the last',
 ]
 
 function BeforeAfter() {
   return (
-    <section className="mx-auto max-w-6xl px-6 py-28">
-      <SectionHeading
-        eyebrow="The problem"
-        title="Reporting takes hours it should not take"
-        lede="Developer advocates lose a day each month proving work they already finished."
-      />
+    <section className="pb-24 sm:pb-32">
+      <Wrap>
+        <div className="grid gap-4 md:grid-cols-2">
+          <div className="rounded-[2rem] bg-sand p-8 sm:p-12">
+            <p className="text-sm text-muted-foreground">Report day</p>
+            <h3 className="mt-3 text-3xl font-medium leading-[1.05] tracking-[-0.035em] sm:text-4xl">
+              A day a month, proving work you already finished
+            </h3>
+            <ul className="mt-8 space-y-3.5">
+              {BEFORE.map((item) => (
+                <li key={item} className="flex gap-3 text-[15px] leading-snug text-muted-foreground">
+                  <span aria-hidden className="mt-[7px] h-1.5 w-1.5 shrink-0 rounded-full bg-ink/30" />
+                  {item}
+                </li>
+              ))}
+            </ul>
+          </div>
 
-      <div className="mt-14 grid gap-px overflow-hidden rounded-xl border border-border bg-border md:grid-cols-2">
-        <div className="bg-background p-8">
-          <p className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-            <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/40" />
-            Today
-          </p>
-          <ul className="mt-6 space-y-3.5">
-            {BEFORE.map((item) => (
-              <li key={item} className="flex items-start gap-3 text-sm text-muted-foreground">
-                <Minus className="mt-0.5 h-4 w-4 shrink-0 opacity-40" />
-                {item}
-              </li>
-            ))}
-          </ul>
+          <div className="rounded-[2rem] bg-ink p-8 text-paper sm:p-12">
+            <p className="text-sm text-paper/60">With DevRel Studio</p>
+            <h3 className="mt-3 text-3xl font-medium leading-[1.05] tracking-[-0.035em] sm:text-4xl">
+              Every day is report day, and nobody has to do it
+            </h3>
+            <ul className="mt-8 space-y-3.5">
+              {AFTER.map((item) => (
+                <li key={item} className="flex gap-3 text-[15px] leading-snug text-paper/85">
+                  <span aria-hidden className="mt-[7px] h-1.5 w-1.5 shrink-0 rounded-full bg-orange" />
+                  {item}
+                </li>
+              ))}
+            </ul>
+          </div>
         </div>
-
-        <div className="bg-background p-8">
-          <p className="flex items-center gap-2 text-sm font-medium text-foreground">
-            <span className="h-1.5 w-1.5 rounded-full bg-accent" />
-            With DevRel Studio
-          </p>
-          <ul className="mt-6 space-y-3.5">
-            {AFTER.map((item) => (
-              <li key={item} className="flex items-start gap-3 text-sm text-foreground">
-                <Check className="mt-0.5 h-4 w-4 shrink-0 text-accent" />
-                {item}
-              </li>
-            ))}
-          </ul>
-        </div>
-      </div>
+      </Wrap>
     </section>
   )
 }
@@ -303,42 +222,45 @@ function BeforeAfter() {
 // ─── Content categories ───────────────────────────────────────────────────────
 
 const CONTENT_CATS = [
-  { icon: FileText, name: 'Written', metric: 'Views',           examples: 'Blog posts, tutorials, docs, case studies, newsletters' },
-  { icon: Video,    name: 'Video',   metric: 'Views',           examples: 'YouTube, Loom walkthroughs, course modules, recordings' },
-  { icon: MapPin,   name: 'Event',   metric: 'Attendees',       examples: 'Conference talks, meetups, webinars, workshops' },
-  { icon: Mic,      name: 'Podcast', metric: 'Downloads',       examples: 'Guest appearances, interview shows, solo episodes' },
-  { icon: Package,  name: 'Package', metric: 'Weekly downloads', examples: 'npm packages, SDKs, CLI tools, Convex components' },
-  { icon: Rocket,   name: 'Demo',    metric: 'GitHub stars',    examples: 'Demo apps, starter kits, reference implementations' },
+  { icon: FileText, name: 'Written', metric: 'Views', examples: 'Blog posts, tutorials, docs, case studies, newsletters', shape: 'tab' as ShapeName, color: 'orange' as ShapeColor },
+  { icon: Video, name: 'Video', metric: 'Views', examples: 'YouTube, Loom walkthroughs, course modules, recordings', shape: 'circle' as ShapeName, color: 'blue' as ShapeColor },
+  { icon: MapPin, name: 'Event', metric: 'Attendees', examples: 'Conference talks, meetups, webinars, workshops', shape: 'dome' as ShapeName, color: 'ochre' as ShapeColor },
+  { icon: Mic, name: 'Podcast', metric: 'Downloads', examples: 'Guest appearances, interview shows, solo episodes', shape: 'arch' as ShapeName, color: 'green' as ShapeColor },
+  { icon: Package, name: 'Package', metric: 'Weekly downloads', examples: 'npm packages, SDKs, CLI tools, Convex components', shape: 'square' as ShapeName, color: 'pink' as ShapeColor },
+  { icon: Rocket, name: 'Demo', metric: 'GitHub stars', examples: 'Demo apps, starter kits, reference implementations', shape: 'cross' as ShapeName, color: 'rust' as ShapeColor },
 ]
 
 function ContentCategories() {
   return (
-    <section className="mx-auto max-w-6xl px-6 py-28">
-      <SectionHeading
-        eyebrow="Coverage"
-        title="One dashboard, six content types"
-        lede="DevRel work does not fit one spreadsheet column. Each category brings its own fields and its own number."
-      />
+    <section className="pb-24 sm:pb-32">
+      <Wrap>
+        <Display className="text-center">
+          Six kinds of work.
+          <br />
+          Six honest numbers.
+        </Display>
+        <Lede className="mt-6 text-center">
+          DevRel work does not fit one spreadsheet column, so each category brings its own fields and its own metric.
+        </Lede>
 
-      {/* A table rather than six coloured cards: the point is that each category
-          maps to one specific metric, and a table shows that mapping directly. */}
-      <div className="mt-14 overflow-hidden rounded-xl border border-border">
-        {CONTENT_CATS.map(({ icon: Icon, name, metric, examples }, i) => (
-          <div
-            key={name}
-            className={`grid grid-cols-1 gap-1 px-6 py-5 transition-colors hover:bg-muted/40 sm:grid-cols-[160px_180px_1fr] sm:items-center sm:gap-6 ${
-              i > 0 ? 'border-t border-border' : ''
-            }`}
-          >
-            <div className="flex items-center gap-2.5">
-              <Icon className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm font-medium text-foreground">{name}</span>
+        <div className="mt-14 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {CONTENT_CATS.map(({ icon: Icon, name, metric, examples, shape, color }) => (
+            <div key={name} className="flex min-h-[18rem] flex-col rounded-[2rem] bg-sand p-7 sm:p-8">
+              <div className="flex items-start justify-between">
+                <span className="inline-flex items-center gap-2 text-sm text-muted-foreground">
+                  <Icon className="h-4 w-4" />
+                  {name}
+                </span>
+                <Shape name={shape} color={color} className="h-14 w-14" />
+              </div>
+              <div className="mt-auto pt-10">
+                <p className="text-3xl font-medium tracking-[-0.035em] text-foreground">{metric}</p>
+                <p className="mt-2 text-[15px] leading-relaxed text-muted-foreground">{examples}</p>
+              </div>
             </div>
-            <div className="font-mono text-xs text-accent">{metric}</div>
-            <div className="text-sm text-muted-foreground">{examples}</div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      </Wrap>
     </section>
   )
 }
@@ -349,70 +271,69 @@ const STEPS = [
   {
     title: 'Log your content',
     description:
-      'Add a blog post, a video, a talk or an npm release. The form changes to match the category. It takes about 30 seconds.',
-    detail: 'Written · Video · Event · Podcast · Package · Demo',
+      'Add a post, a video, a talk or a release. The form changes to match the category, and it takes about thirty seconds.',
+    tone: 'bg-ochre text-ink',
   },
   {
     title: 'Share a live dashboard',
     description:
-      'Every client gets their own URL. Share it once. They open it any time, on any device, with no login.',
-    detail: 'client.devrel.studio',
+      'Every client gets their own URL. Send it once. They open it on any device, with no account to create.',
+    tone: 'bg-blue text-ink',
   },
   {
-    title: 'Prove your impact',
+    title: 'Watch the numbers move',
     description:
-      'Views, downloads, attendees and stars refresh on their own. Your client watches the numbers move.',
-    detail: 'Live metrics · Historic trends · CSV export',
+      'Views, downloads, attendees and stars refresh on their own, so your client sees the work land as it happens.',
+    tone: 'bg-green text-ink',
   },
 ]
 
 function HowItWorks() {
   return (
-    <section id="how-it-works" className="border-t border-border bg-card/40 py-28">
-      <div className="mx-auto max-w-6xl px-6">
-        <SectionHeading
-          eyebrow="Getting started"
-          title="Working in under five minutes"
-          lede="Nothing to configure and no API to connect. Sign in, add an entry, share the link."
-        />
+    <section id="how-it-works" className="pb-24 sm:pb-32">
+      <Wrap>
+        <Display className="text-center">
+          Working in
+          <br />
+          five minutes
+        </Display>
+        <Lede className="mt-6 text-center">Nothing to configure and no API to connect. Sign in, add an entry, share the link.</Lede>
 
-        <div className="mt-14 grid gap-px overflow-hidden rounded-xl border border-border bg-border sm:grid-cols-3">
-          {STEPS.map(({ title, description, detail }, i) => (
-            <div key={title} className="bg-background p-7">
-              <span className="font-mono text-xs text-muted-foreground">
-                {String(i + 1).padStart(2, '0')}
-              </span>
-              <h3 className="mt-4 text-[15px] font-medium text-foreground">{title}</h3>
-              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{description}</p>
-              <p className="mt-4 border-t border-border pt-4 font-mono text-[11px] text-muted-foreground/80">
-                {detail}
-              </p>
+        <div className="mt-14 grid gap-4 md:grid-cols-3">
+          {STEPS.map(({ title, description, tone }, i) => (
+            <div key={title} className={`flex min-h-[22rem] flex-col rounded-[2rem] p-8 sm:p-9 ${tone}`}>
+              <span className="font-mono text-sm">{String(i + 1).padStart(2, '0')}</span>
+              <div className="mt-auto">
+                <h3 className="text-3xl font-medium leading-[1.05] tracking-[-0.035em]">{title}</h3>
+                <p className="mt-3 text-[15px] leading-relaxed text-ink/75">{description}</p>
+              </div>
             </div>
           ))}
         </div>
-      </div>
+      </Wrap>
     </section>
   )
 }
 
 // ─── Testimonial ──────────────────────────────────────────────────────────────
 //
-// One quote, from a real client, presented at the size it deserves. A wall of
-// three would imply a volume of feedback that does not exist yet — and the
-// fabricated set that used to sit here was worse than nothing.
+// One quote, from a real client, at the size it deserves. A wall of three would
+// imply a volume of feedback that does not exist yet.
 
 function Testimonial() {
   return (
-    <section className="border-t border-border py-28">
-      <figure className="mx-auto max-w-3xl px-6 text-center">
-        <blockquote className="text-2xl font-medium leading-[1.35] tracking-[-0.02em] text-foreground sm:text-[2rem]">
-          &ldquo;This is the best approach I have ever seen from anyone we have worked with
-          and a completely unique experience.&rdquo;
-        </blockquote>
-        <figcaption className="mt-8 text-sm text-muted-foreground">
-          <span className="font-medium text-foreground">Andre Selton</span> · Kinde
-        </figcaption>
-      </figure>
+    <section className="pb-24 sm:pb-32">
+      <Wrap>
+        <figure className="mx-auto max-w-4xl text-center">
+          <blockquote className="text-[clamp(1.75rem,3.8vw,2.9rem)] font-medium leading-[1.12] tracking-[-0.03em] text-foreground">
+            &ldquo;This is the best approach I have ever seen from anyone we have worked with and a completely unique
+            experience.&rdquo;
+          </blockquote>
+          <figcaption className="mt-8 text-[15px] text-muted-foreground">
+            <span className="font-medium text-foreground">Andre Selton</span>, Kinde
+          </figcaption>
+        </figure>
+      </Wrap>
     </section>
   )
 }
@@ -421,33 +342,38 @@ function Testimonial() {
 
 function JobsBand() {
   return (
-    <section className="border-t border-border py-24">
-      <div className="mx-auto max-w-4xl px-6 text-center">
-        <Eyebrow>The DevRel job board</Eyebrow>
-        <h2 className="mt-3 text-3xl font-semibold tracking-[-0.02em] text-foreground sm:text-4xl">
-          Every DevRel role, then the proof to get it
-        </h2>
-        <p className="mx-auto mt-4 max-w-2xl text-[15px] leading-relaxed text-muted-foreground">
-          Advocate, DevRel engineer, developer success, community and docs roles from company careers pages, refreshed
-          three times a day. Track every application, and turn the work you have published into a CV and cover note
-          for each role. The board is free. Jobs Pro is one payment for a year.
-        </p>
-        <div className="mt-8 flex flex-col items-center justify-center gap-2.5 sm:flex-row">
-          <Link
-            href="/jobs"
-            className="inline-flex h-11 items-center gap-1.5 rounded-lg bg-foreground px-5 text-sm font-medium text-background hover:opacity-90"
-          >
-            Browse DevRel jobs
-            <ArrowRight className="h-3.5 w-3.5" />
-          </Link>
-          <Link
-            href="/pricing#jobs"
-            className="inline-flex h-11 items-center rounded-lg border border-border px-5 text-sm font-medium text-foreground hover:bg-muted"
-          >
-            See Jobs Pro pricing
-          </Link>
+    <section className="pb-24 sm:pb-32">
+      <Wrap>
+        <div className="grid items-center gap-10 rounded-[2.5rem] bg-blue p-8 sm:p-14 lg:grid-cols-[1.3fr_1fr]">
+          <div>
+            <Display size="lg" className="text-ink">
+              Every DevRel role,
+              <br />
+              then the proof to land it
+            </Display>
+            <p className="mt-6 max-w-xl text-lg leading-relaxed text-ink/75">
+              Advocate, DevRel engineer, developer success, community and docs roles from company careers pages,
+              refreshed three times a day. Track each application and turn the work you have published into a CV and
+              cover note for the role. The board is free. Jobs Pro is one payment for a year.
+            </p>
+            <div className="mt-9 flex flex-col gap-3 sm:flex-row">
+              <PrimaryLink href="/jobs">Browse DevRel jobs</PrimaryLink>
+              <Link
+                href="/pricing#jobs"
+                className="inline-flex h-12 items-center justify-center rounded-full border border-ink/40 px-7 text-base font-medium text-ink transition-colors hover:bg-ink hover:text-paper"
+              >
+                Jobs Pro pricing
+              </Link>
+            </div>
+          </div>
+          <div aria-hidden className="mx-auto grid w-full max-w-xs grid-cols-2 gap-3">
+            <Shape name="tab" color="orange" />
+            <Shape name="circle" color="ochre" />
+            <Shape name="cross" color="pink" />
+            <Shape name="dome" color="ink" />
+          </div>
         </div>
-      </div>
+      </Wrap>
     </section>
   )
 }
@@ -456,47 +382,43 @@ function JobsBand() {
 
 function faqItems(): { q: string; a: React.ReactNode }[] {
   return [
-  { q: 'How much is it?',                              a: <LocalPriceAnswer /> },
-  { q: 'How does payment work?',                       a: 'You email us the plan and the number of months. We send transfer details. Access opens when the payment lands. Card payments are not available yet, because Stripe needs a US company.' },
-  { q: 'What happens when access runs out?',           a: 'Nothing disappears. Your content stays. Your clients keep their dashboards. You just cannot add or edit until you extend.' },
-  { q: 'What counts as a client workspace?',           a: 'Each client gets their own content log and their own dashboard URL. Starter covers one client. Pro covers five. Agency has no limit.' },
-  { q: 'Is there a free trial?',                       a: 'Yes. Fourteen days, no card, from the moment you sign up. You get one client workspace and up to 10 entries.' },
-  { q: 'What is your refund policy?',                  a: 'Email us within 14 days of a payment and we refund it. We do not ask why.' },
-  { q: 'Do clients need an account?',                  a: 'No. The client dashboard is a read-only URL. It works in any browser. You choose whether it needs an access code.' },
-  { q: 'Can multiple people use one account?',         a: 'The Agency plan includes 5 seats with admin, editor and viewer roles. Starter and Pro are single-user.' },
-  { q: 'Is the job board free?',                      a: 'Yes. Browse, filter, save roles, track applications, upload your CV for role matching and set two email alerts at no cost. Jobs Pro is an optional one-off pass for a year that adds unlimited tailored CVs and cover notes, instant alerts, pay benchmarks and a hiring view.' },
-  { q: 'What content does DevRel Studio track?',       a: 'Six categories: Written, Video, Event, Podcast, Package and Demo. Each one records the number that suits it.' },
+    { q: 'How much is it?', a: <LocalPriceAnswer /> },
+    { q: 'How does payment work?', a: 'You email us the plan and the number of months. We send transfer details. Access opens when the payment lands. Card payments are not available yet, because Stripe needs a US company.' },
+    { q: 'What happens when access runs out?', a: 'Nothing disappears. Your content stays. Your clients keep their dashboards. You just cannot add or edit until you extend.' },
+    { q: 'What counts as a client workspace?', a: 'Each client gets their own content log and their own dashboard URL. Starter covers one client. Pro covers five. Agency has no limit.' },
+    { q: 'Is there a free trial?', a: 'Yes. Fourteen days, no card, from the moment you sign up. You get one client workspace and up to 10 entries.' },
+    { q: 'What is your refund policy?', a: 'Email us within 14 days of a payment and we refund it. We do not ask why.' },
+    { q: 'Do clients need an account?', a: 'No. The client dashboard is a read-only URL. It works in any browser. You choose whether it needs an access code.' },
+    { q: 'Can multiple people use one account?', a: 'The Agency plan includes 5 seats with admin, editor and viewer roles. Starter and Pro are single-user.' },
+    { q: 'Is the job board free?', a: 'Yes. Browse, filter, save roles, track applications, upload your CV for role matching and set two email alerts at no cost. Jobs Pro is an optional one-off pass for a year that adds unlimited tailored CVs and cover notes, instant alerts, pay benchmarks and a hiring view.' },
+    { q: 'What content does DevRel Studio track?', a: 'Six categories: Written, Video, Event, Podcast, Package and Demo. Each one records the number that suits it.' },
   ]
 }
 
 function FAQ() {
   return (
-    <section id="faq" className="mx-auto max-w-3xl px-6 py-28">
-      <SectionHeading eyebrow="FAQ" title="Common questions" />
+    <section id="faq" className="pb-24 sm:pb-32">
+      <Wrap>
+        <Display className="text-center">Questions, answered</Display>
 
-      <Accordion type="single" collapsible className="mt-12 overflow-hidden rounded-xl border border-border">
-        {faqItems().map(({ q, a }, i) => (
-          <AccordionItem
-            key={q}
-            value={`item-${i}`}
-            className={`px-6 ${i > 0 ? 'border-t border-border' : ''} border-b-0`}
-          >
-            <AccordionTrigger className="py-5 text-left text-sm font-medium text-foreground hover:no-underline">
-              {q}
-            </AccordionTrigger>
-            <AccordionContent className="pb-5 text-sm leading-relaxed text-muted-foreground">
-              {a}
-            </AccordionContent>
-          </AccordionItem>
-        ))}
-      </Accordion>
+        <Accordion type="single" collapsible className="mx-auto mt-14 max-w-3xl space-y-3">
+          {faqItems().map(({ q, a }, i) => (
+            <AccordionItem key={q} value={`item-${i}`} className="rounded-[1.5rem] border-b-0 bg-sand px-7">
+              <AccordionTrigger className="py-6 text-left text-lg font-medium tracking-[-0.02em] text-foreground hover:no-underline">
+                {q}
+              </AccordionTrigger>
+              <AccordionContent className="pb-6 text-[15px] leading-relaxed text-muted-foreground">{a}</AccordionContent>
+            </AccordionItem>
+          ))}
+        </Accordion>
 
-      <p className="mt-8 text-center text-sm text-muted-foreground">
-        Something missing?{' '}
-        <Link href="mailto:support@devrel.studio" className="text-foreground underline underline-offset-4 hover:text-accent">
-          Email us
-        </Link>
-      </p>
+        <p className="mt-10 text-center text-[15px] text-muted-foreground">
+          Something missing?{' '}
+          <Link href="mailto:support@devrel.studio" className="font-medium text-foreground underline underline-offset-4 decoration-ink/30 hover:text-accent hover:decoration-accent">
+            Email us
+          </Link>
+        </p>
+      </Wrap>
     </section>
   )
 }
@@ -505,38 +427,19 @@ function FAQ() {
 
 function CTA() {
   return (
-    <section className="border-t border-border">
-      <div className="relative mx-auto max-w-6xl overflow-hidden px-6 py-28 text-center">
-        <div
-          aria-hidden
-          className="pointer-events-none absolute left-1/2 top-1/2 h-[300px] w-[700px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-accent/10 blur-[110px]"
-        />
-
-        <div className="relative">
-          <h2 className="mx-auto max-w-2xl text-3xl sm:text-[2.75rem] font-semibold leading-[1.1] tracking-[-0.03em] text-foreground">
-            Your clients should see the work you do
-          </h2>
-          <p className="mx-auto mt-5 max-w-lg text-[15px] leading-relaxed text-muted-foreground">
-            Give every client a live dashboard instead of a monthly PDF.
-          </p>
-
-          <div className="mt-9 flex flex-col items-center justify-center gap-2.5 sm:flex-row">
-            <StartOrOpen />
-            <GhostLink href="/demo">Explore the demo</GhostLink>
-          </div>
-
-          <div className="mt-10 flex flex-wrap items-center justify-center gap-x-6 gap-y-2">
-            {['14 days free', 'No card required', 'Stop by doing nothing'].map(
-              (item) => (
-                <span key={item} className="flex items-center gap-1.5 text-[13px] text-muted-foreground">
-                  <Check className="h-3.5 w-3.5 text-accent" />
-                  {item}
-                </span>
-              ),
-            )}
-          </div>
+    <section>
+      <Wrap className="text-center">
+        <Display size="xxl">
+          Real work,
+          <br />
+          real proof
+        </Display>
+        <p className="mt-6 text-lg text-muted-foreground">14 days free. Stop by doing nothing.</p>
+        <div className="mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row">
+          <StartOrOpen />
+          <BlueLink href="/demo">Explore the demo</BlueLink>
         </div>
-      </div>
+      </Wrap>
     </section>
   )
 }
@@ -549,6 +452,7 @@ export default function LandingPage() {
       <MarketingNav />
       <Hero />
       <SocialProof />
+      <Audiences />
       <BeforeAfter />
       <FeatureBento />
       <ContentCategories />

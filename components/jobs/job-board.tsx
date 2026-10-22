@@ -474,7 +474,7 @@ export function JobBoard({
           </select>
         </div>
 
-        {filtersOpen && <div className="mt-4 rounded-xl border border-border bg-card p-4 lg:hidden">{filters}</div>}
+        {filtersOpen && <div className="mt-4 rounded-2xl bg-card p-4 lg:hidden">{filters}</div>}
 
         <div className="mt-4 flex flex-wrap items-center justify-between gap-2 text-sm text-muted-foreground">
           <p aria-live="polite">
@@ -528,7 +528,7 @@ export function JobBoard({
           ))}
 
           {result && visible.length === 0 && (
-            <div className="rounded-xl border border-dashed border-border p-10 text-center">
+            <div className="rounded-2xl border border-dashed border-border p-10 text-center">
               <p className="font-medium text-foreground">No roles match these filters</p>
               <p className="mt-1 text-sm text-muted-foreground">
                 Try a wider region or remove a filter. New roles arrive three times a day.

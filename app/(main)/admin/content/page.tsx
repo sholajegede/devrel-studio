@@ -50,7 +50,7 @@ export default function AdminContentPage() {
   return (
     <>
       <div className="mb-6">
-        <h1 className="text-2xl font-semibold text-foreground">Content</h1>
+        <h1 className="text-4xl font-medium leading-[1.05] tracking-[-0.04em] text-foreground sm:text-[2.75rem]">Content</h1>
         <p className="text-sm text-muted-foreground">
           Every entry logged across every workspace. Counts, not reading — what is in
           them belongs to the customer.

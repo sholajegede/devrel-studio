@@ -61,7 +61,7 @@ function QuoteEditor({
   return (
     <div className="space-y-3">
       {quotes.map((quote, index) => (
-        <div key={index} className="rounded-lg border border-border p-3">
+        <div key={index} className="rounded-xl border border-border p-3">
           <div className="flex items-start gap-2">
             <Textarea
               value={quote.text}
@@ -301,7 +301,7 @@ export function ReportComposer({
                   {notes.previousFeedback.slice(0, 3).map((item) => (
                     <li
                       key={item.id}
-                      className="rounded-lg border border-border bg-muted/40 p-3 text-sm text-muted-foreground"
+                      className="rounded-xl border border-border bg-muted/40 p-3 text-sm text-muted-foreground"
                     >
                       &ldquo;{item.comment}&rdquo;
                       <span className="mt-1 block text-xs">

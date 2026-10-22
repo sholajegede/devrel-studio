@@ -1,19 +1,19 @@
 import React from "react"
 import type { Metadata } from 'next'
-import { Inter } from 'next/font/google'
+import { Hanken_Grotesk, IBM_Plex_Mono } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
 import { AppProviders } from "@/providers/ConvexKindeProvider"
-import { ThemeProvider } from "@/components/theme-provider"
 import { Toaster } from "@/components/ui/sonner"
 import { TooltipProvider } from "@/components/ui/tooltip"
 // @ts-ignore TS2307: Cannot find module or type declarations for side-effect import of './globals.css'.
 import "./globals.css";
 
-const inter = Inter({ subsets: ["latin"], variable: '--font-inter' });
+const hanken = Hanken_Grotesk({ subsets: ["latin"], variable: '--font-hanken', display: 'swap' });
+const plexMono = IBM_Plex_Mono({ subsets: ["latin"], weight: ['400', '500'], variable: '--font-plex-mono', display: 'swap' });
 
 export const metadata: Metadata = {
   title: 'DevRel Studio',
-  description: 'Track and manage your DevRel and technical writing deliverables',
+  description: 'The workspace for developer advocates: every article, talk and video you ship for a client, with the numbers to prove it worked.',
   generator: 'v0.app',
 }
 
@@ -25,16 +25,7 @@ export default function RootLayout({
   return (
     <AppProviders>
       <html lang="en" suppressHydrationWarning>
-        <body className={`${inter.variable} font-sans antialiased`}>
-          {/* `class` rather than the data attribute, because globals.css defines
-              the dark variant as `&:is(.dark *)`. Defaults to the OS setting so
-              nobody has to find the toggle to get the theme they already use. */}
-          <ThemeProvider
-            attribute="class"
-            defaultTheme="system"
-            enableSystem
-            disableTransitionOnChange
-          >
+        <body className={`${hanken.variable} ${plexMono.variable} font-sans antialiased`}>
             <TooltipProvider>
               {children}
               {/* Every toast.success/error in the app went nowhere without this:
@@ -44,7 +35,6 @@ export default function RootLayout({
               <Toaster richColors closeButton position="top-right" />
               <Analytics />
             </TooltipProvider>
-          </ThemeProvider>
         </body>
       </html>
     </AppProviders>

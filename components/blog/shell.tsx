@@ -5,7 +5,7 @@ export function BlogShell({ children, wide = false }: { children: React.ReactNod
   return (
     <div className="min-h-screen bg-background">
       <MarketingNav />
-      <main className={`mx-auto px-6 py-12 ${wide ? 'max-w-5xl' : 'max-w-3xl'}`}>{children}</main>
+      <main className={`mx-auto px-4 py-10 sm:px-8 sm:py-14 ${wide ? 'max-w-[1600px]' : 'max-w-3xl'}`}>{children}</main>
       <MarketingFooter />
     </div>
   )

@@ -97,9 +97,8 @@ const BILLING_STEPS: TourStep[] = [
 
 // ── Settings ──────────────────────────────────────────────────────────────────
 const SETTINGS_STEPS: TourStep[] = [
-  { target: "body", title: "Settings", content: "Your profile, your theme and your public handle.", position: "center", highlight: false },
+  { target: "body", title: "Settings", content: "Your profile and your public handle.", position: "center", highlight: false },
   { target: '[data-tour="settings-profile"]', title: "Your profile", content: "Change your display name here. Kinde owns your email address, so change that with Kinde.", position: "bottom", highlight: true },
-  { target: '[data-tour="settings-preferences"]', title: "Preferences", content: "Pick a theme. System follows your machine and changes with it.", position: "top", highlight: true },
   { target: '[data-tour="settings-danger"]', title: "Danger zone", content: "Deleting your account wipes every entry with it and nothing comes back. We ask you to confirm before anything is deleted.", position: "top", highlight: true },
 ];
 
@@ -301,8 +300,8 @@ export function AdminTour({ variant, onComplete, autoStart = false, onTourContro
     <>
       {hlBox ? (
         <div
-          className="fixed z-[9999] pointer-events-none rounded-xl transition-all duration-300 ease-out"
-          style={{ top: hlBox.top, left: hlBox.left, width: hlBox.width, height: hlBox.height, border: "2px solid hsl(var(--accent))", boxShadow: "0 0 0 9999px rgba(0,0,0,0.72)" }}
+          className="fixed z-[9999] pointer-events-none rounded-2xl transition-all duration-300 ease-out"
+          style={{ top: hlBox.top, left: hlBox.left, width: hlBox.width, height: hlBox.height, border: "2px solid var(--accent)", boxShadow: "0 0 0 9999px rgba(24,1,2,0.72)" }}
         />
       ) : (
         <div className="fixed inset-0 z-[9998] bg-black/70 pointer-events-none" />
@@ -316,7 +315,7 @@ export function AdminTour({ variant, onComplete, autoStart = false, onTourContro
         className="fixed z-[10000] w-[400px] max-w-[calc(100vw-2rem)]"
         style={{ top: pos.top, left: pos.left, opacity: visible ? 1 : 0, transform: visible ? "translateY(0)" : "translateY(8px)", transition: "opacity 0.18s ease, transform 0.18s ease" }}
       >
-        <div className="bg-card border border-border/60 rounded-xl shadow-2xl overflow-hidden">
+        <div className="bg-popover rounded-[2rem] overflow-hidden border border-ink/10">
           <div className="h-[3px] bg-linear-to-r from-accent to-accent/20" />
           <div className="p-5">
             <div className="flex items-start justify-between gap-3 mb-2.5">

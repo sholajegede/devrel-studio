@@ -211,7 +211,7 @@ export function ClientAccessDialog({
         </DialogHeader>
 
         {!slug ? (
-          <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-200">
+          <div className="flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
             <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
             <p>Add a dashboard slug to this client first — the access code is tied to it.</p>
           </div>
@@ -227,24 +227,24 @@ export function ClientAccessDialog({
                     icon: Globe,
                     label: 'Open to anyone with the link',
                     detail: 'No code is asked for, even though one may be set.',
-                    tone: 'border-sky-200 bg-sky-50/60 text-sky-900 dark:border-sky-500/30 dark:bg-sky-500/10 dark:text-sky-200',
+                    tone: 'border-sky-200 bg-sky-50/60 text-sky-900',
                   }
                 : hasCode
                   ? {
                       icon: ShieldCheck,
                       label: 'Protected by an access code',
                       detail: 'Visitors must enter the code before seeing anything.',
-                      tone: 'border-emerald-200 bg-emerald-50/60 text-emerald-900 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-200',
+                      tone: 'border-emerald-200 bg-emerald-50/60 text-emerald-900',
                     }
                   : {
                       icon: AlertCircle,
                       label: 'Unprotected',
                       detail: 'Anyone who knows or guesses the link can read this dashboard. Create a code to close it.',
-                      tone: 'border-amber-200 bg-amber-50/60 text-amber-900 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-200',
+                      tone: 'border-amber-200 bg-amber-50/60 text-amber-900',
                     }
 
               return (
-                <div className={`flex items-start gap-2.5 rounded-lg border p-3 ${state.tone}`}>
+                <div className={`flex items-start gap-2.5 rounded-xl border p-3 ${state.tone}`}>
                   <state.icon className="mt-0.5 h-4 w-4 shrink-0" />
                   <div className="min-w-0">
                     <p className="text-sm font-medium">{state.label}</p>
@@ -255,7 +255,7 @@ export function ClientAccessDialog({
             })()}
 
             {error && (
-              <div className="flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
+              <div className="flex items-start gap-2 rounded-xl border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
                 <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
                 <p>{error}</p>
               </div>
@@ -275,7 +275,7 @@ export function ClientAccessDialog({
             </div>
 
             {/* Public toggle */}
-            <div className="flex items-start justify-between gap-4 rounded-lg border border-border p-3">
+            <div className="flex items-start justify-between gap-4 rounded-xl border border-border p-3">
               <div className="space-y-0.5">
                 <p className="text-sm font-medium text-foreground">Anyone with the link</p>
                 <p className="text-xs text-muted-foreground">
@@ -304,7 +304,7 @@ export function ClientAccessDialog({
                       {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
                     </Button>
                   </div>
-                  <p className="text-xs text-amber-700 dark:text-amber-300">
+                  <p className="text-xs text-amber-700">
                     Copy this now — it is stored hashed and will not be shown again.
                   </p>
 

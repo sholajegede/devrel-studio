@@ -64,7 +64,7 @@ export function ReviewEditor({
             <ul className="mt-3 space-y-2 text-sm">
               {flagged.map((item, index) => (
                 <li key={index} className="border-t border-border pt-2">
-                  <span className={cn('font-medium', item.verdict === 'wrong' ? 'text-red-600 dark:text-red-400' : 'text-amber-600 dark:text-amber-400')}>{item.verdict}</span>{' '}
+                  <span className={cn('font-medium', item.verdict === 'wrong' ? 'text-red-600' : 'text-amber-600')}>{item.verdict}</span>{' '}
                   <span className="text-foreground">{item.claim}</span>
                   {item.note && <span className="block text-muted-foreground">{item.note}</span>}
                   {item.sourceUrl && <a href={item.sourceUrl} target="_blank" rel="noopener" className="block truncate text-xs text-accent underline">{item.sourceUrl}</a>}
@@ -88,7 +88,7 @@ export function ReviewEditor({
         </Card>
       </div>
 
-      <div className="flex gap-1 rounded-lg border border-border p-1 w-fit" role="tablist">
+      <div className="flex gap-1 rounded-xl border border-border p-1 w-fit" role="tablist">
         {(['preview', 'edit'] as const).map((name) => (
           <button
             key={name}
@@ -125,7 +125,7 @@ export function ReviewEditor({
           </label>
         </div>
       ) : (
-        <article className="rounded-2xl border border-border bg-card p-6 sm:p-8">
+        <article className="rounded-3xl bg-card p-6 sm:p-8">
           <h1 className="text-3xl font-semibold leading-tight tracking-tight text-foreground">{title}</h1>
           <p className="mt-2 text-muted-foreground">{description}</p>
           <div className="mt-8"><Prose blocks={blocks} /></div>
@@ -156,7 +156,7 @@ export function ReviewEditor({
       )}
 
       {pending ? (
-        <div className="sticky bottom-4 flex flex-wrap items-center gap-2 rounded-xl border border-border bg-card/95 p-3 shadow-lg backdrop-blur">
+        <div className="sticky bottom-4 flex flex-wrap items-center gap-2 rounded-[1.5rem] bg-sand p-3">
           <Button disabled={busy} onClick={() => onDecide('publish', changes)} className="bg-accent text-accent-foreground hover:bg-accent/90">
             Publish
           </Button>

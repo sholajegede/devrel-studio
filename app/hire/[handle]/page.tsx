@@ -33,8 +33,8 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <section className="border-t border-border pt-6">
-      <h2 className="mb-3 text-sm font-medium uppercase tracking-wide text-muted-foreground">{title}</h2>
+    <section className="rounded-[2rem] bg-sand p-7 sm:p-9">
+      <h2 className="mb-4 text-2xl font-medium tracking-[-0.03em] text-foreground">{title}</h2>
       {children}
     </section>
   )
@@ -83,21 +83,21 @@ export default async function PersonPage({ params }: Params) {
       <header className="mb-8 flex items-start gap-5">
         <Avatar name={person.name} imageUrl={person.imageUrl} size={72} />
         <div>
-          <h1 className="text-3xl font-semibold tracking-tight text-foreground">{person.name}</h1>
+          <h1 className="text-[clamp(2.25rem,5vw,3.5rem)] font-medium leading-[1] tracking-[-0.04em] text-foreground">{person.name}</h1>
           {person.headline && <p className="mt-1 text-lg text-foreground/90">{person.headline}</p>}
           <p className="mt-2 text-sm text-muted-foreground">
             {[level, person.yearsExperience ? `${person.yearsExperience} years in the field` : null, place].filter(Boolean).join(' · ')}
           </p>
           {person.openToWork && (
-            <p className="mt-3 inline-block rounded-full bg-emerald-500/10 px-3 py-1 text-sm text-emerald-600 dark:text-emerald-400">
+            <p className="mt-4 inline-block rounded-full bg-green px-3.5 py-1 text-sm font-medium text-paper">
               {start ?? 'Open to work'}
             </p>
           )}
         </div>
       </header>
 
-      <div className="space-y-8">
-        {person.summary && <p className="text-base leading-relaxed text-foreground/90">{person.summary}</p>}
+      <div className="space-y-4">
+        {person.summary && <p className="px-2 text-lg leading-relaxed text-foreground">{person.summary}</p>}
 
         {person.proof.published > 0 && (
           <Section title="Work tracked on DevRel Studio">
@@ -112,7 +112,7 @@ export default async function PersonPage({ params }: Params) {
         {person.skills.length > 0 && (
           <Section title="Skills">
             <ul className="flex flex-wrap gap-2">
-              {person.skills.map((skill) => <li key={skill} className="rounded-md bg-muted px-2.5 py-1 text-sm text-foreground/90">{skill}</li>)}
+              {person.skills.map((skill) => <li key={skill} className="rounded-full bg-paper px-3.5 py-1.5 text-sm text-foreground">{skill}</li>)}
             </ul>
           </Section>
         )}

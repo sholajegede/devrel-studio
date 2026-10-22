@@ -44,10 +44,10 @@ const pagerClass =
 
 function pillClass(active: boolean): string {
   return [
-    'inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-sm transition-colors',
+    'inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-sm font-medium transition-colors',
     active
-      ? 'border-foreground/25 bg-secondary text-foreground'
-      : 'border-border bg-card text-muted-foreground hover:border-foreground/20 hover:text-foreground',
+      ? 'bg-ink text-paper'
+      : 'bg-sand text-foreground hover:bg-sand-deep',
   ].join(' ')
 }
 
@@ -126,12 +126,12 @@ function StatTile({
   value: string
 }) {
   return (
-    <div className="rounded-xl border border-border bg-card px-4 py-3">
+    <div className="rounded-[1.5rem] bg-sand px-5 py-4">
       <div className="flex items-center gap-1.5 text-muted-foreground">
         <Icon className="h-3.5 w-3.5" />
         <span className="text-xs">{label}</span>
       </div>
-      <p className="mt-1 text-2xl font-semibold tabular-nums text-foreground">{value}</p>
+      <p className="mt-2 text-4xl font-medium tabular-nums tracking-[-0.04em] text-foreground">{value}</p>
     </div>
   )
 }
@@ -214,7 +214,7 @@ function EntryRow({ entry }: { entry: PortfolioData['entries'][number] }) {
   )
 
   const className =
-    'group flex gap-4 rounded-lg border border-border bg-card p-4 transition-colors hover:border-foreground/20'
+    'group flex gap-4 rounded-[1.5rem] bg-sand p-5 transition-colors hover:bg-sand-deep'
 
   return entry.link ? (
     <a href={entry.link} target="_blank" rel="noopener noreferrer" className={className}>
@@ -304,7 +304,7 @@ export default async function PortfolioPage({
       {/* Renders nothing. The view was already counted in proxy.ts; this only
           reports how long the visitor stayed, on unload. */}
       <DwellBeacon target={profile.handle} />
-      <main className="mx-auto max-w-4xl px-4 sm:px-6 py-12 sm:py-16">
+      <main className="mx-auto max-w-5xl px-4 py-12 sm:px-8 sm:py-20">
 
         {/* ── Identity ── */}
         <header className="mb-10">
@@ -315,19 +315,19 @@ export default async function PortfolioPage({
                 alt={name}
                 width={80}
                 height={80}
-                className="rounded-full border border-border"
+                className="rounded-full"
                 unoptimized
               />
             ) : (
-              <div className="flex h-20 w-20 items-center justify-center rounded-full bg-secondary">
-                <span className="text-2xl font-semibold text-foreground">
+              <div className="flex h-20 w-20 items-center justify-center rounded-full bg-ochre">
+                <span className="text-3xl font-medium text-ink">
                   {name.charAt(0).toUpperCase()}
                 </span>
               </div>
             )}
 
             <div className="min-w-0">
-              <h1 className="text-3xl font-semibold tracking-tight text-foreground">
+              <h1 className="text-[clamp(2.5rem,6vw,4.25rem)] font-medium leading-[1] tracking-[-0.04em] text-foreground">
                 {name}
               </h1>
               <p className="text-muted-foreground">@{profile.handle}</p>
@@ -335,7 +335,7 @@ export default async function PortfolioPage({
           </div>
 
           {profile.bio && (
-            <p className="mt-5 max-w-2xl text-[15px] leading-relaxed text-muted-foreground">
+            <p className="mt-6 max-w-2xl text-lg leading-relaxed text-muted-foreground">
               {profile.bio}
             </p>
           )}
@@ -359,7 +359,7 @@ export default async function PortfolioPage({
         </header>
 
         {entries.length === 0 ? (
-          <div className="rounded-lg border border-border bg-card py-16 text-center">
+          <div className="rounded-[2rem] bg-sand py-16 text-center">
             <p className="text-muted-foreground">
               Nothing published here yet — check back soon.
             </p>
@@ -432,7 +432,7 @@ export default async function PortfolioPage({
             {/* ── Pagination ── */}
             {pageCount > 1 && (
               <nav
-                className="mt-8 flex items-center justify-between border-t border-border pt-6"
+                className="mt-8 flex items-center justify-between border-t border-ink/10 pt-6"
                 aria-label="Portfolio pages"
               >
                 {page > 1 ? (
@@ -461,7 +461,7 @@ export default async function PortfolioPage({
           </>
         )}
 
-        <footer className="mt-16 border-t border-border pt-6">
+        <footer className="mt-16 border-t border-ink/10 pt-6">
           <Link
             href="/"
             className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
