@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { BlogShell, dateLabel } from '@/components/blog/shell'
 import { Prose } from '@/components/blog/prose'
+import { Cover } from '@/components/blog/cover'
 import { Crumbs, JsonLd } from '@/components/jobs/shell'
 import { loadPost } from '@/lib/blog/server'
 import { parseMarkdown } from '@/lib/blog/markdown'
@@ -65,11 +66,15 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
 
       <article>
         <header className="mb-8">
+          {post.keyword && (
+            <p className="mb-4 font-mono text-xs uppercase tracking-[0.18em] text-muted-foreground">[ {post.keyword} ]</p>
+          )}
           <h1 className="text-[clamp(2.25rem,5.4vw,3.75rem)] font-medium leading-[1.02] tracking-[-0.04em] text-foreground">{post.title}</h1>
           <p className="mt-3 text-sm text-muted-foreground">
             <time dateTime={new Date(post.publishedAt).toISOString()}>{dateLabel(post.publishedAt)}</time> · {post.readingMinutes} min read
           </p>
         </header>
+        <Cover slug={post.slug} size="lg" className="mb-10 aspect-[21/9] w-full" />
 
         {sections.length >= 4 && (
           <nav aria-label="In this post" className="mb-10 rounded-[1.5rem] bg-sand p-6 text-sm">
