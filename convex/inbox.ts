@@ -1,6 +1,6 @@
 import { ConvexError, v } from 'convex/values'
 import { Id } from './_generated/dataModel'
-import { mutation, query } from './_generated/server'
+import { MutationCtx, mutation, query } from './_generated/server'
 import { recordAudit } from './model/audit'
 import { planOf } from './model/plans'
 import { getCurrentWorkspace, planHolder, requireWorkspace } from './model/workspaces'
@@ -9,6 +9,7 @@ import {
   canonicalUrl,
   describeEntryProposal,
   entryDraftProblems,
+  type EntryDraft,
   proposalFingerprint,
 } from '../lib/agents/proposals'
 
@@ -119,6 +120,80 @@ export const createManual = mutation({
   },
 })
 
+type Who = Awaited<ReturnType<typeof requireWorkspace>>
+
+/**
+ * Turn one pending proposal into an entry. Shared by single and bulk approval
+ * so both apply the same state check, plan limit and audit.
+ */
+async function executeEntryProposal(
+  ctx: MutationCtx,
+  who: Who,
+  id: Id<'proposals'>,
+  draft?: EntryDraft,
+): Promise<Id<'contentEntries'>> {
+  const proposal = await ctx.db.get(id)
+  if (!proposal || proposal.workspaceId !== who.workspaceId) {
+    throw new ConvexError('That proposal was not found.')
+  }
+  if (proposal.status !== 'pending') {
+    throw new ConvexError('Someone already decided this one.')
+  }
+
+  const final = draft ?? proposal.payload
+  const problems = entryDraftProblems(final)
+  if (problems.length) throw new ConvexError(problems.join(' '))
+
+  // Same plan limit as adding an entry by hand.
+  const plan = planOf(await planHolder(ctx, who.workspace))
+  if (plan.maxEntries !== null) {
+    const count = (
+      await ctx.db
+        .query('contentEntries')
+        .withIndex('by_workspace', (q) => q.eq('workspaceId', who.workspaceId))
+        .collect()
+    ).length
+    if (count >= plan.maxEntries) {
+      throw new ConvexError(
+        `The ${plan.name} includes ${plan.maxEntries} content entries. Upgrade for unlimited entries.`,
+      )
+    }
+  }
+
+  const clean = {
+    client: final.client.trim(),
+    title: final.title.trim(),
+    link: final.link.trim(),
+    platform: final.platform.trim(),
+    publicationDate: final.publicationDate,
+  }
+  const entryId = await ctx.db.insert('contentEntries', {
+    userId: who.user._id,
+    workspaceId: who.workspaceId,
+    ...clean,
+    trackingLink: '',
+    status: 'Published',
+    tags: [],
+    contentType: '',
+    notes: '',
+    updatedAt: new Date().toISOString(),
+  })
+  await ctx.db.patch(id, {
+    status: 'executed',
+    payload: clean,
+    decidedBy: who.user._id,
+    decidedAt: Date.now(),
+    resultEntryId: entryId,
+  })
+  await recordAudit(ctx, who, {
+    action: draft ? 'proposal.approve_edited' : 'proposal.approve',
+    summary: `Added “${clean.title}” to Work.`,
+    subjectKind: 'proposal',
+    subjectId: id,
+  })
+  return entryId
+}
+
 /**
  * Approve, optionally with edits. Checks the state again here, because the
  * screen may be minutes old: another member may have decided this already.
@@ -127,70 +202,32 @@ export const approve = mutation({
   args: { id: v.id('proposals'), draft: v.optional(draftValidator) },
   handler: async (ctx, { id, draft }) => {
     const who = await requireWorkspace(ctx, 'editor')
-    const proposal = await ctx.db.get(id)
-    if (!proposal || proposal.workspaceId !== who.workspaceId) {
-      throw new ConvexError('That proposal was not found.')
-    }
-    if (proposal.status !== 'pending') {
-      throw new ConvexError('Someone already decided this one.')
-    }
+    return await executeEntryProposal(ctx, who, id, draft)
+  },
+})
 
-    const final = draft ?? proposal.payload
-    const problems = entryDraftProblems(final)
-    if (problems.length) throw new ConvexError(problems.join(' '))
-
-    // Same plan limit as adding an entry by hand.
-    const plan = planOf(await planHolder(ctx, who.workspace))
-    if (plan.maxEntries !== null) {
-      const count = (
-        await ctx.db
-          .query('contentEntries')
-          .withIndex('by_workspace', (q) => q.eq('workspaceId', who.workspaceId))
-          .collect()
-      ).length
-      if (count >= plan.maxEntries) {
-        throw new ConvexError(
-          `The ${plan.name} includes ${plan.maxEntries} content entries. Upgrade for unlimited entries.`,
-        )
+/** Approve many at once. Stops at the plan limit; reports what it did. */
+export const approveMany = mutation({
+  args: { ids: v.array(v.id('proposals')) },
+  handler: async (ctx, { ids }) => {
+    const who = await requireWorkspace(ctx, 'editor')
+    let approved = 0
+    let skipped = 0
+    let stoppedBy: string | null = null
+    for (const id of ids.slice(0, 50)) {
+      try {
+        await executeEntryProposal(ctx, who, id)
+        approved += 1
+      } catch (err) {
+        const message = err instanceof ConvexError && typeof err.data === 'string' ? err.data : ''
+        if (message.includes('includes')) {
+          stoppedBy = message
+          break
+        }
+        skipped += 1
       }
     }
-
-    const entryId: Id<'contentEntries'> = await ctx.db.insert('contentEntries', {
-      userId: who.user._id,
-      workspaceId: who.workspaceId,
-      client: final.client.trim(),
-      title: final.title.trim(),
-      link: final.link.trim(),
-      trackingLink: '',
-      platform: final.platform.trim(),
-      publicationDate: final.publicationDate,
-      status: 'Published',
-      tags: [],
-      contentType: '',
-      notes: '',
-      updatedAt: new Date().toISOString(),
-    })
-
-    await ctx.db.patch(id, {
-      status: 'executed',
-      payload: {
-        client: final.client.trim(),
-        title: final.title.trim(),
-        link: final.link.trim(),
-        platform: final.platform.trim(),
-        publicationDate: final.publicationDate,
-      },
-      decidedBy: who.user._id,
-      decidedAt: Date.now(),
-      resultEntryId: entryId,
-    })
-    await recordAudit(ctx, who, {
-      action: draft ? 'proposal.approve_edited' : 'proposal.approve',
-      summary: `Added “${final.title.trim()}” to Work.`,
-      subjectKind: 'proposal',
-      subjectId: id,
-    })
-    return entryId
+    return { approved, skipped, stoppedBy, truncated: ids.length > 50 }
   },
 })
 

@@ -12,6 +12,15 @@ crons.daily(
   internal.sync.syncAllStats,
 )
 
+// Scout looks for new posts once a day, after the stats sync. A paused
+// workspace is skipped inside the run, so the kill switch needs no cron change.
+crons.daily(
+  'scout: look for new posts',
+  { hourUTC: 5, minuteUTC: 0 },
+  internal.scout.syncAll,
+  {},
+)
+
 // Hourly, not monthly. The day, hour and timezone are configured per client in
 // the dashboard, and a cron can only honour that by waking up every hour and
 // asking each schedule whether this is its hour where the client lives.

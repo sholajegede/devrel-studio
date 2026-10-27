@@ -52,6 +52,7 @@ export default function InboxPage() {
   const approve = useMutation(api.inbox.approve)
   const dismiss = useMutation(api.inbox.dismiss)
   const undo = useMutation(api.inbox.undo)
+  const approveMany = useMutation(api.inbox.approveMany)
 
   const [open, setOpen] = useState(false)
   const [draft, setDraft] = useState<EntryDraft>(EMPTY)
@@ -125,10 +126,37 @@ export default function InboxPage() {
       ) : (
         <div className="space-y-10">
           <section aria-label="Waiting for you" className="space-y-3">
-            <h2 className="text-sm font-semibold">Waiting for you ({pending.length})</h2>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <h2 className="text-sm font-semibold">Waiting for you ({pending.length})</h2>
+              {canWrite && pending.length > 1 && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={busy === 'all'}
+                  onClick={async () => {
+                    setBusy('all')
+                    try {
+                      const r = await approveMany({ ids: pending.map((p) => p._id) })
+                      const parts = [`Added ${r.approved} to Work.`]
+                      if (r.skipped) parts.push(`${r.skipped} could not be added.`)
+                      if (r.truncated) parts.push('Approve the rest in a second pass.')
+                      if (r.stoppedBy) parts.push(r.stoppedBy)
+                      toast[r.stoppedBy ? 'warning' : 'success'](parts.join(' '))
+                    } catch (err) {
+                      toast.error(errorText(err))
+                    } finally {
+                      setBusy(null)
+                    }
+                  }}
+                >
+                  {busy === 'all' && <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />}
+                  Approve all {Math.min(pending.length, 50)}
+                </Button>
+              )}
+            </div>
             {pending.length === 0 ? (
               <p className="rounded-2xl bg-paper px-5 py-8 text-sm text-muted-foreground">
-                The Inbox is empty. Add a proposal by hand, or wait for an agent to find something.
+                The Inbox is empty. Connect a source on the Agents page, or add a proposal by hand.
               </p>
             ) : (
               pending.map((p) => (

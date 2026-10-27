@@ -131,3 +131,73 @@ describe('proposal helpers', () => {
     expect(isOpen('dismissed')).toBe(false)
   })
 })
+
+import {
+  devtoUrl,
+  newCandidates,
+  normalizeHandle,
+  parseDevtoPage,
+  parseHashnodePage,
+} from '@/lib/agents/sources'
+
+describe('source readers', () => {
+  it('accepts a Dev.to username and a Hashnode address in the forms people type', () => {
+    expect(normalizeHandle('devto', '@Shola_J')).toEqual({ ok: true, handle: 'shola_j' })
+    expect(normalizeHandle('devto', 'https://dev.to/shola')).toEqual({ ok: true, handle: 'shola' })
+    expect(normalizeHandle('hashnode', 'shola')).toEqual({ ok: true, handle: 'shola.hashnode.dev' })
+    expect(normalizeHandle('hashnode', 'https://blog.example.com/')).toEqual({ ok: true, handle: 'blog.example.com' })
+    expect(normalizeHandle('devto', 'a b').ok).toBe(false)
+    expect(normalizeHandle('hashnode', '').ok).toBe(false)
+  })
+
+  it('encodes the username in the request', () => {
+    expect(devtoUrl('a&b', 2)).toContain('username=a%26b')
+  })
+
+  it('reads a Dev.to page and skips rows it cannot use', () => {
+    const page = parseDevtoPage([
+      { id: 1, title: 'One', url: 'https://dev.to/a/one', published_at: '2026-03-04T10:00:00Z' },
+      { id: 2, title: '', url: 'https://dev.to/a/two', published_at: '2026-03-04T10:00:00Z' },
+      { id: 3, title: 'Three', url: 'javascript:x', published_at: '2026-03-04T10:00:00Z' },
+      { id: 4, title: 'Four', url: 'https://dev.to/a/four', published_at: 'soon' },
+    ])
+    expect(page.items.map((i) => i.title)).toEqual(['One'])
+    expect(page.items[0].publicationDate).toBe('2026-03-04')
+    expect(page.done).toBe(true)
+  })
+
+  it('reports an unreadable Dev.to reply instead of throwing', () => {
+    expect(parseDevtoPage({ error: 'nope' }).error).toBeTruthy()
+  })
+
+  it('reads a Hashnode page and its cursor', () => {
+    const page = parseHashnodePage({
+      data: {
+        publication: {
+          posts: {
+            edges: [{ node: { id: 'x', title: 'Post', url: 'https://b.hashnode.dev/post', publishedAt: '2026-05-01T00:00:00.000Z' } }],
+            pageInfo: { endCursor: 'abc', hasNextPage: true },
+          },
+        },
+      },
+    })
+    expect(page.items).toHaveLength(1)
+    expect(page.cursor).toBe('abc')
+    expect(page.done).toBe(false)
+  })
+
+  it('says so when Hashnode has no blog at the address', () => {
+    expect(parseHashnodePage({ data: { publication: null } }).error).toMatch(/no blog/)
+    expect(parseHashnodePage({}).error).toBeTruthy()
+  })
+
+  it('keeps only new candidates and removes repeats inside the batch', () => {
+    const known = new Set(['dev.to/a/old'])
+    const make = (link: string) => ({ title: 't', link, publicationDate: '2026-01-01', externalId: link })
+    const fresh = newCandidates(
+      [make('https://dev.to/a/old?utm_source=x'), make('https://dev.to/a/new'), make('https://www.dev.to/a/new/')],
+      known,
+    )
+    expect(fresh.map((c) => c.link)).toEqual(['https://dev.to/a/new'])
+  })
+})

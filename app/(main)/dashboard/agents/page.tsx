@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useMutation, useQuery } from 'convex/react'
 import { toast } from 'sonner'
-import { Loader2 } from 'lucide-react'
+import { Loader2, RefreshCw, Trash2 } from 'lucide-react'
 import { api } from '@/convex/_generated/api'
 import { useUserContext } from '@/contexts/user-context'
 import { Button } from '@/components/ui/button'
@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { Badge } from '@/components/ui/badge'
+import { PROVIDERS, PROVIDER_LABEL, type Provider } from '@/lib/agents/sources'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import {
   ACTION_CLASSES, PRESETS, PRESET_COPY, ceilingFor, resolveLevel, isPreset,
@@ -47,6 +48,15 @@ export default function AgentsPage() {
   const settings = useQuery(api.agentSettings.get, skip)
   const activity = useQuery(api.inbox.activity, skip)
   const save = useMutation(api.agentSettings.save)
+  const connections = useQuery(api.connections.list, skip)
+  const clients = useQuery(api.clients.getClients, skip)
+  const addConnection = useMutation(api.connections.add)
+  const syncNow = useMutation(api.connections.syncNow)
+  const removeConnection = useMutation(api.connections.remove)
+  const [provider, setProvider] = useState<Provider>('devto')
+  const [handle, setHandle] = useState('')
+  const [program, setProgram] = useState('')
+  const [adding, setAdding] = useState(false)
 
   const [preset, setPreset] = useState<Preset>('careful')
   const [overrides, setOverrides] = useState<Record<string, Level>>({})
@@ -63,6 +73,19 @@ export default function AgentsPage() {
   }, [settings])
 
   const canEdit = settings?.role === 'owner' || settings?.role === 'admin'
+
+  async function onAdd() {
+    setAdding(true)
+    try {
+      await addConnection({ provider, handle, clientSlug: program })
+      toast.success('Connected. Scout is reading it now. New posts appear in the Inbox.')
+      setHandle('')
+    } catch (err) {
+      toast.error(errorText(err))
+    } finally {
+      setAdding(false)
+    }
+  }
 
   async function onSave() {
     setSaving(true)
@@ -96,6 +119,76 @@ export default function AgentsPage() {
               Only an owner or admin can change these settings.
             </p>
           )}
+
+          <Section title="Sources" description="Scout reads your public posts and sends new ones to the Inbox. It reads only. It never posts.">
+            <div className="space-y-4">
+              {connections === undefined ? (
+                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+              ) : connections.length > 0 ? (
+                <ul className="divide-y divide-ink/10 rounded-2xl bg-paper">
+                  {connections.map((c) => (
+                    <li key={c._id} className="flex flex-wrap items-center gap-3 px-5 py-3">
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium">{PROVIDER_LABEL[c.provider]} · {c.handle}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {c.status === 'syncing' || c.status === 'new'
+                            ? 'Reading…'
+                            : c.status === 'error'
+                              ? `Last read failed: ${c.lastError ?? 'unknown error'}`
+                              : `${c.itemsRead ?? 0} posts read · ${c.lastSyncAt ? new Date(c.lastSyncAt).toLocaleString() : ''}`}
+                        </p>
+                      </div>
+                      <Badge variant={c.status === 'error' ? 'destructive' : 'secondary'}>
+                        {c.status === 'error' ? 'Needs attention' : c.status === 'ok' ? 'Healthy' : 'Reading'}
+                      </Badge>
+                      <Button size="sm" variant="ghost" aria-label="Read now" onClick={() => syncNow({ id: c._id }).catch((e) => toast.error(errorText(e)))}>
+                        <RefreshCw className="h-3.5 w-3.5" />
+                      </Button>
+                      {canEdit && (
+                        <Button size="sm" variant="ghost" aria-label="Disconnect" onClick={() => removeConnection({ id: c._id }).then(() => toast.success('Disconnected.')).catch((e) => toast.error(errorText(e)))}>
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="rounded-2xl bg-paper px-5 py-6 text-sm text-muted-foreground">No sources yet.</p>
+              )}
+
+              {settings?.role !== 'viewer' && (
+                <div className="grid gap-3 rounded-2xl bg-paper p-5 sm:grid-cols-[140px_1fr_180px_auto] sm:items-end">
+                  <div className="space-y-1.5">
+                    <Label>Platform</Label>
+                    <Select value={provider} onValueChange={(p) => setProvider(p as Provider)}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {PROVIDERS.map((p) => <SelectItem key={p} value={p}>{PROVIDER_LABEL[p]}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="handle">{provider === 'devto' ? 'Username' : 'Blog address'}</Label>
+                    <Input id="handle" value={handle} placeholder={provider === 'devto' ? 'shola' : 'name.hashnode.dev'} onChange={(e) => setHandle(e.target.value)} />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>Program</Label>
+                    <Select value={program} onValueChange={setProgram}>
+                      <SelectTrigger><SelectValue placeholder="Choose" /></SelectTrigger>
+                      <SelectContent>
+                        {(clients ?? []).filter((c) => !!c.slug).map((c) => (
+                          <SelectItem key={c._id} value={c.slug!}>{c.company || c.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <Button onClick={onAdd} disabled={adding || !handle.trim() || !program}>
+                    {adding && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Connect
+                  </Button>
+                </div>
+              )}
+            </div>
+          </Section>
 
           <Section title="Kill switch" description="Stops every agent at once. People can still use the app.">
             <div className="flex items-center justify-between gap-4 rounded-2xl bg-paper px-5 py-4">

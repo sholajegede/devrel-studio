@@ -1169,6 +1169,25 @@ export default defineSchema({
     .index("by_workspace_and_status", ["workspaceId", "status"])
     .index("by_workspace_and_fingerprint", ["workspaceId", "fingerprint"]),
 
+  // A linked source Scout reads from. Read-only, public data, no secrets stored.
+  connections: defineTable({
+    workspaceId: v.id("workspaces"),
+    /** The program (client slug) that entries from this source belong to. */
+    clientSlug: v.string(),
+    provider: v.union(v.literal("devto"), v.literal("hashnode")),
+    /** Dev.to username, or Hashnode blog address. */
+    handle: v.string(),
+    status: v.union(v.literal("new"), v.literal("ok"), v.literal("error"), v.literal("syncing")),
+    lastSyncAt: v.optional(v.number()),
+    lastError: v.optional(v.string()),
+    /** Posts read on the last good sync. */
+    itemsRead: v.optional(v.number()),
+    createdBy: v.id("users"),
+    createdAt: v.number(),
+  })
+    .index("by_workspace", ["workspaceId"])
+    .index("by_workspace_and_provider_and_handle", ["workspaceId", "provider", "handle"]),
+
   // Append-only history of what people and agents did in a workspace. Never
   // patched or deleted by app code.
   auditEvents: defineTable({
