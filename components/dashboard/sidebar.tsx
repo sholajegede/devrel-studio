@@ -5,11 +5,13 @@ import Image from 'next/image'
 import { Wordmark } from '@/components/brand/wordmark'
 import { usePathname } from 'next/navigation'
 import { useState, useEffect } from 'react'
+import { useQuery } from 'convex/react'
+import { api } from '@/convex/_generated/api'
 import { cn } from '@/lib/utils'
 import {
   LayoutDashboard, FileText, Users, CreditCard, Settings,
   PlusCircle, X, Menu, LogOut, Building2, KanbanSquare, Search, Mail,
-  Activity, Briefcase, UserSearch,
+  Activity, Briefcase, UserSearch, Inbox, Bot,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useUserContext } from '@/contexts/user-context'
@@ -19,6 +21,7 @@ import { LogoutLink } from '@kinde-oss/kinde-auth-nextjs'
 
 const NAV_ITEMS = [
   { href: '/dashboard',          label: 'Overview',     icon: LayoutDashboard, exact: true },
+  { href: '/dashboard/inbox',    label: 'Inbox',        icon: Inbox,           exact: false },
   { href: '/dashboard/pipeline', label: 'Pipeline',     icon: KanbanSquare,    exact: false },
   { href: '/dashboard/content',  label: 'All Content',  icon: FileText,        exact: false },
   { href: '/dashboard/clients',  label: 'Clients',      icon: Building2,       exact: false },
@@ -26,6 +29,7 @@ const NAV_ITEMS = [
   { href: '/dashboard/analytics',label: 'Analytics',    icon: Activity,        exact: false },
   { href: '/dashboard/jobs',     label: 'Jobs',         icon: Briefcase,       exact: false },
   { href: '/dashboard/hire',     label: 'Hire profile', icon: UserSearch,     exact: false },
+  { href: '/dashboard/agents',   label: 'Agents',       icon: Bot,             exact: false },
   { href: '/dashboard/members',  label: 'Members',      icon: Users,           exact: false },
   { href: '/dashboard/billing',  label: 'Billing',      icon: CreditCard,      exact: false },
   { href: '/dashboard/settings', label: 'Settings',     icon: Settings,        exact: false },
@@ -34,6 +38,7 @@ const NAV_ITEMS = [
 function SidebarInner({ onClose }: { onClose?: () => void }) {
   const pathname  = usePathname()
   const { profile } = useUserContext()
+  const inboxCount = useQuery(api.inbox.openCount, profile?._id ? {} : 'skip') ?? 0
 
   const initials = profile
     ? (profile.firstName?.[0] ?? profile.email[0]).toUpperCase()
@@ -106,7 +111,12 @@ function SidebarInner({ onClose }: { onClose?: () => void }) {
               )}
             >
               <item.icon className="h-4 w-4 shrink-0" />
-              {item.label}
+              <span className="flex-1">{item.label}</span>
+              {item.href === '/dashboard/inbox' && inboxCount > 0 && (
+                <span className="rounded-full bg-ink px-2 py-0.5 text-[11px] font-medium text-paper">
+                  {inboxCount}
+                </span>
+              )}
             </Link>
           )
         })}

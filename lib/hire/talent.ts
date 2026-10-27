@@ -2,6 +2,8 @@
 // can be listed, summarising their tracked work as proof, and ranking the list.
 // No Convex or React imports, so every rule here is covered by a unit test.
 
+import { countedReshareViews } from '../metrics'
+
 export const AVAILABILITY = [
   { id: 'now', label: 'Available now' },
   { id: '30d', label: 'Within 30 days' },
@@ -136,6 +138,7 @@ export function completeness(profile: TalentInput, hasProof: boolean): { score: 
 // ── Proof ─────────────────────────────────────────────────────────────────────
 
 export interface ProofEntry {
+  reshares?: unknown[]
   category?: string
   platform: string
   publicationDate: string
@@ -167,7 +170,7 @@ export function summariseProof(entries: ProofEntry[]): Proof {
   for (const entry of entries) {
     const category = entry.category ?? 'Written'
     byCategory[category] = (byCategory[category] ?? 0) + 1
-    views += entry.views ?? 0
+    views += (entry.views ?? 0) + countedReshareViews(entry)
     downloads += entry.downloads ?? 0
     stars += entry.stars ?? 0
     attendees += entry.attendees ?? 0

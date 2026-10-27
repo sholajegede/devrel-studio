@@ -1044,7 +1044,7 @@ export default function ClientDashboard({
                                         {entryHasReshares ? (
                                           <div className="grid gap-2 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4">
                                             {entry.reshares!.map(
-                                              (reshare: { platform: string; link: string; date: string }, idx: number) => (
+                                              (reshare: { platform: string; link: string; date: string; views?: number }, idx: number) => (
                                                 <div
                                                   key={idx}
                                                   className="flex items-center gap-3 p-3 bg-sand rounded-[1.25rem]"
@@ -1056,6 +1056,7 @@ export default function ClientDashboard({
                                                       {new Date(reshare.date).toLocaleDateString("en-US", {
                                                         month: "short", day: "numeric", year: "numeric",
                                                       })}
+                                                      {reshare.views ? ` · ${reshare.views.toLocaleString()} views` : ""}
                                                     </p>
                                                   </div>
                                                   <div className="flex items-center gap-2 shrink-0">

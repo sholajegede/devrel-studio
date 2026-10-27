@@ -97,6 +97,9 @@ export const getPortfolio = query({
         repoUrl: entry.repoUrl,
         stack: entry.stack,
         reshareCount: entry.reshares?.length ?? 0,
+        // Only the views, so the page can total them with the same function the
+        // dashboard uses. The reshare links stay private to the owner.
+        reshares: (entry.reshares ?? []).map((reshare) => ({ views: reshare.views ?? 0 })),
       }))
 
     return {

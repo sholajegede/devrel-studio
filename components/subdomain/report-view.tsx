@@ -10,7 +10,7 @@ import {
   targetProgress,
   type ReportEntry,
 } from '@/lib/report'
-import { formatCompact, previousMonth } from '@/lib/metrics'
+import { formatCompact, getMetricValue, previousMonth } from '@/lib/metrics'
 import { CATEGORY_META } from '@/lib/category-meta'
 import { PlatformIcon } from '@/lib/platform-meta'
 import { toast } from 'sonner'
@@ -618,8 +618,7 @@ export function ReportView({ data }: { data: ReportData }) {
                 ] ?? CATEGORY_META.Written
                 const Icon = category.icon
 
-                const metric =
-                  item.views || item.attendees || item.downloads || item.stars || 0
+                const metric = getMetricValue(item)
 
                 return (
                   <li key={item.id ?? item.title} className="bg-background p-5">

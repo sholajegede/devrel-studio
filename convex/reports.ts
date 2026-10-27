@@ -8,7 +8,7 @@ import { action, internalAction,
 } from './_generated/server'
 import { getCurrentWorkspace, requireInWorkspace } from './model/workspaces'
 import { dueNow } from '../lib/schedule'
-import { previousMonth } from '../lib/metrics'
+import { countedReshareViews, previousMonth } from '../lib/metrics'
 import { periodsLabel } from '../lib/report'
 import { enforceRateLimit } from './model/rateLimit'
 
@@ -631,7 +631,10 @@ export const listReportPeriods = query({
       const current = byPeriod.get(period) ?? { published: 0, reach: 0 }
       current.published++
       current.reach +=
-        (entry.views ?? 0) + (entry.attendees ?? 0) + (entry.downloads ?? 0)
+        (entry.views ?? 0) +
+        countedReshareViews(entry) +
+        (entry.attendees ?? 0) +
+        (entry.downloads ?? 0)
       byPeriod.set(period, current)
     }
 

@@ -51,6 +51,8 @@ export interface Reshare {
   platform: string;
   link: string;
   date: string;
+  /** Views on the reshare itself. Added to the piece's views in totals. */
+  views?: number;
 }
 
 export type Status = 'Published' | 'Draft' | 'Waiting Approval' | 'Scheduled'

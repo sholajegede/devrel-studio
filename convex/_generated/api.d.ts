@@ -21,6 +21,9 @@ import type * as billing from "../billing.js";
 import type * as blog from "../blog.js";
 import type * as clients from "../clients.js";
 import type * as content from "../content.js";
+import type * as agentSettings from "../agentSettings.js";
+import type * as inbox from "../inbox.js";
+import type * as model_audit from "../model/audit.js";
 import type * as crons from "../crons.js";
 import type * as demo from "../demo.js";
 import type * as email from "../email.js";
@@ -73,7 +76,9 @@ declare const fullApi: ApiFromModules<{
   billing: typeof billing;
   blog: typeof blog;
   clients: typeof clients;
+  agentSettings: typeof agentSettings;
   content: typeof content;
+  inbox: typeof inbox;
   crons: typeof crons;
   demo: typeof demo;
   email: typeof email;
@@ -91,6 +96,7 @@ declare const fullApi: ApiFromModules<{
   migrations: typeof migrations;
   "model/access": typeof model_access;
   "model/admin": typeof model_admin;
+  "model/audit": typeof model_audit;
   "model/auth": typeof model_auth;
   "model/claude": typeof model_claude;
   "model/jobEvents": typeof model_jobEvents;

@@ -75,7 +75,7 @@ export async function GET(
     eventName: entry.eventName,
     eventLocation: entry.eventLocation,
     podcastName: entry.podcastName,
-    reshares: Array.from({ length: entry.reshareCount }),
+    reshares: entry.reshares ?? Array.from({ length: entry.reshareCount }),
   }))
 
   const latest = latestPublished(published)

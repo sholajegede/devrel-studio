@@ -171,6 +171,9 @@ export default defineSchema({
       platform: v.string(),
       link: v.string(),
       date: v.string(),
+      // Views the reshare earned on its own platform. Counted into the piece's
+      // total by lib/metrics, for categories that are measured in views.
+      views: v.optional(v.number()),
     }))),
 
     // ── Package-specific ──────────────────────────────────────────────────────
@@ -1122,4 +1125,76 @@ export default defineSchema({
     .index("by_slug", ["slug"])
     .index("by_status_and_published", ["status", "publishedAt"])
     .index("by_run_day", ["runDay"]),
+
+  // ── Agent layer (Phase 0) ───────────────────────────────────────────────────
+  //
+  // A proposal is one action somebody wants taken, with its evidence and a
+  // ready-to-run payload. Nothing runs until a person approves it, unless the
+  // workspace set that kind of action to Auto.
+  proposals: defineTable({
+    workspaceId: v.id("workspaces"),
+    /** Action class, e.g. 'entry.create'. See lib/agents/autonomy. */
+    kind: v.string(),
+    status: v.union(
+      v.literal("pending"),
+      v.literal("executed"),
+      v.literal("dismissed"),
+      v.literal("stale"),
+      v.literal("undone"),
+      v.literal("failed"),
+    ),
+    /** Who or what wrote it: 'person' now; 'scout', 'analyst' and so on later. */
+    source: v.string(),
+    summary: v.string(),
+    evidence: v.array(v.object({ label: v.string(), url: v.optional(v.string()) })),
+    /** The action, ready to run. Shape depends on `kind`. */
+    payload: v.object({
+      client: v.string(),
+      title: v.string(),
+      link: v.string(),
+      platform: v.string(),
+      publicationDate: v.string(),
+    }),
+    /** Same fingerprint means same thing. Stops a dismissed item coming back. */
+    fingerprint: v.string(),
+    createdBy: v.id("users"),
+    createdAt: v.number(),
+    decidedBy: v.optional(v.id("users")),
+    decidedAt: v.optional(v.number()),
+    dismissReason: v.optional(v.string()),
+    /** What approval made, so undo can remove exactly that. */
+    resultEntryId: v.optional(v.id("contentEntries")),
+    error: v.optional(v.string()),
+  })
+    .index("by_workspace_and_status", ["workspaceId", "status"])
+    .index("by_workspace_and_fingerprint", ["workspaceId", "fingerprint"]),
+
+  // Append-only history of what people and agents did in a workspace. Never
+  // patched or deleted by app code.
+  auditEvents: defineTable({
+    workspaceId: v.id("workspaces"),
+    /** Who acted. Absent when an agent acted alone. */
+    actorId: v.optional(v.id("users")),
+    /** Denormalised: history must outlive the account. */
+    actorLabel: v.string(),
+    action: v.string(),
+    subjectKind: v.optional(v.string()),
+    subjectId: v.optional(v.string()),
+    summary: v.string(),
+    at: v.number(),
+  }).index("by_workspace_and_at", ["workspaceId", "at"]),
+
+  // One row per workspace. Autonomy levels, the kill switch and the budget.
+  agentSettings: defineTable({
+    workspaceId: v.id("workspaces"),
+    preset: v.union(v.literal("careful"), v.literal("balanced"), v.literal("hands-off")),
+    /** Per-class overrides of the preset. Keys are action classes. */
+    overrides: v.record(v.string(), v.union(v.literal("ask"), v.literal("approve"), v.literal("auto"))),
+    /** When true, agents do nothing. People can still use the app. */
+    paused: v.boolean(),
+    /** Monthly cap on model spend, in whole US dollars. 0 means no agent spend. */
+    monthlyBudgetUsd: v.number(),
+    updatedBy: v.id("users"),
+    updatedAt: v.number(),
+  }).index("by_workspace", ["workspaceId"]),
 });

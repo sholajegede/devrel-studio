@@ -32,7 +32,7 @@ export interface ReportContentItem {
   repoUrl?: string
   stack?: string
   stars?: number
-  reshares?: { platform: string; link: string; date: string }[]
+  reshares?: { platform: string; link: string; date: string; views?: number }[]
 }
 
 export interface ReportHighlight {

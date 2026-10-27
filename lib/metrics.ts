@@ -48,6 +48,21 @@ export interface MetricSource {
   reshares?: unknown[]
 }
 
+/**
+ * Views earned by an entry's reshares.
+ *
+ * Reads defensively because `reshares` is typed loosely on `MetricSource`: the
+ * llms.txt route builds placeholder arrays when it only knows a count.
+ */
+export function reshareViews(entry: MetricSource): number {
+  let total = 0
+  for (const reshare of entry.reshares ?? []) {
+    const views = (reshare as { views?: unknown } | null | undefined)?.views
+    if (typeof views === 'number' && Number.isFinite(views) && views > 0) total += views
+  }
+  return total
+}
+
 /** Normalise a possibly-missing / unknown category to a known one. */
 export function categoryOf(entry: { category?: string }): Category {
   const cat = entry.category
@@ -63,7 +78,24 @@ export function getMetricLabel(category?: Category): string {
 /** The headline number for an entry, based on its category. */
 export function getMetricValue(entry: MetricSource): number {
   const { key } = CATEGORY_METRIC[categoryOf(entry)]
-  return entry[key] ?? 0
+  return metricAmount(entry, key)
+}
+
+/**
+ * The amount an entry adds to one metric.
+ *
+ * Reshare views belong to the piece they amplify, so they count toward views.
+ * They are not added to attendees, downloads or stars: a LinkedIn repost of a
+ * conference talk has views, but "attendees" is a number about the room.
+ */
+function metricAmount(entry: MetricSource, key: MetricKey): number {
+  const own = entry[key] ?? 0
+  return key === 'views' ? own + reshareViews(entry) : own
+}
+
+/** Reshare views that count toward this entry's total (zero for non-view categories). */
+export function countedReshareViews(entry: MetricSource): number {
+  return CATEGORY_METRIC[categoryOf(entry)].key === 'views' ? reshareViews(entry) : 0
 }
 
 export interface Totals {
@@ -100,7 +132,7 @@ export function aggregate(entries: readonly MetricSource[]): Totals {
     else totals.inProgress++
 
     const { key } = CATEGORY_METRIC[categoryOf(entry)]
-    totals[key] += entry[key] ?? 0
+    totals[key] += metricAmount(entry, key)
 
     totals.reshares += entry.reshares?.length ?? 0
   }
@@ -124,7 +156,7 @@ export function aggregateByCategory(
     else totals.inProgress++
 
     const { key } = CATEGORY_METRIC[category]
-    totals[key] += entry[key] ?? 0
+    totals[key] += metricAmount(entry, key)
     totals.reshares += entry.reshares?.length ?? 0
   }
 

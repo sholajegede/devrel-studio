@@ -32,6 +32,7 @@ const reshareValidator = v.optional(v.array(v.object({
   platform: v.string(),
   link: v.string(),
   date: v.string(),
+  views: v.optional(v.number()),
 })))
 
 // ── Shared entry fields (used by both create and update) ──────────────────────

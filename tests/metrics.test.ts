@@ -3,8 +3,10 @@ import {
   aggregate,
   aggregateByCategory,
   categoryOf,
+  countedReshareViews,
   formatCompact,
   getMetricValue,
+  reshareViews,
   type MetricSource,
 } from '@/lib/metrics'
 
@@ -144,5 +146,46 @@ describe('formatCompact', () => {
 
   it('handles zero', () => {
     expect(formatCompact(0)).toBe('0')
+  })
+})
+
+describe('reshare views', () => {
+  const written = {
+    category: 'Written',
+    status: 'Published',
+    views: 1000,
+    reshares: [{ views: 250 }, { views: 50 }, {}],
+  }
+
+  it('adds reshare views to the entry metric for view-based categories', () => {
+    expect(getMetricValue(written)).toBe(1300)
+    expect(getMetricValue({ ...written, category: 'Video' })).toBe(1300)
+  })
+
+  it('rolls them into totals and the category breakdown', () => {
+    expect(aggregate([written]).views).toBe(1300)
+    expect(aggregateByCategory([written]).Written.views).toBe(1300)
+  })
+
+  it('still counts reshares as reshares', () => {
+    expect(aggregate([written]).reshares).toBe(3)
+  })
+
+  it('does not add reshare views to categories measured in something else', () => {
+    const talk = { category: 'Event', attendees: 80, reshares: [{ views: 900 }] }
+    expect(getMetricValue(talk)).toBe(80)
+    expect(aggregate([talk]).attendees).toBe(80)
+    expect(aggregate([talk]).views).toBe(0)
+    expect(countedReshareViews(talk)).toBe(0)
+  })
+
+  it('ignores missing, negative and non-numeric reshare views', () => {
+    const entry = { category: 'Written', views: 10, reshares: [{ views: -5 }, { views: Number.NaN }, { views: 'x' }, null, undefined] }
+    expect(getMetricValue(entry)).toBe(10)
+    expect(reshareViews(entry)).toBe(0)
+  })
+
+  it('treats an entry with no category as Written', () => {
+    expect(getMetricValue({ views: 5, reshares: [{ views: 5 }] })).toBe(10)
   })
 })

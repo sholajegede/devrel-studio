@@ -30,7 +30,7 @@ export interface ReportEntry extends PeriodSource {
   repoUrl?: string
   stack?: string
   tags?: string[]
-  reshares?: { platform: string; link: string; date: string }[]
+  reshares?: { platform: string; link: string; date: string; views?: number }[]
 }
 
 /** `2026-07` → `July 2026`. */

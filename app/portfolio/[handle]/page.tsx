@@ -5,7 +5,7 @@ import { notFound } from 'next/navigation'
 import { ConvexHttpClient } from 'convex/browser'
 import { api } from '@/convex/_generated/api'
 import { CATEGORIES, type Category } from '@/lib/types'
-import { aggregate, aggregateByCategory, categoryOf, formatCompact } from '@/lib/metrics'
+import { aggregate, aggregateByCategory, categoryOf, formatCompact, getMetricValue } from '@/lib/metrics'
 import { CATEGORY_META, getCategoryColor } from '@/lib/category-meta'
 import { PlatformIcon } from '@/lib/platform-meta'
 import { siteOrigin } from '@/lib/site'
@@ -150,7 +150,7 @@ function EntryRow({ entry }: { entry: PortfolioData['entries'][number] }) {
           ? entry.stars
           : category === 'Podcast'
             ? entry.downloads
-            : entry.views
+            : getMetricValue(entry)
 
   // The line under the title changes with the category — a talk is defined by
   // where it was given, a package by its name on npm.
