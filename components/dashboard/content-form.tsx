@@ -131,7 +131,7 @@ export function ContentForm({ existingEntry, onSuccess }: ContentFormProps) {
   );
   const [newReshare, setNewReshare] = useState({ platform: "", link: "", date: "", views: "" });
   // Only categories measured in views take reshare views into their total.
-  const reshareViewsCount = CATEGORY_METRIC[category].key === "views";
+  const ownMetricIsViews = CATEGORY_METRIC[category].key === "views";
 
   // ── Handlers ──────────────────────────────────────────────────────────────
 
@@ -178,7 +178,7 @@ export function ContentForm({ existingEntry, onSuccess }: ContentFormProps) {
           platform: newReshare.platform,
           link: newReshare.link,
           date: newReshare.date || new Date().toISOString().split("T")[0],
-          ...(reshareViewsCount && Number.isFinite(views) && views > 0 ? { views } : {}),
+          ...(Number.isFinite(views) && views > 0 ? { views } : {}),
         },
       ]);
       setNewReshare({ platform: "", link: "", date: "", views: "" });
@@ -804,11 +804,24 @@ export function ContentForm({ existingEntry, onSuccess }: ContentFormProps) {
                       </a>
                     </div>
                   </div>
-                  {reshare.views ? (
-                    <span className="text-xs tabular-nums text-muted-foreground">
-                      {reshare.views.toLocaleString()} views
-                    </span>
-                  ) : null}
+                  <Input
+                    type="number"
+                    min={0}
+                    aria-label={`Views on the ${reshare.platform} reshare`}
+                    placeholder="Views"
+                    value={reshare.views ?? ""}
+                    onChange={(e) => {
+                      const next = parseInt(e.target.value, 10);
+                      setReshares((prev) =>
+                        prev.map((r, i) => {
+                          if (i !== index) return r;
+                          const { views: _drop, ...rest } = r;
+                          return Number.isFinite(next) && next > 0 ? { ...rest, views: next } : rest;
+                        }),
+                      );
+                    }}
+                    className="h-8 w-24 bg-input border-border text-right text-xs text-foreground"
+                  />
                   <span className="text-xs text-muted-foreground">{reshare.date}</span>
                   <Button
                     type="button" variant="ghost" size="sm"
@@ -824,7 +837,7 @@ export function ContentForm({ existingEntry, onSuccess }: ContentFormProps) {
 
           <div className="space-y-3 p-4 border border-border rounded-xl">
             <Label className="text-sm font-medium text-foreground">Add Reshare</Label>
-            <div className={`grid gap-3 ${reshareViewsCount ? "md:grid-cols-4" : "md:grid-cols-3"}`}>
+            <div className={"grid gap-3 md:grid-cols-4"}>
               <Select
                 value={newReshare.platform}
                 onValueChange={(v) => setNewReshare((prev) => ({ ...prev, platform: v }))}
@@ -851,22 +864,20 @@ export function ContentForm({ existingEntry, onSuccess }: ContentFormProps) {
                 onChange={(e) => setNewReshare((prev) => ({ ...prev, date: e.target.value }))}
                 className="bg-input border-border text-foreground"
               />
-              {reshareViewsCount && (
-                <Input
-                  type="number"
-                  min={0}
-                  value={newReshare.views}
-                  onChange={(e) => setNewReshare((prev) => ({ ...prev, views: e.target.value }))}
-                  placeholder="Views (optional)"
-                  className="bg-input border-border text-foreground"
-                />
-              )}
+              <Input
+                type="number"
+                min={0}
+                value={newReshare.views}
+                onChange={(e) => setNewReshare((prev) => ({ ...prev, views: e.target.value }))}
+                placeholder="Views (optional)"
+                className="bg-input border-border text-foreground"
+              />
             </div>
-            {reshareViewsCount && (
-              <p className="text-xs text-muted-foreground">
-                Views on a reshare are added to this piece&apos;s total views.
-              </p>
-            )}
+            <p className="text-xs text-muted-foreground">
+              {ownMetricIsViews
+                ? "Views on a reshare are added to this piece's total views."
+                : `Views on a reshare count in your total views. This piece's own ${CATEGORY_METRIC[category].label.toLowerCase()} number stays separate.`}
+            </p>
             <Button
               type="button" variant="secondary" size="sm"
               onClick={addReshare}

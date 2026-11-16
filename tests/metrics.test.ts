@@ -171,12 +171,17 @@ describe('reshare views', () => {
     expect(aggregate([written]).reshares).toBe(3)
   })
 
-  it('does not add reshare views to categories measured in something else', () => {
+  it('keeps the headline of other categories, and counts their reshare views as views', () => {
     const talk = { category: 'Event', attendees: 80, reshares: [{ views: 900 }] }
     expect(getMetricValue(talk)).toBe(80)
     expect(aggregate([talk]).attendees).toBe(80)
-    expect(aggregate([talk]).views).toBe(0)
-    expect(countedReshareViews(talk)).toBe(0)
+    expect(aggregate([talk]).views).toBe(900)
+    expect(aggregateByCategory([talk]).Event.views).toBe(900)
+    expect(countedReshareViews(talk)).toBe(900)
+  })
+
+  it('does not count a view-based entry twice', () => {
+    expect(aggregate([written]).views).toBe(1300)
   })
 
   it('ignores missing, negative and non-numeric reshare views', () => {

@@ -86,16 +86,21 @@ export function getMetricValue(entry: MetricSource): number {
  *
  * Reshare views belong to the piece they amplify, so they count toward views.
  * They are not added to attendees, downloads or stars: a LinkedIn repost of a
- * conference talk has views, but "attendees" is a number about the room.
+ * conference talk has views, but "attendees" is a number about the room. Those
+ * views still reach the "Total views" roll-up; see `aggregate`.
  */
 function metricAmount(entry: MetricSource, key: MetricKey): number {
   const own = entry[key] ?? 0
   return key === 'views' ? own + reshareViews(entry) : own
 }
 
-/** Reshare views that count toward this entry's total (zero for non-view categories). */
+/**
+ * Reshare views that count toward total views. Every category counts them: a
+ * repost of a conference talk still earned views, and "Total views" is where
+ * that reach belongs. The entry's own headline number does not change.
+ */
 export function countedReshareViews(entry: MetricSource): number {
-  return CATEGORY_METRIC[categoryOf(entry)].key === 'views' ? reshareViews(entry) : 0
+  return reshareViews(entry)
 }
 
 export interface Totals {
@@ -133,6 +138,7 @@ export function aggregate(entries: readonly MetricSource[]): Totals {
 
     const { key } = CATEGORY_METRIC[categoryOf(entry)]
     totals[key] += metricAmount(entry, key)
+    if (key !== 'views') totals.views += reshareViews(entry)
 
     totals.reshares += entry.reshares?.length ?? 0
   }
@@ -157,6 +163,7 @@ export function aggregateByCategory(
 
     const { key } = CATEGORY_METRIC[category]
     totals[key] += metricAmount(entry, key)
+    if (key !== 'views') totals.views += reshareViews(entry)
     totals.reshares += entry.reshares?.length ?? 0
   }
 
