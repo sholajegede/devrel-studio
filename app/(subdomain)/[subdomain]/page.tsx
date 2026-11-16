@@ -19,6 +19,7 @@ import {
   getMetricValue,
   latestMonth,
 } from "@/lib/metrics";
+import { statusLabel } from "@/lib/status";
 import { MonthContribution } from "@/components/dashboard/month-contribution";
 import {
   CATEGORY_META,
@@ -260,18 +261,18 @@ function CategoryBadge({ category }: { category?: Category }) {
 
 // ─── Status config ────────────────────────────────────────────────────────────
 
-function getStatusConfig(status: string) {
+function getStatusConfig(status: string, text: string) {
   switch (status) {
     case "Published":
-      return { icon: CheckCircle2, label: "Published", className: "bg-green text-paper border-transparent" };
+      return { icon: CheckCircle2, label: text, className: "bg-green text-paper border-transparent" };
     case "Draft":
-      return { icon: FileEdit, label: "Draft", className: "bg-sand-deep text-ink border-transparent" };
+      return { icon: FileEdit, label: text, className: "bg-sand-deep text-ink border-transparent" };
     case "Waiting Approval":
-      return { icon: Clock, label: "In Review", className: "bg-ochre text-ink border-transparent" };
+      return { icon: Clock, label: text, className: "bg-ochre text-ink border-transparent" };
     case "Scheduled":
-      return { icon: Calendar, label: "Scheduled", className: "bg-blue text-paper border-transparent" };
+      return { icon: Calendar, label: text, className: "bg-blue text-paper border-transparent" };
     default:
-      return { icon: Clock, label: status, className: "bg-sand-deep text-ink border-transparent" };
+      return { icon: Clock, label: text, className: "bg-sand-deep text-ink border-transparent" };
   }
 }
 
@@ -890,7 +891,7 @@ export default function ClientDashboard({
                             return new Date(b.publicationDate).getTime() - new Date(a.publicationDate).getTime();
                           })
                           .map((entry, entryIndex) => {
-                            const statusConfig = getStatusConfig(entry.status);
+                            const statusConfig = getStatusConfig(entry.status, statusLabel(entry.status, categoryOf(entry), entry.publicationDate));
                             const StatusIcon = statusConfig.icon;
                             const uniqueKey = entry._id || `${month}-${entryIndex}`;
                             const isExpanded = expandedRows.has(uniqueKey);

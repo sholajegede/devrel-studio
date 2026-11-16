@@ -18,6 +18,8 @@ import {
   formatMonthLabel,
 } from '@/lib/types'
 import { categoryOf } from '@/lib/metrics'
+import { statusLabel } from '@/lib/status'
+import type { Category } from '@/lib/types'
 import { CATEGORY_META, getCategoryColor } from '@/lib/category-meta'
 import { PlatformIcon } from '@/lib/platform-meta'
 import { EntryMetric } from '@/components/dashboard/entry-metric'
@@ -383,13 +385,15 @@ export default function ContentListPage() {
     URL.revokeObjectURL(url)
   }
 
-  const getStatusBadge = (status: string) => {
+  const getStatusBadge = (entry: { status: string; category?: Category; publicationDate?: string }) => {
+    const status = entry.status
+    const text = statusLabel(status, entry.category ?? 'Written', entry.publicationDate)
     switch (status) {
-      case 'Published':        return <Badge variant="secondary" className="gap-1 font-normal"><CheckCircle2 className="h-3 w-3" />Published</Badge>
-      case 'Draft':            return <Badge variant="outline"   className="gap-1 font-normal"><Pencil className="h-3 w-3" />Draft</Badge>
-      case 'Waiting Approval': return <Badge variant="outline"   className="gap-1 font-normal text-amber-600 border-amber-300"><AlertCircle className="h-3 w-3" />Waiting</Badge>
-      case 'Scheduled':        return <Badge variant="outline"   className="gap-1 font-normal"><Clock className="h-3 w-3" />Scheduled</Badge>
-      default:                 return <Badge variant="secondary">{status}</Badge>
+      case 'Published':        return <Badge variant="secondary" className="gap-1 font-normal"><CheckCircle2 className="h-3 w-3" />{text}</Badge>
+      case 'Draft':            return <Badge variant="outline"   className="gap-1 font-normal"><Pencil className="h-3 w-3" />{text}</Badge>
+      case 'Waiting Approval': return <Badge variant="outline"   className="gap-1 font-normal text-amber-600 border-amber-300"><AlertCircle className="h-3 w-3" />{text}</Badge>
+      case 'Scheduled':        return <Badge variant="outline"   className="gap-1 font-normal"><Clock className="h-3 w-3" />{text}</Badge>
+      default:                 return <Badge variant="secondary">{text}</Badge>
     }
   }
 
@@ -724,7 +728,7 @@ export default function ContentListPage() {
                         )}
                       </div>
                       <div className="flex items-center gap-2 shrink-0">
-                        {getStatusBadge(entry.status)}
+                        {getStatusBadge(entry)}
                       </div>
                     </div>
 

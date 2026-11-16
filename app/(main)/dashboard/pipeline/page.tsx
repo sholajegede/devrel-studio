@@ -8,6 +8,7 @@ import { api } from '@/convex/_generated/api'
 import { Id } from '@/convex/_generated/dataModel'
 import { ContentEntry, Status } from '@/lib/types'
 import { categoryOf } from '@/lib/metrics'
+import { statusLabel } from '@/lib/status'
 import { CATEGORY_META, getCategoryColor } from '@/lib/category-meta'
 import { PlatformIcon } from '@/lib/platform-meta'
 import { Badge } from '@/components/ui/badge'
@@ -168,7 +169,7 @@ function EntryCard({
                 className="gap-2 text-sm"
               >
                 <lane.icon className="h-3.5 w-3.5" />
-                {lane.label}
+                {statusLabel(lane.status, categoryOf(entry))}
               </DropdownMenuItem>
             ))}
             <DropdownMenuSeparator />

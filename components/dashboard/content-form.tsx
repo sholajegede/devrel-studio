@@ -8,13 +8,13 @@ import {
   CATEGORIES,
   PLATFORMS_BY_CATEGORY,
   SUBTYPES_BY_CATEGORY,
-  STATUSES,
   DEFAULT_TAGS,
   RESHARE_PLATFORMS,
   Reshare,
 } from "@/lib/types";
 import { CATEGORY_META } from "@/lib/category-meta";
 import { CATEGORY_METRIC } from "@/lib/metrics";
+import { statusOptions } from "@/lib/status";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -589,8 +589,8 @@ export function ContentForm({ existingEntry, onSuccess }: ContentFormProps) {
                 <SelectValue placeholder="Select status" />
               </SelectTrigger>
               <SelectContent>
-                {STATUSES.map((s) => (
-                  <SelectItem key={s} value={s}>{s}</SelectItem>
+                {statusOptions(category).map((o) => (
+                  <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
                 ))}
               </SelectContent>
             </Select>

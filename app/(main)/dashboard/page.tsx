@@ -10,6 +10,7 @@ import {
   type Category,
 } from '@/lib/types'
 import { aggregate, categoryOf } from '@/lib/metrics'
+import { statusLabel } from '@/lib/status'
 import { CATEGORY_META, getCategoryColor } from '@/lib/category-meta'
 import { EntryMetric } from '@/components/dashboard/entry-metric'
 import { AccessBanner } from '@/components/dashboard/access-banner'
@@ -226,13 +227,15 @@ export default function DashboardPage() {
     byMonth[key].push(entry)
   }
 
-  const getStatusBadge = (status: string) => {
+  const getStatusBadge = (entry: { status: string; category?: Category; publicationDate?: string }) => {
+    const status = entry.status
+    const text = statusLabel(status, entry.category ?? 'Written', entry.publicationDate)
     switch (status) {
-      case 'Published':       return <Badge variant="secondary" className="gap-1 font-normal text-xs shrink-0"><CheckCircle2 className="h-3 w-3" />Published</Badge>
-      case 'Draft':           return <Badge variant="outline"   className="gap-1 font-normal text-xs shrink-0"><Pencil className="h-3 w-3" />Draft</Badge>
-      case 'Waiting Approval':return <Badge variant="outline"   className="gap-1 font-normal text-xs text-amber-600 border-amber-300 shrink-0"><AlertCircle className="h-3 w-3" />Waiting</Badge>
-      case 'Scheduled':       return <Badge variant="outline"   className="gap-1 font-normal text-xs shrink-0"><Clock className="h-3 w-3" />Scheduled</Badge>
-      default:                return <Badge variant="secondary" className="text-xs shrink-0">{status}</Badge>
+      case 'Published':       return <Badge variant="secondary" className="gap-1 font-normal text-xs shrink-0"><CheckCircle2 className="h-3 w-3" />{text}</Badge>
+      case 'Draft':           return <Badge variant="outline"   className="gap-1 font-normal text-xs shrink-0"><Pencil className="h-3 w-3" />{text}</Badge>
+      case 'Waiting Approval':return <Badge variant="outline"   className="gap-1 font-normal text-xs text-amber-600 border-amber-300 shrink-0"><AlertCircle className="h-3 w-3" />{text}</Badge>
+      case 'Scheduled':       return <Badge variant="outline"   className="gap-1 font-normal text-xs shrink-0"><Clock className="h-3 w-3" />{text}</Badge>
+      default:                return <Badge variant="secondary" className="text-xs shrink-0">{text}</Badge>
     }
   }
 
@@ -536,7 +539,7 @@ export default function DashboardPage() {
                                 )}
                               </div>
                               <div className="flex items-center gap-2 shrink-0">
-                                {getStatusBadge(entry.status)}
+                                {getStatusBadge(entry)}
                                 <Link href={`/dashboard/edit/${entry._id}`}>
                                   <Button variant="ghost" size="sm" className="h-7 gap-1 text-xs"
                                     data-tour={idx === 0 ? 'admin-edit-button' : undefined}>
