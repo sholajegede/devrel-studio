@@ -17,6 +17,12 @@ import { CATEGORY_METRIC } from "@/lib/metrics";
 import { statusOptions } from "@/lib/status";
 import { TrackingLinkField } from "@/components/dashboard/tracking-link-field";
 import { trackingLinkFor } from "@/lib/tracking";
+
+/** LinkedIn and X count impressions, not views. The stored number is the same. */
+const isSocialPlatform = (platform: string) =>
+  ["linkedin", "twitter/x", "x", "twitter"].includes(platform.trim().toLowerCase());
+
+const today = () => new Date().toISOString().slice(0, 10);
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -113,6 +119,8 @@ export function ContentForm({ existingEntry, onSuccess }: ContentFormProps) {
     // Event
     eventName: existingEntry?.eventName || "",
     eventLocation: existingEntry?.eventLocation || "",
+    eventRole: existingEntry?.eventRole || "Speaker",
+    eventAttendance: existingEntry?.eventAttendance?.toString() || "",
     attendees: existingEntry?.attendees?.toString() || "0",
     // Podcast
     podcastName: existingEntry?.podcastName || "",
@@ -132,6 +140,7 @@ export function ContentForm({ existingEntry, onSuccess }: ContentFormProps) {
     existingEntry?.reshares || []
   );
   const [newReshare, setNewReshare] = useState({ platform: "", link: "", date: "", views: "" });
+  const [copiedReshare, setCopiedReshare] = useState<number | null>(null);
   // Only categories measured in views take reshare views into their total.
   const ownMetricIsViews = CATEGORY_METRIC[category].key === "views";
 
@@ -149,6 +158,8 @@ export function ContentForm({ existingEntry, onSuccess }: ContentFormProps) {
       weeklyDownloads: "0",
       eventName: "",
       eventLocation: "",
+      eventRole: "Speaker",
+      eventAttendance: "",
       attendees: "0",
       podcastName: "",
       repoUrl: "",
@@ -187,7 +198,7 @@ export function ContentForm({ existingEntry, onSuccess }: ContentFormProps) {
           platform: newReshare.platform,
           link: newReshare.link,
           date: newReshare.date || new Date().toISOString().split("T")[0],
-          ...(Number.isFinite(views) && views > 0 ? { views } : {}),
+          ...(Number.isFinite(views) && views > 0 ? { views, viewsAsOf: today() } : {}),
         },
       ]);
       setNewReshare({ platform: "", link: "", date: "", views: "" });
@@ -251,6 +262,8 @@ export function ContentForm({ existingEntry, onSuccess }: ContentFormProps) {
         ? {
             eventName: formData.eventName || undefined,
             eventLocation: formData.eventLocation || undefined,
+            eventRole: formData.eventRole === "Host" ? ("Host" as const) : ("Speaker" as const),
+            eventAttendance: parseInt(formData.eventAttendance) || undefined,
             attendees: parseInt(formData.attendees) || 0,
           }
         : category === "Podcast"
@@ -682,23 +695,64 @@ export function ContentForm({ existingEntry, onSuccess }: ContentFormProps) {
             </div>
           )}
 
-          {/* Event: Attendees */}
+          {/* Event: the DevRel's own session, then the whole event for context */}
           {category === "Event" && (
-            <div className="space-y-2">
-              <Label htmlFor="attendees" className="flex items-center gap-2 text-foreground">
-                <Users className="h-4 w-4" />
-                Attendees
-              </Label>
-              <Input
-                id="attendees"
-                type="number"
-                min="0"
-                value={formData.attendees}
-                onChange={(e) => handleInputChange("attendees", e.target.value)}
-                placeholder="0"
-                className="bg-input border-border text-foreground"
-              />
-            </div>
+            <>
+              <div className="space-y-2">
+                <Label className="text-foreground">Your role</Label>
+                <Select
+                  value={formData.eventRole}
+                  onValueChange={(v) => handleInputChange("eventRole", v)}
+                >
+                  <SelectTrigger className="bg-input border-border text-foreground">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Speaker">Speaker</SelectItem>
+                    <SelectItem value="Host">Host</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="attendees" className="flex items-center gap-2 text-foreground">
+                  <Users className="h-4 w-4" />
+                  {formData.eventRole === "Host" ? "People at your event" : "Session headcount"}
+                </Label>
+                <Input
+                  id="attendees"
+                  type="number"
+                  min="0"
+                  value={formData.attendees}
+                  onChange={(e) => handleInputChange("attendees", e.target.value)}
+                  placeholder="0"
+                  className="bg-input border-border text-foreground"
+                />
+                <p className="text-xs text-muted-foreground">
+                  {formData.eventRole === "Host"
+                    ? "Everyone who came to the event you ran."
+                    : "People in your session, not the whole event."}
+                </p>
+              </div>
+              {formData.eventRole === "Speaker" && (
+                <div className="space-y-2">
+                  <Label htmlFor="eventAttendance" className="text-foreground">
+                    Whole event attendance (optional)
+                  </Label>
+                  <Input
+                    id="eventAttendance"
+                    type="number"
+                    min="0"
+                    value={formData.eventAttendance}
+                    onChange={(e) => handleInputChange("eventAttendance", e.target.value)}
+                    placeholder="e.g. 4000"
+                    className="bg-input border-border text-foreground"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    For context only. It never counts toward your totals.
+                  </p>
+                </div>
+              )}
+            </>
           )}
 
           {/* Podcast: Listeners */}
@@ -810,22 +864,43 @@ export function ContentForm({ existingEntry, onSuccess }: ContentFormProps) {
                   <Input
                     type="number"
                     min={0}
-                    aria-label={`Views on the ${reshare.platform} reshare`}
-                    placeholder="Views"
+                    aria-label={`${isSocialPlatform(reshare.platform) ? "Impressions" : "Views"} on the ${reshare.platform} reshare`}
+                    placeholder={isSocialPlatform(reshare.platform) ? "Impressions" : "Views"}
                     value={reshare.views ?? ""}
                     onChange={(e) => {
                       const next = parseInt(e.target.value, 10);
                       setReshares((prev) =>
                         prev.map((r, i) => {
                           if (i !== index) return r;
-                          const { views: _drop, ...rest } = r;
-                          return Number.isFinite(next) && next > 0 ? { ...rest, views: next } : rest;
+                          const { views: _drop, viewsAsOf: _old, ...rest } = r;
+                          return Number.isFinite(next) && next > 0
+                            ? { ...rest, views: next, viewsAsOf: today() }
+                            : rest;
                         }),
                       );
                     }}
                     className="h-8 w-24 bg-input border-border text-right text-xs text-foreground"
                   />
-                  <span className="text-xs text-muted-foreground">{reshare.date}</span>
+                  <span className="w-24 text-xs leading-tight text-muted-foreground">
+                    {reshare.date}
+                    {reshare.views && reshare.viewsAsOf ? (
+                      <span className="block">as of {reshare.viewsAsOf}</span>
+                    ) : null}
+                  </span>
+                  <Button
+                    type="button" variant="ghost" size="sm"
+                    className="h-8 px-2 text-xs"
+                    title={`Copy a message to send ${trackingBrand} so they can repost it`}
+                    onClick={async () => {
+                      await navigator.clipboard.writeText(
+                        `New post for ${trackingBrand}: ${reshare.link}${formData.title ? ` (about "${formData.title}")` : ""}`,
+                      );
+                      setCopiedReshare(index);
+                      setTimeout(() => setCopiedReshare(null), 1500);
+                    }}
+                  >
+                    {copiedReshare === index ? "Copied" : "Copy for client"}
+                  </Button>
                   <Button
                     type="button" variant="ghost" size="sm"
                     onClick={() => removeReshare(index)}
@@ -872,7 +947,7 @@ export function ContentForm({ existingEntry, onSuccess }: ContentFormProps) {
                 min={0}
                 value={newReshare.views}
                 onChange={(e) => setNewReshare((prev) => ({ ...prev, views: e.target.value }))}
-                placeholder="Views (optional)"
+                placeholder={isSocialPlatform(newReshare.platform) ? "Impressions (optional)" : "Views (optional)"}
                 className="bg-input border-border text-foreground"
               />
             </div>

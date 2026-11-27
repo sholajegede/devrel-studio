@@ -162,6 +162,7 @@ async function reportForMonths(slug: string, months: string[]): Promise<ReportDa
           link: reshare.link,
           date: reshare.date,
           impressions: reshare.views ?? null,
+          asOf: reshare.viewsAsOf ?? null,
           about: entry.title,
         })),
     )

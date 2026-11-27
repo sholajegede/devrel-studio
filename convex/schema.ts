@@ -174,6 +174,9 @@ export default defineSchema({
       // Views the reshare earned on its own platform. Counted into the piece's
       // total by lib/metrics, for categories that are measured in views.
       views: v.optional(v.number()),
+      // The day the number was last updated. Impressions keep growing for days
+      // after a post, so a report shows how old each figure is.
+      viewsAsOf: v.optional(v.string()),
     }))),
 
     // ── Package-specific ──────────────────────────────────────────────────────
@@ -184,7 +187,13 @@ export default defineSchema({
     // ── Event-specific ────────────────────────────────────────────────────────
     eventName: v.optional(v.string()),      // conference / meetup name
     eventLocation: v.optional(v.string()), // city / venue
+    // The people in the DevRel's own session. For a talk at a conference this
+    // is the room, not the conference.
     attendees: v.optional(v.number()),
+    // Whether the DevRel spoke at the event or ran it.
+    eventRole: v.optional(v.union(v.literal("Speaker"), v.literal("Host"))),
+    // The size of the whole event, for context only. Never a headline number.
+    eventAttendance: v.optional(v.number()),
 
     // ── Podcast-specific ──────────────────────────────────────────────────────
     podcastName: v.optional(v.string()),    // show name, separate from episode title

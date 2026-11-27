@@ -36,6 +36,7 @@ const reshareValidator = v.optional(v.array(v.object({
   link: v.string(),
   date: v.string(),
   views: v.optional(v.number()),
+  viewsAsOf: v.optional(v.string()),
 })))
 
 // ── Shared entry fields (used by both create and update) ──────────────────────
@@ -62,6 +63,8 @@ const entryFields = {
   eventName: v.optional(v.string()),
   eventLocation: v.optional(v.string()),
   attendees: v.optional(v.number()),
+  eventRole: v.optional(v.union(v.literal('Speaker'), v.literal('Host'))),
+  eventAttendance: v.optional(v.number()),
   // Podcast
   podcastName: v.optional(v.string()),
   // Demo

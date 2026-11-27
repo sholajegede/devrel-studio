@@ -165,6 +165,7 @@ export const getReport = query({
       packageName: entry.packageName,
       eventName: entry.eventName,
       eventLocation: entry.eventLocation,
+      eventRole: entry.eventRole,
       podcastName: entry.podcastName,
       repoUrl: entry.repoUrl,
       stack: entry.stack,

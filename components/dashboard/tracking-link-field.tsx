@@ -1,7 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import { Check, Copy, Link2, Wand2 } from 'lucide-react'
+import { Check, Copy, Download, Link2, Wand2 } from 'lucide-react'
+import QRCode from 'qrcode'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -45,6 +46,20 @@ function CopyRow({ label, value }: { label: string; value: string }) {
       </Button>
     </div>
   )
+}
+
+/** Save a QR code for the link, as PNG for slides or SVG for print. */
+async function downloadQr(link: string, name: string, format: 'png' | 'svg') {
+  const options = { margin: 2, errorCorrectionLevel: 'M' as const, color: { dark: '#111111', light: '#ffffff' } }
+  const href =
+    format === 'png'
+      ? await QRCode.toDataURL(link, { ...options, width: 1024 })
+      : URL.createObjectURL(new Blob([await QRCode.toString(link, { ...options, type: 'svg' })], { type: 'image/svg+xml' }))
+  const anchor = document.createElement('a')
+  anchor.href = href
+  anchor.download = `${name}-qr.${format}`
+  anchor.click()
+  if (format === 'svg') URL.revokeObjectURL(href)
 }
 
 const STATUS_TEXT: Record<string, string> = {
@@ -117,7 +132,27 @@ export function TrackingLinkField({
         {!configured ? (
           setupHint
         ) : link ? (
-          <CopyRow label="Slides" value={link} />
+          <>
+            <CopyRow label="Slides" value={link} />
+            <div className="flex flex-wrap items-center gap-2">
+              {(['png', 'svg'] as const).map((format) => (
+                <Button
+                  key={format}
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="gap-1.5 bg-transparent"
+                  onClick={() => downloadQr(link, new URL(link).searchParams.get('utm_content') ?? 'event', format)}
+                >
+                  <Download className="h-3.5 w-3.5" />
+                  QR code ({format.toUpperCase()})
+                </Button>
+              ))}
+              <span className="text-xs text-muted-foreground">
+                Put the link or the QR code on your last slide, so sign-ups from the talk are counted.
+              </span>
+            </div>
+          </>
         ) : (
           <p className="text-xs text-muted-foreground">Add the event name to make the link.</p>
         )}

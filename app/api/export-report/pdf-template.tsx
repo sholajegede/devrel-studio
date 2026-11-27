@@ -37,12 +37,13 @@ export interface ReportContentItem {
   attendees?: number
   eventName?: string
   eventLocation?: string
+  eventRole?: 'Speaker' | 'Host'
   podcastName?: string
   packageName?: string
   repoUrl?: string
   stack?: string
   stars?: number
-  reshares?: { platform: string; link: string; date: string; views?: number }[]
+  reshares?: { platform: string; link: string; date: string; views?: number; viewsAsOf?: string }[]
 }
 
 export interface ReportHighlight {
@@ -81,6 +82,8 @@ export interface ReportSocialPost {
   link: string
   date: string
   impressions?: number | null
+  /** The day the impressions number was taken, `YYYY-MM-DD`. */
+  asOf?: string | null
   /** The piece the post was about. */
   about: string
 }
@@ -369,7 +372,10 @@ function WorkTable({ s, items }: { s: Styles; items: ReportContentItem[] }) {
         const reshare = reshareViews(item)
         const context =
           category === 'Event'
-            ? [item.eventName, item.eventLocation].filter(Boolean).join(', ')
+            ? [item.eventRole === 'Host' ? 'Hosted' : 'Talk', item.eventName, item.eventLocation]
+                .filter(Boolean)
+                .join(', ')
+                .replace(/^(Hosted|Talk), /, '$1 at ')
             : category === 'Podcast'
               ? item.podcastName || item.platform
               : category === 'Package'
@@ -430,9 +436,12 @@ function SocialTable({ s, posts }: { s: Styles; posts: ReportSocialPost[] }) {
             <Text style={s.tdSub}>About: {post.about}</Text>
           </View>
           <Text style={[s.td, { width: SOCIAL_COLS.date }]}>{shortDate(post.date)}</Text>
-          <Text style={[s.td, s.num, { width: SOCIAL_COLS.impressions }]}>
-            {post.impressions ? n(post.impressions) : 'Not recorded'}
-          </Text>
+          <View style={{ width: SOCIAL_COLS.impressions }}>
+            <Text style={[s.td, s.num]}>{post.impressions ? n(post.impressions) : 'Not recorded'}</Text>
+            {post.impressions && post.asOf ? (
+              <Text style={[s.tdSub, s.num]}>as of {shortDate(post.asOf)}</Text>
+            ) : null}
+          </View>
         </View>
       ))}
     </View>

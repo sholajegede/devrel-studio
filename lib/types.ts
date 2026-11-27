@@ -53,6 +53,8 @@ export interface Reshare {
   date: string;
   /** Views on the reshare itself. Added to the piece's views in totals. */
   views?: number;
+  /** `YYYY-MM-DD`: the day the views number was last updated. */
+  viewsAsOf?: string;
 }
 
 export type Status = 'Published' | 'Draft' | 'Waiting Approval' | 'Scheduled'
@@ -80,6 +82,8 @@ export interface ContentEntry {
   eventName?: string;
   eventLocation?: string;
   attendees?: number;
+  eventRole?: 'Speaker' | 'Host';
+  eventAttendance?: number;
   // Podcast
   podcastName?: string;
   // Demo
