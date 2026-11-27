@@ -2,7 +2,7 @@
 
 **The system of record for developer relations and AgentRel: work logged once, reported by an agent, shown to the people paying for it.**
 
-A developer advocate logs each piece of work they ship — a post, a talk, a package, a demo. DevRel Studio turns that log into three things at once: a private workspace for the advocate, a live branded dashboard for every client, and a public portfolio of everything they have ever published. A **report agent** drafts the monthly brief from the logged numbers, and every portfolio and public client dashboard serves an `llms.txt`, so agents can read the results too. No exports, no slide decks, no month-end scramble.
+A developer advocate logs each piece of work they ship — a post, a talk, a package, a demo. DevRel Studio turns that log into three things at once: a private workspace for the advocate, a live branded dashboard for every client, and a public portfolio of everything they have ever published. A **report agent** drafts the monthly brief from the logged numbers, **Scout** finds newly published work and proposes it for the log, and every portfolio and public client dashboard serves an `llms.txt`, so agents can read the results too. Every piece of work carries a tracking link in the client's agreed format, checked against the live page, and the monthly report PDF arrives with the platform screenshots that prove the numbers.
 
 It also runs **a DevRel job board** at [devrel.studio/jobs](https://devrel.studio/jobs): every developer-relations role pulled from company careers pages three times a day, with a tracker, alerts, CV matching and, for paying users, tailored applications built from the work already logged here.
 
@@ -21,6 +21,10 @@ Live at **[devrel.studio](https://devrel.studio)**. See a real client dashboard 
     - [Job board — `devrel.studio/jobs`](#job-board--devrelstudiojobs)
     - [Hire a DevRel — `devrel.studio/hire`](#hire-a-devrel--devrelstudiohire)
   - [The report agent](#the-report-agent)
+  - [The agent layer](#the-agent-layer)
+  - [Tracking links](#tracking-links)
+  - [Platform stats and evidence](#platform-stats-and-evidence)
+  - [The client report PDF](#the-client-report-pdf)
   - [Design system](#design-system)
   - [How the hosts work](#how-the-hosts-work)
   - [Tech stack](#tech-stack)
@@ -75,12 +79,14 @@ These are genuinely separate. An admin has no implicit access to anyone's client
 
 | Page | What it does |
 |---|---|
+| **Inbox** | Proposals from agents waiting for a decision: approve, edit then approve, dismiss, or approve all. Nothing an agent finds reaches the log without passing through here, unless its action is set to run on its own |
 | **Overview** | Live counters (published, in progress, views, downloads, attendees), a six-month published-vs-in-progress chart, month-by-month content with category and status filters, and a getting-started checklist |
-| **All Content** | Every entry across every client: keyword search, category / status / platform / client filters, saved views, bulk actions, CSV import and export, keyboard shortcuts |
+| **All Content** | Every entry across every client: keyword search, category / status / platform / client filters, saved views, bulk actions, CSV import and export, keyboard shortcuts. A tracking-link check counts the links that need a fix, with a fix list (copy or CSV), **Rewrite all**, and **Check live pages**, which reads each published page for the link. See [Tracking links](#tracking-links) |
 | **Pipeline** | The forward-looking view — what is in flight, due, or slipped, as lanes over the existing `status` values |
 | **Analytics** | Who actually opened the work: visitors, sessions, bounce rate and dwell time across client dashboards and the public portfolio, with referrers, campaigns (`utm_source` and `ref`), entry pages, countries, cities, devices, recent sessions, and a live "reading now" count |
-| **Clients** | Full CRUD for engagements — retainer rate with full rate history, contract type, pause/resume, access codes, logo upload, brand colour, and a custom domain |
-| **Reports** | Monthly client reports: written notes and targets, a **report agent** that drafts them (see [The report agent](#the-report-agent)), PDF export, per-client recipients, and a schedule (day, hour, timezone) that sends them automatically |
+| **Clients** | Full CRUD for engagements — retainer rate with full rate history, contract type, pause/resume, access codes, logo upload, brand colour, a custom domain, and the client's tracking base and campaign |
+| **Reports** | Monthly client reports: written notes, targets and the client's own results (visits and sign-ups), a **report agent** that drafts them (see [The report agent](#the-report-agent)), the report PDF (see [The client report PDF](#the-client-report-pdf)), per-client recipients, and a schedule (day, hour, timezone) that sends them automatically. **Platform stats** (`/dashboard/reports/stats`) holds each month's Dev.to, Medium and Hashnode numbers with the screenshot they came from |
+| **Agents** | How much each agent may do on its own, per kind of action: ask, approve or auto. Presets (Careful, Balanced, Hands-off), a pause switch that stops every agent, and the sources Scout reads |
 | **Members** | Invite teammates into a workspace by email with a role (Admin, Editor, Viewer); seat limits enforced by plan |
 | **Jobs** | Discover with CV match, a kanban tracker, alerts, CV and preferences, Market (pay and hiring) and Jobs Pro — see [Job board](#job-board--devrelstudiojobs) |
 | **Billing** | Plan, access window, term pricing in US dollars, upgrade requests, and the Jobs Pro pass |
@@ -94,7 +100,7 @@ These are genuinely separate. An admin has no implicit access to anyone's client
 - Expandable reshare history per entry
 - Month and category filters
 - Monthly reports with the advocate's written summary, plus a feedback box that emails back
-- PDF download carrying the client's own logo and brand colour
+- A PDF download that is the same document the monthly email attaches: cover, results against the previous month, the work, social posts, platform numbers and an appendix of platform screenshots, in the client's own logo and brand colour
 - White-labelled: the client's logo, their colour, optionally their own domain
 
 ### Public portfolio — `devrel.studio/@handle`
@@ -150,6 +156,51 @@ Rules the agent works under: it may state only what the data shows, it may not c
 **It never saves.** The draft fills the composer's boxes, and nothing is written until the person presses Save. It refuses a period with nothing published. If a check still objects after the repair passes, the composer warns the user to read it closely.
 
 Needs `ANTHROPIC_API_KEY` on Convex. The model is `BLOG_AI_MODEL` (default `claude-sonnet-5-5`). The pure parts (fact sheet, prompt, parsing, checks) are covered by `tests/report-agent.test.ts`.
+
+## The agent layer
+
+Agents propose; the advocate decides. Each agent action belongs to an **action class** (`lib/agents/autonomy.ts`): read from connected sources, add an entry, update numbers, draft a report write-up, send a report, and so on. Each class has a level: **ask** (the agent proposes and a person does the action), **approve** (the agent prepares the whole action and one click in the Inbox carries it out) or **auto** (the agent acts and records it, and a person can review or undo it later). The limits are enforced on the server, not in a prompt. Auto is refused for any class whose agent has not shipped yet.
+
+- **Proposals** (`convex/inbox.ts`) carry a status (`pending`, `executed`, `dismissed`, `stale`, `undone`, `failed`) and are de-duplicated by canonical URL, so the same article found twice is one proposal.
+- **Scout** (`convex/scout.ts`) reads connected Dev.to and Hashnode accounts once a day, or on demand, and proposes each new post as an entry for the right client. It never writes an entry itself. A failed read marks the source with the error; it never records a zero.
+- **Pause** (`agentSettings.paused`) stops every agent at once. Scout checks it before each read.
+- **Audit** (`auditEvents`) is append-only and records agent actions, approvals, saved platform stats and bulk link rewrites.
+
+## Tracking links
+
+A client measures the work by the visits and sign-ups that reach their own site, so every link has to carry the same tags in the same form. One function writes every link and one function checks it (`lib/tracking.ts`):
+
+```
+https://<base>/?utm_source=<platform>&utm_medium=content&utm_campaign=<campaign>&utm_content=<slug>
+```
+
+- **Base and campaign** belong to the client, not the code, and are set on the Clients page.
+- **Source** is the platform (`devto`, `hashnode`, `medium`, `linkedin`, `x`, `youtube`, a publication's name), or one source per category for `event`, `podcast`, `npm`, `github` and `demo`. freeCodeCamp entries carry no link, because the platform forbids promotional links.
+- **Slug** comes from the article URL (Dev.to's random suffix is dropped), the package or repo name, or the event name and year.
+- **In the entry form**, **Generate** fills the link, and a line under the field says whether it matches. Packages and demos show ready links for the GitHub README, the npm page and the demo site, plus a README line to paste. Events show a slides link and a QR code (PNG or SVG). An entry saved, imported or approved from the Inbox with no link gets one from the client's settings.
+- **On All Content**, each link is checked as correct, old format (`campaignid`, `creative`, no `utm_content`), wrong source, or missing. A different `utm_content` is accepted, so a renamed piece keeps its live link. The fix list gives the live URL, old link and new link for each entry; **Rewrite all** (`content:rewriteTrackingLinks`) saves the new links here, and the live articles are then edited by hand.
+- **Live-link check** (`convex/linkVerify.ts`, rules in `lib/link-verify.ts`) reads each published article, the README from GitHub (raw) and from the npm registry, and the demo site, and records *found*, *old link*, *not found* or *could not check*. A page that blocks the check is never reported as missing the link. Up to 50 entries per run, newest first.
+
+## Platform stats and evidence
+
+Dev.to, Medium and Hashnode numbers can only be seen by the advocate, so each month's report carries the platform's own totals and the screenshot or export they came from (`convex/platformStats.ts`, `lib/platform-stats.ts`).
+
+- One row per client, platform and month, for the platforms that client actually publishes on. Views, reads or reactions, a note, and a PNG, JPG, CSV or PDF of up to 8 MB.
+- Uploading again replaces the file and keeps the old one in `history`, because a client may already have seen it.
+- A month with no file reads *Not provided*, never zero.
+- On the 1st at 08:00 UTC an email lists any client and platform still missing last month's evidence. Nothing is sent when nothing is missing.
+
+## The client report PDF
+
+`app/api/export-report/` renders one document for both the dashboard's download button and the monthly email, built on the server from the client's slug and month so the two cannot drift.
+
+1. **Cover.** The client's logo, the month, *Prepared for* the client, *Prepared by* the workspace owner, and the issue date.
+2. **Results.** Three numbers at most, each against the month before: pieces shipped, views including reshares, and whichever of downloads, attendees or stars the month produced most of. Then the client's own results (visits and sign-ups they reported), the written summary, what drove the numbers, and the top three pieces.
+3. **The work.** A table with fixed columns, the status name for each kind of work (a talk is *Delivered*, a package *Released*), each piece's own views with reshare views listed under it.
+4. **Social posts and tracking.** Each LinkedIn and X post with its link, impressions and the date the number was taken, and one line on how many pieces carry a correct tracking link and how many were confirmed on the live page.
+5. **Platform numbers**, then an **appendix** with each screenshot full width and captioned. Exports are linked.
+
+Set in Inter (`app/api/export-report/fonts/`, SIL Open Font License, traced into the function by `outputFileTracingIncludes` in `next.config.mjs`), in black, grays and the client's brand colour, with *client · month* and *page x of y* on every page. devrel.studio appears once, as a footer credit. Evidence images are downloaded by the route before rendering, so one slow file costs one image, not the document.
 
 ## Design system
 
@@ -211,7 +262,8 @@ devrel_studio/
 │   ├── (main)/
 │   │   ├── dashboard/           # Advocate workspace (Kinde-protected)
 │   │   │   ├── page.tsx           overview · add/ · edit/[id]/ · content/
-│   │   │   ├── pipeline/          analytics/ · clients/ · reports/
+│   │   │   ├── pipeline/          analytics/ · clients/ · reports/ · reports/stats/
+│   │   │   ├── inbox/             agents/
 │   │   │   ├── members/           billing/ · settings/
 │   │   │   └── jobs/              discover · tracker/ · alerts/ · market/ · profile/ · pro/ · kit/[slug]/
 │   │   ├── admin/               # Platform console, served on admin.devrel.studio
@@ -240,12 +292,16 @@ devrel_studio/
 │   └── ui/                      # shadcn/ui library
 │
 ├── convex/
-│   ├── schema.ts                # 16 tables
+│   ├── schema.ts                # 37 tables
 │   ├── model/                   # Shared server logic: auth, workspaces, plans,
 │   │                            # access windows, rate limiting, admin guards
 │   ├── content.ts clients.ts    # Core domain
 │   ├── reports.ts analytics.ts  # Reporting and view data
 │   ├── reportAgent.ts           # Report agent: authorize, context, draft
+│   ├── inbox.ts scout.ts        # Agent proposals and approvals; Scout's Dev.to and Hashnode reads
+│   ├── connections.ts agentSettings.ts  # Scout's sources; autonomy levels and the pause switch
+│   ├── linkVerify.ts            # Live-link check: reads published pages for the tracking link
+│   ├── platformStats.ts         # Monthly platform numbers, evidence files, the 1st-of-month reminder
 │   ├── talent.ts                # /hire directory: listings, contact, CV pre-fill
 │   ├── members.ts users.ts      # Workspaces, invites, profiles
 │   ├── admin*.ts                # Console queries, split by section
@@ -264,6 +320,10 @@ devrel_studio/
 │   ├── jobs/                    # Pure job-board logic: taxonomy, locations, salary, CV, match,
 │   │                            # tracker stats, SEO, sources, Pro gate, style checks
 │   ├── metrics.ts               # Which number belongs to which category
+│   ├── status.ts                # Status names per category (Delivered, Released, Live …)
+│   ├── tracking.ts link-verify.ts  # Tracking-link builder and checker; live-page matching
+│   ├── platform-stats.ts        # Months, evidence types, missing-evidence rules
+│   ├── agents/                  # Autonomy levels, proposal rules, Scout's source parsers
 │   ├── report-agent.ts          # Report agent: fact sheet, prompt, parsing, checks
 │   ├── currency.ts              # US-dollar price list and formatting
 │   ├── hire/                    # Talent profile rules and server reads
@@ -309,7 +369,7 @@ devrel_studio/
 | Route | Access | Description |
 |---|---|---|
 | `/` | Gate | Live performance dashboard |
-| `/reports` `/report` | Gate | Monthly reports, feedback, PDF download |
+| `/reports` `/report` | Gate | Monthly reports, feedback, and the report PDF |
 
 ### Console — `admin.devrel.studio`
 
@@ -338,16 +398,18 @@ devrel_studio/
 
 ## Data model
 
-Sixteen core tables in `convex/schema.ts`, plus nine for the job board (below).
+Thirty-seven tables in `convex/schema.ts`. The core ones:
 
 | Table | Purpose |
 |---|---|
 | `users` | Profile, portfolio fields, plan and access window, admin role |
 | `contentEntries` | The core record — one row per piece of work |
-| `clients` | Engagements: retainer and rate history, branding, slug, custom domain |
+| `clients` | Engagements: retainer and rate history, branding, slug, custom domain, tracking base and campaign |
 | `workspaces` · `memberships` · `workspaceInvites` | Team accounts and roles |
 | `managerSessions` · `managerAccessAttempts` | Client dashboard sessions and rate limiting |
-| `reportSchedules` · `reportNotes` · `reportFeedback` | Report delivery, written summaries, client replies |
+| `reportSchedules` · `reportNotes` · `reportFeedback` | Report delivery, written summaries and the client's own results, client replies |
+| `platformStats` | Each client's monthly Dev.to, Medium and Hashnode numbers, with the evidence file and replaced files |
+| `proposals` · `connections` · `agentSettings` · `auditEvents` | Agent proposals, Scout's sources, autonomy levels and pause, and the append-only agent audit log |
 | `pageViews` | Analytics, pruned after a year |
 | `accessRequests` | Requests to view a gated dashboard |
 | `adminAuditLog` · `impersonationSessions` | Console accountability |
@@ -368,7 +430,9 @@ Sixteen core tables in `convex/schema.ts`, plus nine for the job board (below).
 | `status` | `Published \| Draft \| Waiting Approval \| Scheduled` | |
 | `views` · `downloads` · `weeklyDownloads` · `attendees` · `stars` | `number?` | Only the metric its category owns is ever counted |
 | `packageName` · `eventName` · `eventLocation` · `podcastName` · `repoUrl` · `stack` | `string?` | Category-specific |
-| `reshares` | `{platform, link, date}[]?` | Cross-promotion log |
+| `reshares` | `{platform, link, date, views?, viewsAsOf?}[]?` | Cross-promotion log. `views` are impressions on LinkedIn and X, counted into total views; `viewsAsOf` is the day the number was taken |
+| `eventRole` · `eventAttendance` | `Speaker \| Host`, `number?` | `attendees` is the advocate's own session; `eventAttendance` is the whole event, for context only and never counted |
+| `linkVerification` | `{status, checkedAt, results[]}?` | The live-link check: one result per place the link should appear |
 | `tags` · `contentType` · `updatedAt` | | |
 
 `lib/metrics.ts` is the single source of truth for which number belongs to which category — an Event's stray `views` is never added to a views total.
@@ -381,10 +445,12 @@ Six, each with its own platforms, sub-types and headline metric:
 |---|---|---|---|
 | **Written** | Views | Dev.to, freeCodeCamp, Medium, Hashnode, LinkedIn, Newsletter, Blog, GitHub, Docs, X | Tutorial, Guide, Reference Doc, Blog Post, Case Study, Opinion |
 | **Video** | Views | YouTube, Loom, Vimeo, TikTok | Tutorial, Demo, Conference Talk, Interview |
-| **Event** | Attendees | Free text — conference names vary too much for a dropdown | Conference Talk, Workshop, Meetup, Panel, Keynote |
+| **Event** | Session headcount | Free text — conference names vary too much for a dropdown | Conference Talk, Workshop, Meetup, Panel, Keynote |
 | **Podcast** | Listeners | Spotify, Apple Podcasts, YouTube Podcasts | Guest Appearance, Host, Solo Episode |
 | **Package** | Downloads + weekly | npm, GitHub | Convex Component, Library, CLI Tool |
 | **Demo** | Stars | Vercel, Netlify, Cloudflare Pages, GitHub | Full App, Starter Kit, Sample |
+
+Each category also has its own status names over the four stored stages (`lib/status.ts`): an Event moves Planning, Submitted, Accepted, Delivered; a Package In development, In review, Pre-release, Released; a Demo Building, In review, Ready to ship, Live; a Podcast Planned, Recorded, Scheduled, Released.
 
 **Package** and **Demo** metrics refresh themselves — a daily cron reads npm's download API and GitHub's star count, with a "Refresh now" button for the impatient. `GITHUB_TOKEN` is optional and only raises the rate limit.
 
@@ -420,7 +486,9 @@ Crons in `convex/crons.ts`:
 | Send trial notices | Daily 08:00 UTC | Idempotent; a retry mails nobody twice |
 | Prune old page views | Daily 03:30 UTC | Views are kept one year |
 | Send weekly digests | Mondays 08:00 UTC | Skipped entirely for a quiet week |
-| Prune orphaned uploads | Daily 04:15 UTC | Logos uploaded but never saved |
+| Prune orphaned uploads | Daily 04:15 UTC | Uploads nothing points at: logos never saved. Platform evidence, replaced evidence and CVs are kept |
+| Scout | Daily 05:00 UTC | Read connected Dev.to and Hashnode accounts and propose new posts |
+| Ask for platform evidence | 1st of the month, 08:00 UTC | Email any client and platform still missing last month's screenshot |
 | Sync job sources | 06:00, 14:00, 22:00 UTC | Fetch every feed, add new roles, expire missing ones |
 | Refresh job stats | 25 minutes after each sync | Recompute market stats, refresh `/jobs`, send instant alerts to Pro users |
 | Prune expired jobs | Daily 03:45 UTC | Delete roles that closed more than 30 days ago |
@@ -572,7 +640,7 @@ npm run typecheck  # tsc --noEmit
 npm run lint
 ```
 
-Concentrated where a mistake is expensive rather than spread evenly: access control and admin authorisation, impersonation, view-tracking correctness and write contention, metric roll-ups, retainer rate history, report scheduling across timezones, the report agent's fact sheet and checks, US-dollar pricing, PDF rendering, CSV import, naming rules, and the job board: title classification, locations and eligibility, salary parsing, CV analysis and matching, tracker stats, Jobs Pro gating, style checks, and every source parser.
+Concentrated where a mistake is expensive rather than spread evenly: access control and admin authorisation, impersonation, view-tracking correctness and write contention, metric roll-ups, retainer rate history, report scheduling across timezones, the report agent's fact sheet and checks, tracking-link building and checking, live-link matching, platform-stats rules, status names, US-dollar pricing, PDF rendering, CSV import, naming rules, and the job board: title classification, locations and eligibility, salary parsing, CV analysis and matching, tracker stats, Jobs Pro gating, style checks, and every source parser.
 
 ## Deployment
 
