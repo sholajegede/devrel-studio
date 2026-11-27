@@ -15,6 +15,8 @@ import {
 import { CATEGORY_META } from "@/lib/category-meta";
 import { CATEGORY_METRIC } from "@/lib/metrics";
 import { statusOptions } from "@/lib/status";
+import { TrackingLinkField } from "@/components/dashboard/tracking-link-field";
+import { trackingLinkFor } from "@/lib/tracking";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -156,6 +158,13 @@ export function ContentForm({ existingEntry, onSuccess }: ContentFormProps) {
     setErrors({});
   };
 
+  // The client's link settings. Entries hold the client's slug.
+  const selectedClient = (clients ?? []).find((c) => c.slug === formData.client) ?? null;
+  const trackingProgram = selectedClient
+    ? { trackingBase: selectedClient.trackingBase, utmCampaign: selectedClient.utmCampaign }
+    : null;
+  const trackingBrand = selectedClient?.company || selectedClient?.name || "the product";
+
   const handleInputChange = (field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
     if (errors[field]) setErrors((prev) => ({ ...prev, [field]: "" }));
@@ -213,7 +222,13 @@ export function ContentForm({ existingEntry, onSuccess }: ContentFormProps) {
       category,
       title: formData.title,
       link: formData.link,
-      trackingLink: formData.trackingLink,
+      // An empty link is filled from the client's settings, so a new entry is
+      // tagged from the start. Packages and demos keep theirs on GitHub and npm.
+      trackingLink:
+        formData.trackingLink.trim() ||
+        (category === "Package" || category === "Demo"
+          ? ""
+          : trackingLinkFor({ ...formData, category }, trackingProgram) ?? ""),
       platform: formData.platform,
       publicationDate: formData.publicationDate,
       status: formData.status as ContentEntry["status"],
@@ -637,26 +652,14 @@ export function ContentForm({ existingEntry, onSuccess }: ContentFormProps) {
             </div>
           )}
 
-          {/* Tracking link — Written + Video only */}
-          {(category === "Written" || category === "Video") && (
-            <div className="space-y-2 md:col-span-2">
-              <Label htmlFor="trackingLink" className="flex items-center gap-2 text-foreground">
-                <Link2 className="h-4 w-4 text-primary" />
-                Tracking Link (UTM)
-              </Label>
-              <Input
-                id="trackingLink"
-                type="url"
-                value={formData.trackingLink}
-                onChange={(e) => handleInputChange("trackingLink", e.target.value)}
-                placeholder="https://kinde.com?utm_source=..."
-                className="bg-input border-border text-foreground font-mono text-sm"
-              />
-              <p className="text-xs text-muted-foreground">
-                Include UTM parameters for tracking attribution
-              </p>
-            </div>
-          )}
+          {/* Tracking link — one builder for every category */}
+          <TrackingLinkField
+            entry={{ ...formData, category }}
+            program={trackingProgram}
+            brand={trackingBrand}
+            value={formData.trackingLink}
+            onChange={(v) => handleInputChange("trackingLink", v)}
+          />
 
           {/* ── Metric fields per category ── */}
 

@@ -88,6 +88,8 @@ interface ClientFormData {
   logoDarkStorageId: string
   brandColor: string
   customDomain: string
+  trackingBase: string
+  utmCampaign: string
   currency: Currency
   startDate: string
   endDate: string
@@ -103,6 +105,7 @@ const EMPTY_FORM: ClientFormData = {
   startDate: '', endDate: '',
   status: 'Active', contractType: '', notes: '', slug: '',
   logoStorageId: '', logoDarkStorageId: '', brandColor: '', customDomain: '',
+  trackingBase: '', utmCampaign: '',
 }
 
 const STATUS_STYLES: Record<ClientStatus, string> = {
@@ -437,6 +440,34 @@ function ClientFormDialog({
             </p>
           </div>
 
+          <div className="space-y-1.5">
+            <Label>
+              Tracking links <span className="text-muted-foreground text-xs">(optional)</span>
+            </Label>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <Input
+                id="trackingBase"
+                aria-label="Tracking base URL"
+                value={form.trackingBase}
+                onChange={(e) => set('trackingBase', e.target.value)}
+                placeholder="https://kinde.com/"
+                className="font-mono text-sm"
+              />
+              <Input
+                id="utmCampaign"
+                aria-label="Campaign"
+                value={form.utmCampaign}
+                onChange={(e) => set('utmCampaign', e.target.value)}
+                placeholder="campaign, e.g. shola"
+                className="font-mono text-sm"
+              />
+            </div>
+            <p className="text-xs text-muted-foreground">
+              The site your links point to and the campaign the client gave you. Every
+              tracking link for this client is made from these two values.
+            </p>
+          </div>
+
           {/* Notes */}
           <div className="space-y-1.5">
             <Label htmlFor="notes">Notes <span className="text-muted-foreground text-xs">(optional)</span></Label>
@@ -550,6 +581,8 @@ export default function ClientsPage() {
           logoDarkStorageId: (data.logoDarkStorageId || undefined) as Id<'_storage'> | undefined,
           brandColor: data.brandColor || undefined,
           customDomain: data.customDomain || undefined,
+          trackingBase: data.trackingBase || undefined,
+          utmCampaign: data.utmCampaign || undefined,
         })
         toast.success('Client updated')
       } else {
@@ -570,6 +603,8 @@ export default function ClientsPage() {
           logoDarkStorageId: (data.logoDarkStorageId || undefined) as Id<'_storage'> | undefined,
           brandColor: data.brandColor || undefined,
           customDomain: data.customDomain || undefined,
+          trackingBase: data.trackingBase || undefined,
+          utmCampaign: data.utmCampaign || undefined,
         })
         toast.success('Client added')
       }
@@ -611,6 +646,8 @@ export default function ClientsPage() {
         logoDarkStorageId: editTarget.logoDarkStorageId ?? '',
         brandColor: editTarget.brandColor ?? '',
         customDomain: editTarget.customDomain ?? '',
+        trackingBase: editTarget.trackingBase ?? '',
+        utmCampaign: editTarget.utmCampaign ?? '',
       }
     : EMPTY_FORM
 

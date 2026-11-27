@@ -10,6 +10,7 @@ import {
 } from './model/workspaces'
 import { planOf } from './model/plans'
 import { isReservedSubdomain, normalizeSlug } from '../lib/naming'
+import { normalizeBase } from '../lib/tracking'
 
 const statusValidator = v.union(
   v.literal('Active'),
@@ -40,6 +41,8 @@ const clientFields = {
   logoDarkStorageId: v.optional(v.id('_storage')),
   brandColor: v.optional(v.string()),
   customDomain: v.optional(v.string()),
+  trackingBase: v.optional(v.string()),
+  utmCampaign: v.optional(v.string()),
 }
 
 /**
@@ -49,6 +52,15 @@ const clientFields = {
  * is interpolated into a style attribute on a page served to a client's staff —
  * anything that is not six hex digits has no business reaching it.
  */
+function cleanTracking(fields: { trackingBase?: string; utmCampaign?: string }) {
+  const campaign = fields.utmCampaign?.trim()
+  return {
+    trackingBase: normalizeBase(fields.trackingBase) ?? undefined,
+    // A campaign goes into a URL, so it is lowercase with no spaces.
+    utmCampaign: campaign ? campaign.toLowerCase().replace(/\s+/g, '-') : undefined,
+  }
+}
+
 function cleanBrandColor(value: string | undefined): string | undefined {
   if (!value) return undefined
   const hex = value.trim().toLowerCase()
@@ -327,6 +339,7 @@ export const createClient = mutation({
       ...args,
       brandColor: cleanBrandColor(args.brandColor),
       customDomain: cleanCustomDomain(args.customDomain),
+      ...cleanTracking(args),
       userId: user._id,
       workspaceId,
       slug: slug || undefined,
@@ -345,6 +358,7 @@ export const updateClient = mutation({
       ...rest,
       brandColor: cleanBrandColor(rest.brandColor),
       customDomain: cleanCustomDomain(rest.customDomain),
+      ...cleanTracking(rest),
     }
     const { doc: before } = await requireInWorkspace(ctx, clientId, 'editor')
 

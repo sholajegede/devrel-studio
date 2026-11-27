@@ -11,6 +11,8 @@ import {
 } from './model/workspaces'
 import { planOf } from './model/plans'
 import { ensurePersonalWorkspace } from './model/workspaces'
+import { recordAudit } from './model/audit'
+import { checkTrackingLink, needsFix } from '../lib/tracking'
 
 const categoryValidator = v.optional(v.union(
   v.literal("Written"),
@@ -903,5 +905,58 @@ export const seedFebruaryDemo = internalMutation({
     }
 
     return { inserted, total: entries.length }
+  },
+})
+
+/**
+ * Replace tracking links that do not match the agreed format.
+ *
+ * Each link is rebuilt on the server from the entry and its client's settings,
+ * so the browser only says which entries to fix, never what to write. Links that
+ * already pass, entries on platforms that forbid promotional links, and entries
+ * whose client has no settings are left alone and counted as skipped.
+ *
+ * This changes the link stored here only. The live article still carries the
+ * old link until it is edited on its platform, which is why the fix list exists.
+ */
+export const rewriteTrackingLinks = mutation({
+  args: { ids: v.array(v.id('contentEntries')) },
+  handler: async (ctx, args) => {
+    if (args.ids.length > 200) {
+      throw new ConvexError('Rewrite up to 200 entries at a time.')
+    }
+    const { workspaceId, user } = await requireWorkspace(ctx, 'editor')
+
+    const clients = await ctx.db
+      .query('clients')
+      .withIndex('by_workspace', (q) => q.eq('workspaceId', workspaceId))
+      .collect()
+    const bySlug = new Map(clients.filter((c) => c.slug).map((c) => [c.slug!, c]))
+
+    let rewritten = 0
+    let skipped = 0
+    const now = new Date().toISOString()
+
+    for (const id of args.ids) {
+      const { doc } = await requireInWorkspace(ctx, id, 'editor')
+      const client = bySlug.get(doc.client) ?? null
+      const check = checkTrackingLink(doc, client)
+      if (!needsFix(check.status) || !check.expected) {
+        skipped++
+        continue
+      }
+      await ctx.db.patch(id, { trackingLink: check.expected, updatedAt: now })
+      rewritten++
+    }
+
+    if (rewritten > 0) {
+      await recordAudit(ctx, { workspaceId, user }, {
+        action: 'content.tracking_links_rewritten',
+        summary: `Rewrote ${rewritten} tracking link${rewritten === 1 ? '' : 's'} to the agreed format`,
+        subjectKind: 'contentEntries',
+      })
+    }
+
+    return { rewritten, skipped }
   },
 })

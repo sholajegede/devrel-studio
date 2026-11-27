@@ -19,6 +19,7 @@ import {
 } from '@/lib/types'
 import { categoryOf } from '@/lib/metrics'
 import { statusLabel } from '@/lib/status'
+import { checkTrackingLink, needsFix, type LinkCheck } from '@/lib/tracking'
 import type { Category } from '@/lib/types'
 import { CATEGORY_META, getCategoryColor } from '@/lib/category-meta'
 import { PlatformIcon } from '@/lib/platform-meta'
@@ -98,6 +99,8 @@ export default function ContentListPage() {
   // are "is this one in" and "how many", both of which a list answers slowly.
   const [selected,       setSelected]       = useState<Set<string>>(new Set())
   const [bulkBusy,       setBulkBusy]       = useState(false)
+  const [linksOnly,      setLinksOnly]      = useState(false)
+  const [confirmRewrite, setConfirmRewrite] = useState(false)
 
   /**
    * Named filter combinations, kept in this browser.
@@ -125,6 +128,19 @@ export default function ContentListPage() {
   const bulkDelete = useMutation(api.content.bulkDelete)
   const duplicateEntry = useMutation(api.content.duplicateContent)
   const restoreEntry = useMutation(api.content.restoreContent)
+  const rewriteLinks = useMutation(api.content.rewriteTrackingLinks)
+  const clients = useQuery(api.clients.getClients)
+
+  // Each entry's link compared with its client's agreed format. Entries hold
+  // the client's slug, so the settings are looked up by slug.
+  const linkChecks = useMemo(() => {
+    const bySlug = new Map((clients ?? []).filter((c) => c.slug).map((c) => [c.slug!, c]))
+    const checks = new Map<string, LinkCheck>()
+    for (const entry of (content as ContentEntry[] | undefined) ?? []) {
+      checks.set(entry._id as string, checkTrackingLink(entry, bySlug.get(entry.client ?? '') ?? null))
+    }
+    return checks
+  }, [content, clients])
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -167,10 +183,13 @@ export default function ContentListPage() {
     if (platformFilter !== 'all') {
       filtered = filtered.filter((c) => c.platform === platformFilter)
     }
+    if (linksOnly) {
+      filtered = filtered.filter((c) => needsFix(linkChecks.get(c._id as string)?.status ?? 'correct'))
+    }
 
     filtered.sort((a, b) => new Date(b.publicationDate).getTime() - new Date(a.publicationDate).getTime())
     return filtered
-  }, [content, searchQuery, categoryFilter, statusFilter, monthFilter, platformFilter])
+  }, [content, searchQuery, categoryFilter, statusFilter, monthFilter, platformFilter, linksOnly, linkChecks])
 
   // Selection is scoped to what is on screen. Changing a filter and then
   // pressing "delete 40" must not reach rows the reader can no longer see.
@@ -362,6 +381,58 @@ export default function ContentListPage() {
     }
   }
 
+  // ── Link check ──────────────────────────────────────────────────────────────
+  //
+  // Counted over the entries in the current client scope, not the filters, so
+  // the number does not change when someone narrows the list to read it.
+  const scopedEntries = ((content as ContentEntry[] | undefined) ?? []).filter((e) => matches(e.client))
+  const checkedEntries = scopedEntries.filter((e) => {
+    const status = linkChecks.get(e._id as string)?.status
+    return status !== undefined && status !== 'not_applicable' && status !== 'unconfigured'
+  })
+  const toFix = checkedEntries.filter((e) => needsFix(linkChecks.get(e._id as string)!.status))
+
+  const fixRows = () =>
+    toFix.map((e) => {
+      const check = linkChecks.get(e._id as string)!
+      return { title: e.title, url: e.link, platform: e.platform, oldLink: e.trackingLink, newLink: check.expected ?? '', reason: check.reason }
+    })
+
+  const copyFixList = async () => {
+    const text = fixRows()
+      .map((r) => `${r.title} (${r.platform})\n${r.url || 'no live URL'}\nReplace: ${r.oldLink || '(none)'}\nWith: ${r.newLink}`)
+      .join('\n\n')
+    await navigator.clipboard.writeText(text)
+    toast.success(`Copied ${toFix.length} link${toFix.length === 1 ? '' : 's'} to fix`)
+  }
+
+  const downloadFixList = () => {
+    const headers = ['Title', 'Platform', 'Live URL', 'Old link', 'New link', 'Why']
+    const rows = fixRows().map((r) => [r.title, r.platform, r.url, r.oldLink, r.newLink, r.reason])
+    const csv = [headers, ...rows]
+      .map((row) => row.map((cell) => `"${String(cell ?? '').replace(/"/g, '""')}"`).join(','))
+      .join('\n')
+    const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }))
+    const a = document.createElement('a')
+    a.href = url
+    a.download = 'tracking-links-to-fix.csv'
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
+  const rewriteAll = async () => {
+    setConfirmRewrite(false)
+    try {
+      const ids = toFix.map((e) => e._id).slice(0, 200)
+      const { rewritten } = await rewriteLinks({ ids })
+      toast.success(
+        `Saved ${rewritten} new link${rewritten === 1 ? '' : 's'}. Update the live articles from the fix list.`,
+      )
+    } catch (error) {
+      toast.error(error instanceof ConvexError ? String(error.data) : 'Could not rewrite the links')
+    }
+  }
+
   const exportToCSV = () => {
     const headers = [
       'Category', 'Title', 'Link', 'Tracking Link', 'Platform',
@@ -467,6 +538,48 @@ export default function ContentListPage() {
           )}
         </div>
       </div>
+
+      {/* Link check */}
+      {checkedEntries.length > 0 && (
+        <Card className="mb-4">
+          <CardContent className="flex flex-col gap-3 py-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-2 text-sm">
+              <Link2 className="h-4 w-4 text-muted-foreground" />
+              {toFix.length === 0 ? (
+                <span className="text-muted-foreground">
+                  All {checkedEntries.length} tracking links match the agreed format.
+                </span>
+              ) : (
+                <span>
+                  <span className="font-medium">{toFix.length}</span>
+                  <span className="text-muted-foreground"> of {checkedEntries.length} tracking links need a fix.</span>
+                </span>
+              )}
+            </div>
+            {toFix.length > 0 && (
+              <div className="flex flex-wrap items-center gap-2">
+                <Button variant="outline" size="sm" className="bg-transparent" onClick={() => setLinksOnly((on) => !on)}>
+                  {linksOnly ? 'Show all' : 'Show them'}
+                </Button>
+                <Button variant="outline" size="sm" className="bg-transparent" onClick={copyFixList}>
+                  Copy fix list
+                </Button>
+                <Button variant="outline" size="sm" className="bg-transparent" onClick={downloadFixList}>
+                  Download CSV
+                </Button>
+                {can.edit && (confirmRewrite ? (
+                  <>
+                    <Button size="sm" onClick={rewriteAll}>Save {Math.min(toFix.length, 200)} new links</Button>
+                    <Button variant="ghost" size="sm" onClick={() => setConfirmRewrite(false)}>Cancel</Button>
+                  </>
+                ) : (
+                  <Button size="sm" onClick={() => setConfirmRewrite(true)}>Rewrite all</Button>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Filters */}
       <Card className="mb-6" data-tour="content-filters">
@@ -749,7 +862,17 @@ export default function ContentListPage() {
                       <EntryMetric entry={entry} />
                     </div>
 
-                    {entry.trackingLink && (cat === 'Written' || cat === 'Video') && (
+                    {(() => {
+                      const check = linkChecks.get(entry._id as string)
+                      if (!check || !needsFix(check.status)) return null
+                      return (
+                        <p className="text-xs text-amber-600">
+                          {check.status === 'missing' ? 'No tracking link.' : check.reason}
+                        </p>
+                      )
+                    })()}
+
+                    {entry.trackingLink && cat !== 'Package' && cat !== 'Demo' && (
                       <div className="flex items-center gap-2 rounded border border-border bg-muted/50 px-3 py-2">
                         <Link2 className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
                         <code className="flex-1 truncate text-xs text-muted-foreground">{entry.trackingLink}</code>

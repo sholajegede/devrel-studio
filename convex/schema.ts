@@ -287,6 +287,17 @@ export default defineSchema({
     customDomain: v.optional(v.string()),
 
     /**
+     * Where this client's tracking links point, e.g. `https://kinde.com/`.
+     *
+     * Stored on the client rather than in code, because each client measures
+     * visits on its own site. Read by lib/tracking, which writes every link.
+     */
+    trackingBase: v.optional(v.string()),
+
+    /** The `utm_campaign` this client gave the DevRel, e.g. `shola`. */
+    utmCampaign: v.optional(v.string()),
+
+    /**
      * The rate in effect right now.
      *
      * Kept as a plain number so the clients list, sorting and the "total monthly
