@@ -251,3 +251,42 @@ export const sendReminders = internalAction({
     return { sent, failed }
   },
 })
+
+/**
+ * The platform numbers for a client's report, by slug.
+ *
+ * Read the same way the report itself is: by the client's slug, which is how the
+ * client dashboard and the PDF route reach it. Returns the numbers and a link to
+ * each file, nothing about who uploaded it.
+ */
+export const forReport = query({
+  args: { slug: v.string(), month: v.string() },
+  handler: async (ctx, args) => {
+    if (!isMonthKey(args.month)) return []
+    const slug = args.slug.trim().toLowerCase()
+    const client = await ctx.db
+      .query('clients')
+      .withIndex('by_slug', (q) => q.eq('slug', slug))
+      .first()
+    if (!client?.workspaceId) return []
+    const rows = await ctx.db
+      .query('platformStats')
+      .withIndex('by_workspace_client_month', (q) =>
+        q.eq('workspaceId', client.workspaceId!).eq('client', slug).eq('month', args.month),
+      )
+      .collect()
+    return await Promise.all(
+      rows
+        .sort((a, b) => a.platform.localeCompare(b.platform))
+        .map(async (row) => ({
+          platform: row.platform,
+          month: row.month,
+          views: row.views ?? null,
+          reads: row.reads ?? null,
+          evidenceName: row.evidenceName ?? null,
+          evidenceType: row.evidenceType ?? null,
+          evidenceUrl: row.evidenceStorageId ? await ctx.storage.getUrl(row.evidenceStorageId) : null,
+        })),
+    )
+  },
+})

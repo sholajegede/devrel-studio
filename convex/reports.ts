@@ -11,6 +11,7 @@ import { dueNow } from '../lib/schedule'
 import { countedReshareViews, previousMonth } from '../lib/metrics'
 import { periodsLabel } from '../lib/report'
 import { enforceRateLimit } from './model/rateLimit'
+import { checkTrackingLink } from '../lib/tracking'
 
 // ── Monthly report notifications ──────────────────────────────────────────────
 //
@@ -196,7 +197,26 @@ export const getReport = query({
       )
       .collect()
 
+    // Who prepared it: the workspace owner, named on the report's cover.
+    const workspace = client.workspaceId ? await ctx.db.get(client.workspaceId) : null
+    const author = await ctx.db.get(workspace?.ownerId ?? client.userId)
+    const preparedBy = [author?.firstName, author?.lastName].filter(Boolean).join(' ') || null
+
+    // How many of the period's pieces carry a link in the agreed format. Counts
+    // only: the links themselves stay internal.
+    let tagged = 0
+    let checked = 0
+    for (const entry of entries) {
+      if (entry.status !== 'Published' || !entry.publicationDate.startsWith(args.period)) continue
+      const check = checkTrackingLink(entry, client)
+      if (check.status === 'not_applicable' || check.status === 'unconfigured') continue
+      checked++
+      if (check.status === 'correct') tagged++
+    }
+
     return {
+      preparedBy,
+      linkCoverage: checked > 0 ? { tagged, checked } : null,
       client: {
         id: client._id,
         name: client.company || client.name,

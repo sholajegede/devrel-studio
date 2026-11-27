@@ -3,8 +3,36 @@ import { renderToBuffer } from '@react-pdf/renderer'
 import { ConvexHttpClient } from 'convex/browser'
 import { api } from '@/convex/_generated/api'
 import { buildReport, periodLabel, periodsLabel } from '@/lib/report'
-import { createReportDocument } from './pdf-template'
-import type { ReportData } from './pdf-template'
+import { previousMonth as previousMonthKey } from '@/lib/metrics'
+import path from 'node:path'
+import { createReportDocument, isSocialPlatform } from './pdf-template'
+import type { ReportData, ReportPlatformStat, ReportSocialPost } from './pdf-template'
+
+/** Inter, shipped beside this route and traced into the function bundle. */
+const FONT_DIR = path.join(process.cwd(), 'app/api/export-report/fonts')
+
+/** Evidence images over this size are linked instead of embedded. */
+const MAX_EMBED_BYTES = 8 * 1024 * 1024
+
+/**
+ * Download one evidence image so the renderer embeds bytes, not a URL.
+ *
+ * A URL handed to the renderer is fetched during rendering, and one slow or
+ * failed fetch fails the whole document. Fetched here, a failure costs only
+ * that image, which then appears as a link.
+ */
+async function embeddable(url: string, contentType: string | null) {
+  const format = contentType === 'image/png' ? 'png' : contentType === 'image/jpeg' ? 'jpg' : null
+  if (!format) return null
+  try {
+    const response = await fetch(url, { signal: AbortSignal.timeout(10_000) })
+    if (!response.ok) return null
+    const bytes = Buffer.from(await response.arrayBuffer())
+    return bytes.length <= MAX_EMBED_BYTES ? { data: bytes, format: format as 'png' | 'jpg' } : null
+  } catch {
+    return null
+  }
+}
 
 export const runtime = 'nodejs'
 
@@ -123,9 +151,70 @@ async function reportForMonths(slug: string, months: string[]): Promise<ReportDa
       : null
   }
 
+  // LinkedIn and X posts made during the period, about any piece.
+  const inPeriod = (date: string) => keys.some((key) => date.startsWith(key))
+  const social: ReportSocialPost[] = first.entries
+    .flatMap((entry) =>
+      (entry.reshares ?? [])
+        .filter((reshare) => isSocialPlatform(reshare.platform) && inPeriod(reshare.date))
+        .map((reshare) => ({
+          platform: reshare.platform,
+          link: reshare.link,
+          date: reshare.date,
+          impressions: reshare.views ?? null,
+          about: entry.title,
+        })),
+    )
+    .sort((a, b) => a.date.localeCompare(b.date))
+
+  // Each platform's own numbers, summed across the months covered, with the
+  // screenshots downloaded for embedding.
+  const statRows = (
+    await Promise.all(keys.map((month) => convex.query(api.platformStats.forReport, { slug, month })))
+  ).flat()
+  const platformStats: ReportPlatformStat[] = await Promise.all(
+    statRows.map(async (row) => ({
+      platform: multi ? `${row.platform}, ${periodLabel(row.month)}` : row.platform,
+      month: row.month,
+      views: row.views,
+      reads: row.reads,
+      evidenceName: row.evidenceName,
+      evidenceUrl: row.evidenceUrl,
+      evidenceImage: row.evidenceUrl ? await embeddable(row.evidenceUrl, row.evidenceType) : null,
+    })),
+  )
+
+  const coverage = rows.reduce(
+    (total, row) => ({
+      tagged: total.tagged + (row!.linkCoverage?.tagged ?? 0),
+      checked: total.checked + (row!.linkCoverage?.checked ?? 0),
+    }),
+    { tagged: 0, checked: 0 },
+  )
+
+  // The month before, for the change under each headline number. Only for a
+  // single month: "vs the month before" has no meaning for a quarter.
+  const previous = multi ? null : last.report.previous
+
   return {
     client: first.client.name,
     period: multi ? periodsLabel(keys) : last.report.label,
+    preparedBy: first.preparedBy ?? null,
+    previousLabel: multi ? null : periodLabel(previousMonthKey(last.period)),
+    previousStats: previous
+      ? {
+          published: previous.published,
+          inProgress: 0,
+          totalViews: previous.views,
+          totalDownloads: previous.downloads,
+          totalAttendees: previous.attendees,
+          totalStars: previous.stars,
+          totalReshares: previous.reshares,
+        }
+      : null,
+    social,
+    platformStats,
+    linkCoverage: coverage.checked > 0 ? coverage : null,
     branding: {
       logoUrl: first.client.logoUrl ?? null,
       brandColor: first.client.brandColor ?? null,
@@ -184,14 +273,14 @@ export async function POST(req: NextRequest) {
       data.branding = await brandingForSlug(body.client)
     }
 
-    const buffer = await renderToBuffer(createReportDocument(data))
+    const buffer = await renderToBuffer(createReportDocument(data, { fontDir: FONT_DIR }))
 
     return new NextResponse(new Uint8Array(buffer), {
       headers: {
         'Content-Type': 'application/pdf',
-        'Content-Disposition': `attachment; filename="${data.client}-report-${new Date()
-          .toISOString()
-          .split('T')[0]}.pdf"`,
+        'Content-Disposition': `attachment; filename="${data.client.replace(/[^\w.-]+/g, '-')}-${data.period
+          .replace(/[^\w.-]+/g, '-')
+          .toLowerCase()}-report.pdf"`,
       },
     })
   } catch (error) {

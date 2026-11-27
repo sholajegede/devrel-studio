@@ -1,15 +1,24 @@
 import React from 'react'
-import { Document, Image, Page, Text, View, StyleSheet } from '@react-pdf/renderer'
-import {
-  CATEGORY_METRIC,
-  CATEGORY_PDF_COLOR,
-  aggregate,
-  aggregateByCategory,
-  categoryOf,
-  formatCompact,
-  getMetricValue,
-} from '@/lib/metrics'
-import { CATEGORIES } from '@/lib/types'
+import { Document, Font, Image, Link, Page, StyleSheet, Text, View } from '@react-pdf/renderer'
+import { CATEGORY_METRIC, aggregate, categoryOf, reshareViews } from '@/lib/metrics'
+import { statusLabel } from '@/lib/status'
+
+// ── The client report ─────────────────────────────────────────────────────────
+//
+// A document one person prepares for a client and the client forwards to their
+// own manager. It is designed around that second reader, who has never opened
+// the dashboard:
+//
+//   1. A cover that says who it is for, which month, and who prepared it.
+//   2. The results on one page: three numbers at most, each against the month
+//      before, then the summary in the author's own words.
+//   3. The work, the social posts and the platform numbers, as plain tables.
+//   4. The proof: each platform screenshot full width, so the numbers in the
+//      tables can be checked without logging into anything.
+//
+// The look is restraint: one typeface, black and grays plus the client's brand
+// colour, thin rules instead of boxes, wide margins, and one grid on every page.
+// devrel.studio appears once, as a footer credit.
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -21,6 +30,7 @@ export interface ReportContentItem {
   publicationDate: string
   status: string
   contentType?: string
+  link?: string
   views?: number
   downloads?: number
   weeklyDownloads?: number
@@ -42,23 +52,53 @@ export interface ReportHighlight {
   metric: number
 }
 
+export interface ReportStats {
+  published: number
+  inProgress: number
+  totalViews: number
+  totalDownloads: number
+  totalAttendees: number
+  totalStars?: number
+  totalReshares: number
+}
+
+/** A platform's own monthly numbers, with the file they were read from. */
+export interface ReportPlatformStat {
+  platform: string
+  month?: string
+  views?: number | null
+  reads?: number | null
+  /** An image the renderer can embed, already downloaded by the route. */
+  evidenceImage?: { data: Buffer | Uint8Array; format: 'png' | 'jpg' } | null
+  /** A CSV or PDF export, which can only be linked. */
+  evidenceName?: string | null
+  evidenceUrl?: string | null
+}
+
+/** One LinkedIn or X post about the work. */
+export interface ReportSocialPost {
+  platform: string
+  link: string
+  date: string
+  impressions?: number | null
+  /** The piece the post was about. */
+  about: string
+}
+
 export interface ReportData {
   client: string
   content: ReportContentItem[]
-  stats: {
-    published: number
-    inProgress: number
-    totalViews: number
-    totalDownloads: number
-    totalAttendees: number
-    totalStars?: number
-    totalReshares: number
-  }
+  stats: ReportStats
   period: string
+  /** The month before, for the change shown under each headline number. */
+  previousStats?: ReportStats | null
+  /** "October 2026". */
+  previousLabel?: string | null
+  /** Who prepared the report, shown on the cover. */
+  preparedBy?: string | null
   /**
    * The written half of the report. Optional throughout: a period nobody wrote
-   * up prints exactly as it did before this existed, which is what keeps every
-   * already-sent report reproducible.
+   * up still prints, with those sections left out.
    */
   notes?: {
     summary?: string | null
@@ -68,639 +108,588 @@ export interface ReportData {
   } | null
   targets?: { reach?: number | null; published?: number | null } | null
   highlights?: ReportHighlight[]
-  /**
-   * How this client's own document should look.
-   *
-   * Optional throughout, and absent for every report generated before it
-   * existed — which is what keeps an already-sent PDF reproducible.
-   */
+  platformStats?: ReportPlatformStat[]
+  social?: ReportSocialPost[]
+  /** How many of the period's pieces carry a tracking link in the agreed format. */
+  linkCoverage?: { tagged: number; checked: number } | null
   branding?: { logoUrl?: string | null; brandColor?: string | null } | null
+  /** The day the document was generated, `YYYY-MM-DD`. Defaults to today. */
+  generatedOn?: string
+}
+
+export interface ReportOptions {
+  /** A folder holding Inter-400/500/600/700.woff. Without it, Helvetica. */
+  fontDir?: string | null
+}
+
+// ── Type ──────────────────────────────────────────────────────────────────────
+
+let registeredFontDir: string | null = null
+
+function registerInter(fontDir: string): boolean {
+  if (registeredFontDir === fontDir) return true
+  try {
+    Font.register({
+      family: 'Inter',
+      fonts: [
+        { src: `${fontDir}/Inter-400.woff`, fontWeight: 400 },
+        { src: `${fontDir}/Inter-500.woff`, fontWeight: 500 },
+        { src: `${fontDir}/Inter-600.woff`, fontWeight: 600 },
+        { src: `${fontDir}/Inter-700.woff`, fontWeight: 700 },
+      ],
+    })
+    // Words are never split across lines. A hyphenated "Authentica-ting" reads
+    // as a printing error in a document like this.
+    Font.registerHyphenationCallback((word) => [word])
+    registeredFontDir = fontDir
+    return true
+  } catch {
+    return false
+  }
 }
 
 // ── Design tokens ─────────────────────────────────────────────────────────────
 
-const C = {
-  white:        '#ffffff',
-  fg:           '#180102',
-  muted:        '#6e625b',
-  accent:       '#f16b46',
-  border:       '#e1d7c5',
-  cardBg:       '#f8f0e3',
-  mutedBg:      '#ece4d7',
-  rowAlt:       '#fbf6ec',
-  // status
-  pubBg:        '#e6f5f0', pubFg:  '#226b59',
-  draftBg:      '#ece4d7', draftFg: '#6e625b',
-  reviewBg:     '#f6e8c1', reviewFg: '#86621c',
-  scheduledBg:  '#d4e6ee', scheduledFg: '#366579',
-  // category
-  written:  '#f16b46',
-  video:    '#437f98',
-  event:    '#a98027',
-  podcast:  '#2b856f',
-  package:  '#98587f',
-  demo:     '#867b6f',
+const INK = '#111111'
+const SECONDARY = '#5f5f5f'
+const TERTIARY = '#8c8c8c'
+const RULE = '#e4e4e4'
+const DEFAULT_ACCENT = '#111111'
+
+/** A4 with wide margins. Every page uses the same left edge and width. */
+const MARGIN_X = 60
+const MARGIN_TOP = 64
+const MARGIN_BOTTOM = 72
+
+function makeStyles(family: string, accent: string) {
+  return StyleSheet.create({
+    page: {
+      fontFamily: family,
+      fontSize: 9.5,
+      // No lineHeight here: an inherited line height stops react-pdf drawing
+      // the fixed footer. Each text style sets its own.
+      color: INK,
+      backgroundColor: '#ffffff',
+      paddingTop: MARGIN_TOP,
+      paddingBottom: MARGIN_BOTTOM,
+      paddingHorizontal: MARGIN_X,
+    },
+
+    // Cover
+    cover: { flex: 1, justifyContent: 'space-between' },
+    coverLogo: { height: 26, maxWidth: 150, objectFit: 'contain', objectPositionX: 0 },
+    coverMiddle: { marginTop: 200 },
+    coverEyebrow: { fontSize: 8.5, fontWeight: 500, letterSpacing: 1.4, color: accent, textTransform: 'uppercase', marginBottom: 14 },
+    coverTitle: { fontSize: 34, fontWeight: 600, lineHeight: 1.15, letterSpacing: -0.6 },
+    coverPeriod: { fontSize: 34, fontWeight: 400, lineHeight: 1.15, letterSpacing: -0.6, color: TERTIARY },
+    coverMeta: { borderTopWidth: 0.6, borderTopColor: RULE, paddingTop: 14, flexDirection: 'row' },
+    coverMetaCol: { flex: 1 },
+    metaLabel: { fontSize: 7.5, color: TERTIARY, letterSpacing: 0.8, textTransform: 'uppercase', marginBottom: 3 },
+    metaValue: { fontSize: 10, fontWeight: 500 },
+
+    // Sections
+    section: { marginBottom: 34 },
+    eyebrow: { fontSize: 7.5, fontWeight: 600, letterSpacing: 1.4, color: TERTIARY, textTransform: 'uppercase', marginBottom: 6 },
+    h1: { fontSize: 22, fontWeight: 600, letterSpacing: -0.3, lineHeight: 1.2, marginBottom: 22 },
+    h2: { fontSize: 13, fontWeight: 600, letterSpacing: -0.1, marginBottom: 10 },
+    body: { fontSize: 10.5, lineHeight: 1.6, color: INK, marginBottom: 8 },
+    small: { fontSize: 8.5, color: SECONDARY, lineHeight: 1.5 },
+    rule: { borderBottomWidth: 0.6, borderBottomColor: RULE },
+
+    // Headline numbers
+    figures: { flexDirection: 'row', borderTopWidth: 0.6, borderTopColor: INK, paddingTop: 14, marginBottom: 30 },
+    figure: { flex: 1, paddingRight: 16 },
+    figureValue: { fontSize: 30, fontWeight: 600, letterSpacing: -0.8, lineHeight: 1.1 },
+    figureLabel: { fontSize: 9, fontWeight: 500, marginTop: 6 },
+    figureDelta: { fontSize: 8.5, color: SECONDARY, marginTop: 2 },
+    figureUp: { color: accent },
+
+    // Lists
+    highlightRow: { flexDirection: 'row', paddingVertical: 7, borderBottomWidth: 0.6, borderBottomColor: RULE },
+    highlightIndex: { width: 22, fontSize: 9, color: TERTIARY },
+    highlightTitle: { flex: 1, fontSize: 9.5, fontWeight: 500, paddingRight: 12 },
+    highlightMeta: { width: 120, fontSize: 9, color: SECONDARY, textAlign: 'right' },
+
+    quote: { borderLeftWidth: 1.5, borderLeftColor: accent, paddingLeft: 12, marginBottom: 12 },
+    quoteText: { fontSize: 10.5, lineHeight: 1.55 },
+    quoteBy: { fontSize: 8.5, color: SECONDARY, marginTop: 3 },
+
+    // Tables
+    th: { flexDirection: 'row', borderBottomWidth: 0.6, borderBottomColor: INK, paddingBottom: 5 },
+    thCell: { fontSize: 7.5, fontWeight: 600, letterSpacing: 0.9, color: SECONDARY, textTransform: 'uppercase' },
+    tr: { flexDirection: 'row', borderBottomWidth: 0.6, borderBottomColor: RULE, paddingVertical: 8 },
+    td: { fontSize: 9, lineHeight: 1.45 },
+    tdStrong: { fontSize: 9.5, fontWeight: 500, lineHeight: 1.4 },
+    tdSub: { fontSize: 8, color: SECONDARY, marginTop: 2 },
+    num: { textAlign: 'right' },
+    total: { flexDirection: 'row', paddingVertical: 8 },
+
+    // Appendix
+    evidence: { marginBottom: 26 },
+    evidenceImage: { width: '100%', objectFit: 'contain', borderWidth: 0.6, borderColor: RULE },
+    caption: { fontSize: 8.5, color: SECONDARY, marginTop: 8 },
+    link: { color: INK, textDecoration: 'none' },
+
+    // Footer
+    footer: {
+      position: 'absolute',
+      left: MARGIN_X,
+      right: MARGIN_X,
+      bottom: 34,
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      borderTopWidth: 0.6,
+      borderTopColor: RULE,
+      paddingTop: 9,
+    },
+    footerText: { fontSize: 7.5, color: TERTIARY },
+  })
 }
 
-// ── Styles ────────────────────────────────────────────────────────────────────
+type Styles = ReturnType<typeof makeStyles>
 
-const s = StyleSheet.create({
-  page: {
-    backgroundColor: C.white,
-    fontFamily: 'Helvetica',
-    fontSize: 9,
-    color: C.fg,
-    paddingHorizontal: 48,
-    paddingTop: 36,
-    paddingBottom: 56,
-  },
+// ── Formatting ────────────────────────────────────────────────────────────────
 
-  // Header
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-end',
-    paddingBottom: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: C.border,
-    marginBottom: 28,
-  },
-  brandRow: { flexDirection: 'row', alignItems: 'baseline' },
-  brandMain: { fontFamily: 'Helvetica-Bold', fontSize: 15, color: C.fg },
-  brandDot:  { fontFamily: 'Helvetica-Bold', fontSize: 15, color: C.muted },
-  headerRight: { alignItems: 'flex-end' },
-  headerLabel: { fontSize: 7, color: C.muted, letterSpacing: 0.5 },
-  headerDate:  { fontSize: 8, color: C.muted, marginTop: 2 },
+const n = (value: number) => Math.round(value).toLocaleString('en-US')
 
-  // Hero
-  hero: { marginBottom: 28 },
-  // Height-bounded so a wide wordmark and a square glyph both sit correctly.
-  heroLogoRow:  { flexDirection: 'row', justifyContent: 'flex-start', marginBottom: 10 },
-  heroLogo:     { height: 28, maxWidth: 160, objectFit: 'contain', objectPositionX: 0 },
-  heroClient:   { fontFamily: 'Helvetica-Bold', fontSize: 24, color: C.fg, marginBottom: 4 },
-  heroSubtitle: { fontSize: 10, color: C.muted, marginBottom: 3 },
-  heroPeriod:   { fontFamily: 'Helvetica-Bold', fontSize: 11, color: C.accent },
-
-  // Section label
-  sectionLabel: {
-    fontSize: 7.5,
-    fontFamily: 'Helvetica-Bold',
-    color: C.muted,
-    letterSpacing: 0.8,
-    marginBottom: 8,
-  },
-  divider: {
-    height: 1,
-    backgroundColor: C.border,
-    marginBottom: 14,
-  },
-
-  // Stat cards — 3-up grid
-  statsGrid: { flexDirection: 'row', flexWrap: 'wrap', marginBottom: 28 },
-  statCard: {
-    width: '31%',
-    marginRight: '3.5%',
-    marginBottom: 10,
-    backgroundColor: C.cardBg,
-    borderWidth: 1,
-    borderColor: C.border,
-    borderRadius: 6,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-  },
-  statLabel: { fontSize: 7.5, color: C.muted, marginBottom: 6 },
-  statValue: { fontFamily: 'Helvetica-Bold', fontSize: 20, color: C.fg },
-
-  // Written sections
-  prose: { fontSize: 9.5, color: C.fg, lineHeight: 1.6, marginBottom: 8 },
-  proseSection: { marginBottom: 28 },
-  pullQuote: {
-    borderLeftWidth: 2,
-    borderLeftColor: C.accent,
-    paddingLeft: 12,
-    marginBottom: 14,
-  },
-  quoteText: { fontSize: 10, color: C.fg, lineHeight: 1.55 },
-  quoteAttribution: { fontSize: 7.5, color: C.muted, marginTop: 4 },
-
-  // Target progress, shown under a stat card's number
-  targetTrack: {
-    height: 3,
-    borderRadius: 1.5,
-    backgroundColor: C.border,
-    marginTop: 7,
-    overflow: 'hidden',
-  },
-  targetFill: { height: 3, borderRadius: 1.5 },
-  targetLabel: { fontSize: 6.5, color: C.muted, marginTop: 4 },
-
-  // Highlights
-  highlightRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    borderWidth: 1,
-    borderColor: C.border,
-    borderRadius: 6,
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    marginBottom: 8,
-  },
-  highlightRank:   { fontFamily: 'Helvetica-Bold', fontSize: 14, color: C.border, width: 20 },
-  highlightTitle:  { fontSize: 9.5, color: C.fg, lineHeight: 1.4 },
-  highlightMeta:   { fontSize: 7.5, color: C.muted, marginTop: 3 },
-  highlightMetric: { fontFamily: 'Helvetica-Bold', fontSize: 12, color: C.fg, textAlign: 'right' },
-
-  // Category breakdown
-  breakdownSection: { marginBottom: 28 },
-  breakdownRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
-  breakdownDot:  { width: 7, height: 7, borderRadius: 3.5, marginRight: 8 },
-  breakdownName: { fontSize: 9, color: C.fg, width: 58 },
-  breakdownBar:  { height: 5, borderRadius: 2.5, marginRight: 10 },
-  breakdownMeta: { fontSize: 8, color: C.muted, flex: 1 },
-
-  // Month overview table
-  overviewSection: { marginBottom: 0 },
-
-  // Generic table
-  table: {
-    borderWidth: 1,
-    borderColor: C.border,
-    borderRadius: 6,
-    marginBottom: 24,
-    overflow: 'hidden',
-  },
-  tableHead: {
-    flexDirection: 'row',
-    backgroundColor: C.mutedBg,
-    borderBottomWidth: 1,
-    borderBottomColor: C.border,
-    paddingVertical: 7,
-    paddingHorizontal: 12,
-  },
-  tableHeadCell: {
-    fontSize: 7,
-    fontFamily: 'Helvetica-Bold',
-    color: C.muted,
-    letterSpacing: 0.5,
-  },
-  tableRow: {
-    flexDirection: 'row',
-    borderBottomWidth: 1,
-    borderBottomColor: C.border,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    alignItems: 'flex-start',
-  },
-  tableRowAlt:  { backgroundColor: C.rowAlt },
-  tableRowLast: { borderBottomWidth: 0 },
-  cellText:     { fontSize: 8.5, color: C.fg, lineHeight: 1.4 },
-  cellMuted:    { fontSize: 7.5, color: C.muted, marginTop: 2, lineHeight: 1.4 },
-  cellAccent:   { fontSize: 7.5, color: C.accent, marginTop: 2 },
-
-  // Status badge
-  badge: { borderRadius: 3, paddingHorizontal: 5, paddingVertical: 2, alignSelf: 'flex-start' },
-  badgeText: { fontSize: 7, fontFamily: 'Helvetica-Bold' },
-
-  // Month section header (detail page)
-  monthHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-end',
-    borderBottomWidth: 1,
-    borderBottomColor: C.border,
-    paddingBottom: 8,
-    marginBottom: 10,
-    marginTop: 20,
-  },
-  monthTitle: { fontFamily: 'Helvetica-Bold', fontSize: 11, color: C.fg },
-  monthMetaRow: { flexDirection: 'row' },
-  monthMeta:  { fontSize: 7.5, color: C.muted, marginLeft: 12 },
-
-  // Footer
-  footer: {
-    position: 'absolute',
-    bottom: 20,
-    left: 48,
-    right: 48,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    borderTopWidth: 1,
-    borderTopColor: C.border,
-    paddingTop: 7,
-  },
-  footerText: { fontSize: 7, color: C.muted },
-})
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
-const fmtNum = formatCompact
-
-function fmtDate(d: string): string {
-  return new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+function shortDate(iso: string): string {
+  const date = new Date(`${iso.slice(0, 10)}T00:00:00Z`)
+  if (Number.isNaN(date.getTime())) return iso
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' })
 }
 
-/** Short metric label per category, e.g. "12.4K views", "480 stars". */
-const METRIC_SUFFIX: Record<string, string> = {
-  views: 'views', downloads: 'dl.', attendees: 'att.', stars: 'stars',
+function longDate(iso: string): string {
+  const date = new Date(`${iso.slice(0, 10)}T00:00:00Z`)
+  if (Number.isNaN(date.getTime())) return iso
+  return date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric', timeZone: 'UTC' })
 }
 
-function getMetric(item: ReportContentItem): string {
-  // Packages prefer the weekly trend when there is one.
-  if (categoryOf(item) === 'Package' && (item.weeklyDownloads ?? 0) > 0) {
-    return `${fmtNum(item.weeklyDownloads!)}/wk`
-  }
-
-  const value = getMetricValue(item)
-  if (value === 0) return '—'
-
-  const { key } = CATEGORY_METRIC[categoryOf(item)]
-  return `${fmtNum(value)} ${METRIC_SUFFIX[key]}`
+/** "+24% vs October", "New this month", or null when there is nothing to compare. */
+function change(current: number, previous: number | null | undefined, previousLabel: string | null | undefined) {
+  if (previous == null || !previousLabel) return null
+  const month = previousLabel.split(' ')[0]
+  if (previous === 0) return current > 0 ? { text: `None in ${month}`, up: true } : null
+  const pct = Math.round(((current - previous) / previous) * 100)
+  if (pct === 0) return { text: `Same as ${month}`, up: false }
+  return { text: `${pct > 0 ? '+' : ''}${pct}% vs ${month}`, up: pct > 0 }
 }
 
-const CAT_COLOR = CATEGORY_PDF_COLOR
-
-const STATUS_CFG: Record<string, { bg: string; fg: string; label: string }> = {
-  'Published':        { bg: C.pubBg,       fg: C.pubFg,      label: 'Published' },
-  'Draft':            { bg: C.draftBg,     fg: C.draftFg,    label: 'Draft' },
-  'Waiting Approval': { bg: C.reviewBg,    fg: C.reviewFg,   label: 'In Review' },
-  'Scheduled':        { bg: C.scheduledBg, fg: C.scheduledFg, label: 'Scheduled' },
+function paragraphs(text: string | null | undefined): string[] {
+  return (text ?? '')
+    .split(/\n{2,}/)
+    .map((part) => part.trim())
+    .filter(Boolean)
 }
 
-const STATUS_ORDER: Record<string, number> = { Published: 0, 'Waiting Approval': 1, Draft: 2, Scheduled: 3 }
-
-// Table column widths (sum = 516 — usable width at 48px margins)
-const COL = { title: 190, category: 52, platform: 75, status: 62, metric: 68, date: 69 }
-
-// ── Shared page elements ──────────────────────────────────────────────────────
-
-function Header() {
-  return (
-    <View style={s.header} fixed>
-      <View style={s.brandRow}>
-        <Text style={s.brandMain}>devrel</Text>
-        <Text style={s.brandDot}>.studio</Text>
-      </View>
-      <View style={s.headerRight}>
-        <Text style={s.headerLabel}>PERFORMANCE REPORT</Text>
-        <Text style={s.headerDate}>
-          {new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
-        </Text>
-      </View>
-    </View>
-  )
+const SOCIAL_PLATFORMS = new Set(['linkedin', 'x', 'twitter', 'twitter/x'])
+export function isSocialPlatform(platform: string): boolean {
+  return SOCIAL_PLATFORMS.has(platform.trim().toLowerCase())
 }
 
-function Footer({ client }: { client: string }) {
+/** The piece's own number, not counting reshares, with its unit. */
+function ownResult(item: ReportContentItem): { value: number; unit: string } {
+  const category = categoryOf(item)
+  const { key, label } = CATEGORY_METRIC[category]
+  return { value: (item[key] as number | undefined) ?? 0, unit: label.toLowerCase() }
+}
+
+// ── Headline numbers ──────────────────────────────────────────────────────────
+
+interface Figure {
+  value: number
+  label: string
+  previous?: number | null
+}
+
+/**
+ * Three numbers at most.
+ *
+ * Pieces shipped and views always lead. The third is whichever other measure
+ * the month actually produced the most of — downloads in a package month, the
+ * room in an event month — so a month never shows a zero as a headline.
+ */
+export function headlineFigures(stats: ReportStats, previous?: ReportStats | null): Figure[] {
+  const figures: Figure[] = [
+    { value: stats.published, label: stats.published === 1 ? 'Piece shipped' : 'Pieces shipped', previous: previous?.published },
+    { value: stats.totalViews, label: 'Views, including reshares', previous: previous?.totalViews },
+  ]
+  const others: Figure[] = [
+    { value: stats.totalDownloads, label: 'Downloads', previous: previous?.totalDownloads },
+    { value: stats.totalAttendees, label: 'People in the room', previous: previous?.totalAttendees },
+    { value: stats.totalStars ?? 0, label: 'GitHub stars', previous: previous?.totalStars ?? null },
+  ].filter((figure) => figure.value > 0)
+  others.sort((a, b) => b.value - a.value)
+  if (others[0]) figures.push(others[0])
+  return figures
+}
+
+// ── Pieces ────────────────────────────────────────────────────────────────────
+
+function Footer({ s, client, period }: { s: Styles; client: string; period: string }) {
   return (
     <View style={s.footer} fixed>
-      <Text style={s.footerText}>devrel.studio · {client} Performance Report</Text>
-      <Text style={s.footerText} render={({ pageNumber, totalPages }) => `${pageNumber} / ${totalPages}`} />
+      <Text style={s.footerText}>
+        {client} · {period}
+      </Text>
+      <Text style={s.footerText}>Made with devrel.studio</Text>
+      <Text
+        style={s.footerText}
+        render={({ pageNumber, totalPages }) => `Page ${pageNumber} of ${totalPages}`}
+      />
     </View>
   )
 }
 
-function StatusBadge({ status }: { status: string }) {
-  const cfg = STATUS_CFG[status] ?? { bg: C.draftBg, fg: C.muted, label: status }
+/** A section title that never sits alone at the bottom of a page. */
+function SectionTitle({ s, eyebrow, title }: { s: Styles; eyebrow: string; title: string }) {
   return (
-    <View style={[s.badge, { backgroundColor: cfg.bg }]}>
-      <Text style={[s.badgeText, { color: cfg.fg }]}>{cfg.label}</Text>
+    <View minPresenceAhead={90} wrap={false}>
+      <Text style={s.eyebrow}>{eyebrow}</Text>
+      <Text style={s.h2}>{title}</Text>
     </View>
   )
 }
 
-// ── Main export ───────────────────────────────────────────────────────────────
+const WORK_COLS = { work: '46%', type: '14%', status: '13%', date: '10%', result: '17%' }
 
-/** A written block, rendered only when there is something in it. */
-function Prose({ label, body }: { label: string; body?: string | null }) {
-  if (!body?.trim()) return null
-
+function WorkTable({ s, items }: { s: Styles; items: ReportContentItem[] }) {
+  const reshareTotal = items.reduce((total, item) => total + reshareViews(item), 0)
   return (
-    <View style={s.proseSection}>
-      <Text style={s.sectionLabel}>{label}</Text>
-      <View style={s.divider} />
-      {body.split(/\n{2,}/).map((paragraph, i) => (
-        <Text key={i} style={s.prose}>{paragraph.trim()}</Text>
+    <View>
+      <View style={s.th} fixed={false} wrap={false}>
+        <Text style={[s.thCell, { width: WORK_COLS.work }]}>Work</Text>
+        <Text style={[s.thCell, { width: WORK_COLS.type }]}>Type</Text>
+        <Text style={[s.thCell, { width: WORK_COLS.status }]}>Status</Text>
+        <Text style={[s.thCell, { width: WORK_COLS.date }]}>Date</Text>
+        <Text style={[s.thCell, s.num, { width: WORK_COLS.result }]}>Result</Text>
+      </View>
+      {items.map((item, index) => {
+        const category = categoryOf(item)
+        const result = ownResult(item)
+        const reshare = reshareViews(item)
+        const context =
+          category === 'Event'
+            ? [item.eventName, item.eventLocation].filter(Boolean).join(', ')
+            : category === 'Podcast'
+              ? item.podcastName || item.platform
+              : category === 'Package'
+                ? item.packageName || item.platform
+                : item.platform
+        return (
+          <View key={item._id ?? index} style={s.tr} wrap={false}>
+            <View style={{ width: WORK_COLS.work, paddingRight: 14 }}>
+              {item.link ? (
+                <Link src={item.link} style={[s.tdStrong, s.link]}>
+                  {item.title}
+                </Link>
+              ) : (
+                <Text style={s.tdStrong}>{item.title}</Text>
+              )}
+              {context ? <Text style={s.tdSub}>{context}</Text> : null}
+            </View>
+            <Text style={[s.td, { width: WORK_COLS.type }]}>{category}</Text>
+            <Text style={[s.td, { width: WORK_COLS.status }]}>
+              {statusLabel(item.status, category, item.publicationDate)}
+            </Text>
+            <Text style={[s.td, { width: WORK_COLS.date }]}>{shortDate(item.publicationDate)}</Text>
+            <View style={{ width: WORK_COLS.result }}>
+              <Text style={[s.td, s.num]}>
+                {result.value > 0 ? `${n(result.value)} ${result.unit}` : 'Not recorded'}
+              </Text>
+              {reshare > 0 ? <Text style={[s.tdSub, s.num]}>+{n(reshare)} from reshares</Text> : null}
+            </View>
+          </View>
+        )
+      })}
+      {reshareTotal > 0 ? (
+        <Text style={[s.small, { marginTop: 8 }]}>
+          Views are the platform&apos;s own count for each piece. Reshare views are listed under each piece and
+          in Social posts, and both are included in the headline total.
+        </Text>
+      ) : null}
+    </View>
+  )
+}
+
+const SOCIAL_COLS = { post: '52%', date: '16%', impressions: '32%' }
+
+function SocialTable({ s, posts }: { s: Styles; posts: ReportSocialPost[] }) {
+  return (
+    <View>
+      <View style={s.th} wrap={false}>
+        <Text style={[s.thCell, { width: SOCIAL_COLS.post }]}>Post</Text>
+        <Text style={[s.thCell, { width: SOCIAL_COLS.date }]}>Posted</Text>
+        <Text style={[s.thCell, s.num, { width: SOCIAL_COLS.impressions }]}>Impressions</Text>
+      </View>
+      {posts.map((post, index) => (
+        <View key={`${post.link}-${index}`} style={s.tr} wrap={false}>
+          <View style={{ width: SOCIAL_COLS.post, paddingRight: 14 }}>
+            <Link src={post.link} style={[s.tdStrong, s.link]}>
+              {post.platform === 'Twitter/X' ? 'X' : post.platform} post
+            </Link>
+            <Text style={s.tdSub}>About: {post.about}</Text>
+          </View>
+          <Text style={[s.td, { width: SOCIAL_COLS.date }]}>{shortDate(post.date)}</Text>
+          <Text style={[s.td, s.num, { width: SOCIAL_COLS.impressions }]}>
+            {post.impressions ? n(post.impressions) : 'Not recorded'}
+          </Text>
+        </View>
       ))}
     </View>
   )
 }
 
-/**
- * Progress against a goal, under a stat card.
- *
- * Nothing renders without a positive target — an absent goal should look
- * absent, not like a goal of zero that was triumphantly exceeded.
- */
-function TargetBar({ actual, target }: { actual: number; target?: number | null }) {
-  if (typeof target !== 'number' || !Number.isFinite(target) || target <= 0) return null
+const STAT_COLS = { platform: '34%', views: '22%', reads: '22%', proof: '22%' }
 
-  const percent = Math.round((actual / target) * 100)
-
+function PlatformTable({ s, stats, period }: { s: Styles; stats: ReportPlatformStat[]; period: string }) {
   return (
     <View>
-      <View style={s.targetTrack}>
-        <View
-          style={[
-            s.targetFill,
-            {
-              width: `${Math.min(percent, 100)}%`,
-              backgroundColor: actual >= target ? C.accent : C.muted,
-            },
-          ]}
-        />
+      <View style={s.th} wrap={false}>
+        <Text style={[s.thCell, { width: STAT_COLS.platform }]}>Platform</Text>
+        <Text style={[s.thCell, s.num, { width: STAT_COLS.views }]}>Views</Text>
+        <Text style={[s.thCell, s.num, { width: STAT_COLS.reads }]}>Reads / reactions</Text>
+        <Text style={[s.thCell, s.num, { width: STAT_COLS.proof }]}>Proof</Text>
       </View>
-      <Text style={s.targetLabel}>{percent}% of {fmtNum(target)} target</Text>
+      {stats.map((stat) => (
+        <View key={stat.platform} style={s.tr} wrap={false}>
+          <Text style={[s.tdStrong, { width: STAT_COLS.platform }]}>{stat.platform}</Text>
+          <Text style={[s.td, s.num, { width: STAT_COLS.views }]}>
+            {stat.views != null ? n(stat.views) : 'Not provided'}
+          </Text>
+          <Text style={[s.td, s.num, { width: STAT_COLS.reads }]}>
+            {stat.reads != null ? n(stat.reads) : '–'}
+          </Text>
+          <Text style={[s.td, s.num, { width: STAT_COLS.proof }]}>
+            {stat.evidenceImage ? 'Appendix' : stat.evidenceUrl ? 'Linked export' : 'Not provided'}
+          </Text>
+        </View>
+      ))}
+      <Text style={[s.small, { marginTop: 8 }]}>
+        Totals from each platform&apos;s own dashboard for {period}, which the client cannot see directly.
+      </Text>
     </View>
   )
 }
 
-export function createReportDocument(data: ReportData) {
-  const { client, content, stats, period, notes, targets, highlights, branding } = data
-  const clientName = client.charAt(0).toUpperCase() + client.slice(1)
+// ── Document ──────────────────────────────────────────────────────────────────
 
-  // Same definition as lib/report's `reachOf` — views, attendees and downloads,
-  // with stars deliberately left out. A star is an endorsement from someone who
-  // had already arrived, not a person reached, and the two documents must not
-  // print different totals under the same word.
-  const reach = stats.totalViews + stats.totalAttendees + stats.totalDownloads
+export function createReportDocument(data: ReportData, options: ReportOptions = {}) {
+  const family = options.fontDir && registerInter(options.fontDir) ? 'Inter' : 'Helvetica'
+  const accent = data.branding?.brandColor || DEFAULT_ACCENT
+  const s = makeStyles(family, accent)
 
-  // Group by month
-  const byMonth: Record<string, ReportContentItem[]> = {}
-  const monthOrder: Record<string, number> = {}
-  for (const item of content) {
-    const date = new Date(item.publicationDate)
-    const key = date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
-    if (!byMonth[key]) byMonth[key] = []
-    byMonth[key].push(item)
-    monthOrder[key] = date.getFullYear() * 12 + date.getMonth()
-  }
-  // Newest month first, sorted on a real ordinal rather than by re-parsing the
-  // localized label.
-  const sortedMonths = Object.entries(byMonth).sort(
-    ([a], [b]) => monthOrder[b] - monthOrder[a]
-  )
-
-  // Category aggregates
-  const byCategory = aggregateByCategory(content)
-  const total = content.length || 1
+  const generatedOn = data.generatedOn ?? new Date().toISOString().slice(0, 10)
+  const items = [...data.content].sort((a, b) => a.publicationDate.localeCompare(b.publicationDate))
+  // Recomputed from the rows so the headline and the table can never disagree.
+  const stats: ReportStats = items.length
+    ? (() => {
+        const totals = aggregate(items)
+        return {
+          published: totals.published,
+          inProgress: data.stats.inProgress,
+          totalViews: totals.views,
+          totalDownloads: totals.downloads,
+          totalAttendees: totals.attendees,
+          totalStars: totals.stars,
+          totalReshares: totals.reshares,
+        }
+      })()
+    : data.stats
+  const figures = headlineFigures(stats, data.previousStats)
+  const notes = data.notes ?? null
+  const summary = paragraphs(notes?.summary)
+  const drivers = paragraphs(notes?.performanceNote)
+  const feedback = paragraphs(notes?.responseToFeedback)
+  const quotes = notes?.quotes ?? []
+  const highlights = (data.highlights ?? []).filter((h) => h.metric > 0).slice(0, 3)
+  const social = data.social ?? []
+  const platformStats = data.platformStats ?? []
+  const evidence = platformStats.filter((stat) => stat.evidenceImage)
+  const coverage = data.linkCoverage
 
   return (
-    <Document>
-      {/* ──────────────────────────────── Page 1 — Summary ─────────────────────────────── */}
-      <Page size="LETTER" style={s.page}>
-        <Header />
-
-        {/* Hero.
-            With a logo this reads as the client's own document; without one it
-            prints exactly as it did before, because a report that has already
-            been sent must stay reproducible. */}
-        <View style={s.hero}>
-          {branding?.logoUrl ? (
-            // Bounded rather than cropped — the file is theirs and its
-            // proportions are unknown, and a squashed logo is worse than a
-            // small one.
-            // eslint-disable-next-line jsx-a11y/alt-text
-            // In a row, so the image takes its own width from its aspect
-            // ratio. In the column it stretched to the full 160pt and
-            // `contain` centred the mark inside that box, away from the
-            // left edge the client name starts on.
-            <View style={s.heroLogoRow}>
-              {/* eslint-disable-next-line jsx-a11y/alt-text */}
-              <Image src={branding.logoUrl} style={s.heroLogo} />
-            </View>
-          ) : null}
-          <Text style={s.heroClient}>{clientName}</Text>
-          <Text style={s.heroSubtitle}>Content Performance Report</Text>
-          <Text
-            style={
-              branding?.brandColor
-                ? [s.heroPeriod, { color: branding.brandColor }]
-                : s.heroPeriod
-            }
-          >
-            {period}
-          </Text>
-        </View>
-
-        {/* The written opening, before any table. */}
-        <Prose label="SUMMARY" body={notes?.summary} />
-
-        {/* Activity summary */}
-        <Text style={s.sectionLabel}>ACTIVITY SUMMARY</Text>
-        <View style={s.divider} />
-        <View style={s.statsGrid}>
-          {[
-            {
-              label: 'Published',
-              value: String(stats.published),
-              actual: stats.published,
-              target: targets?.published,
-            },
-            { label: 'In Progress', value: String(stats.inProgress) },
-            {
-              label: 'Total Reach',
-              value: reach > 0 ? fmtNum(reach) : '—',
-              actual: reach,
-              target: targets?.reach,
-            },
-            { label: 'Total Views', value: stats.totalViews     > 0 ? fmtNum(stats.totalViews)     : '—' },
-            { label: 'Downloads',   value: stats.totalDownloads > 0 ? fmtNum(stats.totalDownloads) : '—' },
-            { label: 'Attendees',   value: stats.totalAttendees > 0 ? fmtNum(stats.totalAttendees) : '—' },
-            ...((stats.totalStars ?? 0) > 0
-              ? [{ label: 'Stars', value: fmtNum(stats.totalStars!) }]
-              : []),
-            { label: 'Reshares',    value: stats.totalReshares  > 0 ? String(stats.totalReshares)  : '—' },
-          ].map((stat, i) => (
-            <View key={stat.label} style={[s.statCard, i % 3 === 2 ? { marginRight: 0 } : {}]}>
-              <Text style={s.statLabel}>{stat.label}</Text>
-              <Text style={s.statValue}>{stat.value}</Text>
-              {stat.actual !== undefined && (
-                <TargetBar actual={stat.actual} target={stat.target} />
-              )}
-            </View>
-          ))}
-        </View>
-
-        {/* Why the numbers moved. */}
-        <Prose label="WHAT DROVE THIS" body={notes?.performanceNote} />
-
-        {/* What performed, before the chronological list on the detail page. */}
-        {(highlights?.length ?? 0) > 0 && (
-          <View style={s.proseSection}>
-            <Text style={s.sectionLabel}>
-              {highlights!.length === 1 ? 'THE STANDOUT' : `TOP ${highlights!.length}`}
-            </Text>
-            <View style={s.divider} />
-            {highlights!.map((item, i) => (
-              <View key={`${item.title}-${i}`} style={s.highlightRow}>
-                <Text style={s.highlightRank}>{i + 1}</Text>
-                <View style={{ flex: 1 }}>
-                  <Text style={s.highlightTitle}>{item.title}</Text>
-                  <Text style={s.highlightMeta}>
-                    {[item.category, item.platform].filter(Boolean).join(' · ')}
-                  </Text>
-                </View>
-                <Text style={[s.highlightMetric, { width: 70 }]}>{fmtNum(item.metric)}</Text>
-              </View>
-            ))}
+    <Document
+      title={`${data.client} developer relations report, ${data.period}`}
+      author={data.preparedBy ?? undefined}
+      creator="devrel.studio"
+      producer="devrel.studio"
+    >
+      {/* ── Cover ───────────────────────────────────────────────────────── */}
+      <Page size="A4" style={s.page}>
+        <View style={s.cover}>
+          <View>
+            {data.branding?.logoUrl ? <Image src={data.branding.logoUrl} style={s.coverLogo} /> : null}
           </View>
-        )}
 
-        {/* Answering last period's feedback. */}
-        <Prose label="SINCE LAST PERIOD" body={notes?.responseToFeedback} />
-
-        {/* Evidence a total cannot carry. */}
-        {(notes?.quotes?.length ?? 0) > 0 && (
-          <View style={s.proseSection}>
-            <Text style={s.sectionLabel}>IN THEIR WORDS</Text>
-            <View style={s.divider} />
-            {notes!.quotes!.map((quote, i) => (
-              <View key={i} style={s.pullQuote}>
-                <Text style={s.quoteText}>&ldquo;{quote.text}&rdquo;</Text>
-                {quote.attribution && (
-                  <Text style={s.quoteAttribution}>— {quote.attribution}</Text>
-                )}
-              </View>
-            ))}
+          <View style={s.coverMiddle}>
+            <Text style={s.coverEyebrow}>{data.client}</Text>
+            <Text style={s.coverTitle}>Developer relations report</Text>
+            <Text style={s.coverPeriod}>{data.period}</Text>
           </View>
-        )}
 
-        {/* Content breakdown */}
-        <Text style={s.sectionLabel}>CONTENT BREAKDOWN</Text>
-        <View style={s.divider} />
-        <View style={s.breakdownSection}>
-          {CATEGORIES.filter(cat => byCategory[cat].count > 0).map(cat => {
-            const totals = byCategory[cat]
-            const count  = totals.count
-            const pct    = count / total
-            const color  = CAT_COLOR[cat] ?? C.muted
+          <View style={s.coverMeta}>
+            <View style={s.coverMetaCol}>
+              <Text style={s.metaLabel}>Prepared for</Text>
+              <Text style={s.metaValue}>{data.client}</Text>
+            </View>
+            <View style={s.coverMetaCol}>
+              <Text style={s.metaLabel}>Prepared by</Text>
+              <Text style={s.metaValue}>{data.preparedBy || 'Developer relations'}</Text>
+            </View>
+            <View style={s.coverMetaCol}>
+              <Text style={s.metaLabel}>Issued</Text>
+              <Text style={s.metaValue}>{longDate(generatedOn)}</Text>
+            </View>
+          </View>
+        </View>
+        <Footer s={s} client={data.client} period={data.period} />
+      </Page>
 
-            // Each category reports only the metric it owns.
-            const { key, label } = CATEGORY_METRIC[cat]
-            const parts = [`${count} ${count === 1 ? 'item' : 'items'}`]
-            if (totals[key] > 0) parts.push(`${fmtNum(totals[key])} ${label.toLowerCase()}`)
+      {/* ── Results ─────────────────────────────────────────────────────── */}
+      <Page size="A4" style={s.page}>
+        <Text style={s.eyebrow}>{data.period}</Text>
+        <Text style={s.h1}>Results</Text>
 
+        <View style={s.figures} wrap={false}>
+          {figures.map((figure) => {
+            const delta = change(figure.value, figure.previous, data.previousLabel)
             return (
-              <View key={cat} style={s.breakdownRow}>
-                <View style={[s.breakdownDot, { backgroundColor: color }]} />
-                <Text style={s.breakdownName}>{cat}</Text>
-                <View style={[s.breakdownBar, { backgroundColor: color, width: `${Math.max(pct * 45, 2)}%` }]} />
-                <Text style={s.breakdownMeta}>{parts.join(' · ')}</Text>
+              <View key={figure.label} style={s.figure}>
+                <Text style={s.figureValue}>{n(figure.value)}</Text>
+                <Text style={s.figureLabel}>{figure.label}</Text>
+                {delta ? <Text style={[s.figureDelta, delta.up ? s.figureUp : {}]}>{delta.text}</Text> : null}
               </View>
             )
           })}
         </View>
 
-        {/* Monthly overview table — only when multiple months */}
-        {sortedMonths.length > 1 && (
-          <View style={s.overviewSection}>
-            <Text style={s.sectionLabel}>MONTHLY OVERVIEW</Text>
-            <View style={s.divider} />
-            <View style={s.table}>
-              <View style={s.tableHead}>
-                <Text style={[s.tableHeadCell, { flex: 3 }]}>MONTH</Text>
-                <Text style={[s.tableHeadCell, { flex: 1 }]}>TOTAL</Text>
-                <Text style={[s.tableHeadCell, { flex: 1 }]}>PUBLISHED</Text>
-                <Text style={[s.tableHeadCell, { flex: 1 }]}>VIEWS</Text>
-                <Text style={[s.tableHeadCell, { flex: 1 }]}>DL/ATT/STARS</Text>
-                <Text style={[s.tableHeadCell, { flex: 1 }]}>RESHARES</Text>
-              </View>
-              {sortedMonths.map(([month, items], idx) => {
-                const m = aggregate(items)
-                const isLast = idx === sortedMonths.length - 1
-                return (
-                  <View key={month} style={[s.tableRow, idx % 2 !== 0 ? s.tableRowAlt : {}, isLast ? s.tableRowLast : {}]}>
-                    <Text style={[s.cellText, { flex: 3 }]}>{month}</Text>
-                    <Text style={[s.cellText, { flex: 1 }]}>{items.length}</Text>
-                    <Text style={[s.cellText, { flex: 1 }]}>{m.published}</Text>
-                    <Text style={[s.cellText, { flex: 1 }]}>{m.views > 0 ? fmtNum(m.views) : '—'}</Text>
-                    <Text style={[s.cellText, { flex: 1 }]}>{m.downloads > 0 ? fmtNum(m.downloads) : m.attendees > 0 ? fmtNum(m.attendees) : m.stars > 0 ? fmtNum(m.stars) : '—'}</Text>
-                    <Text style={[s.cellText, { flex: 1 }]}>{m.reshares > 0 ? String(m.reshares) : '—'}</Text>
-                  </View>
-                )
-              })}
-            </View>
+        {summary.length > 0 && (
+          <View style={s.section}>
+            <SectionTitle s={s} eyebrow="Summary" title="What happened" />
+            {summary.map((text, index) => (
+              <Text key={index} style={s.body}>
+                {text}
+              </Text>
+            ))}
           </View>
         )}
 
-        <Footer client={clientName} />
+        {drivers.length > 0 && (
+          <View style={s.section}>
+            <SectionTitle s={s} eyebrow="Why" title="What drove it" />
+            {drivers.map((text, index) => (
+              <Text key={index} style={s.body}>
+                {text}
+              </Text>
+            ))}
+          </View>
+        )}
+
+        {highlights.length > 0 && (
+          <View style={s.section}>
+            <SectionTitle s={s} eyebrow="Highlights" title="What performed best" />
+            {highlights.map((highlight, index) => {
+              const { label } = CATEGORY_METRIC[categoryOf(highlight)]
+              return (
+                <View key={index} style={s.highlightRow} wrap={false}>
+                  <Text style={s.highlightIndex}>{String(index + 1).padStart(2, '0')}</Text>
+                  <Text style={s.highlightTitle}>{highlight.title}</Text>
+                  <Text style={s.highlightMeta}>
+                    {n(highlight.metric)} {label.toLowerCase()}
+                  </Text>
+                </View>
+              )
+            })}
+          </View>
+        )}
+
+        {stats.inProgress > 0 && (
+          <Text style={s.small}>
+            {stats.inProgress} more {stats.inProgress === 1 ? 'piece is' : 'pieces are'} in progress for the
+            coming weeks.
+          </Text>
+        )}
+        <Footer s={s} client={data.client} period={data.period} />
       </Page>
 
-      {/* ──────────────────────────────── Page 2+ — Detail ─────────────────────────────── */}
-      <Page size="LETTER" style={s.page}>
-        <Header />
-        <Text style={[s.sectionLabel, { marginBottom: 4 }]}>CONTENT DETAIL</Text>
-        <View style={s.divider} />
+      {/* ── Detail ──────────────────────────────────────────────────────── */}
+      <Page size="A4" style={s.page}>
+        <View style={s.section}>
+          <SectionTitle s={s} eyebrow="The work" title={`Shipped in ${data.period}`} />
+          {items.length ? (
+            <WorkTable s={s} items={items} />
+          ) : (
+            <Text style={s.small}>Nothing shipped in this period.</Text>
+          )}
+        </View>
 
-        {sortedMonths.map(([month, items]) => {
-          const m = aggregate(items)
-          const sorted = [...items].sort((a, b) => (STATUS_ORDER[a.status] ?? 4) - (STATUS_ORDER[b.status] ?? 4))
+        {(social.length > 0 || (coverage && coverage.checked > 0)) && (
+          <View style={s.section}>
+            <SectionTitle s={s} eyebrow="Distribution" title="Social posts and tracking" />
+            {social.length > 0 ? <SocialTable s={s} posts={social} /> : null}
+            {coverage && coverage.checked > 0 ? (
+              <Text style={[s.small, { marginTop: 8 }]}>
+                {coverage.tagged} of {coverage.checked} pieces this period carry a tracking link in the agreed
+                format, so the visits and sign-ups they send are counted in {data.client}&apos;s own analytics.
+              </Text>
+            ) : null}
+          </View>
+        )}
 
-          return (
-            <View key={month}>
-              {/* Month header */}
-              <View style={s.monthHeader}>
-                <Text style={s.monthTitle}>{month}</Text>
-                <View style={s.monthMetaRow}>
-                  <Text style={s.monthMeta}>{m.published} of {items.length} published</Text>
-                  {m.views     > 0 && <Text style={s.monthMeta}>{fmtNum(m.views)} views</Text>}
-                  {m.attendees > 0 && <Text style={s.monthMeta}>{fmtNum(m.attendees)} attendees</Text>}
-                  {m.downloads > 0 && <Text style={s.monthMeta}>{fmtNum(m.downloads)} downloads</Text>}
-                  {m.stars     > 0 && <Text style={s.monthMeta}>{fmtNum(m.stars)} stars</Text>}
-                  {m.reshares  > 0 && <Text style={s.monthMeta}>{m.reshares} reshares</Text>}
-                </View>
+        {platformStats.length > 0 && (
+          <View style={s.section}>
+            <SectionTitle s={s} eyebrow="Platform numbers" title="From each platform's dashboard" />
+            <PlatformTable s={s} stats={platformStats} period={data.period} />
+          </View>
+        )}
+
+        {(feedback.length > 0 || quotes.length > 0) && (
+          <View style={s.section}>
+            <SectionTitle s={s} eyebrow="Feedback" title="What we heard" />
+            {feedback.map((text, index) => (
+              <Text key={index} style={s.body}>
+                {text}
+              </Text>
+            ))}
+            {quotes.map((quote, index) => (
+              <View key={index} style={s.quote} wrap={false}>
+                <Text style={s.quoteText}>{quote.text}</Text>
+                {quote.attribution ? <Text style={s.quoteBy}>{quote.attribution}</Text> : null}
               </View>
+            ))}
+          </View>
+        )}
+        <Footer s={s} client={data.client} period={data.period} />
+      </Page>
 
-              {/* Content table */}
-              <View style={s.table}>
-                <View style={s.tableHead}>
-                  <Text style={[s.tableHeadCell, { width: COL.title }]}>TITLE</Text>
-                  <Text style={[s.tableHeadCell, { width: COL.category }]}>TYPE</Text>
-                  <Text style={[s.tableHeadCell, { width: COL.platform }]}>PLATFORM</Text>
-                  <Text style={[s.tableHeadCell, { width: COL.status }]}>STATUS</Text>
-                  <Text style={[s.tableHeadCell, { width: COL.metric }]}>METRIC</Text>
-                  <Text style={[s.tableHeadCell, { width: COL.date }]}>DATE</Text>
-                </View>
-                {sorted.map((item, idx) => {
-                  const cat     = categoryOf(item)
-                  const catColor = CAT_COLOR[cat] ?? C.muted
-                  const reshares = item.reshares?.length ?? 0
-                  const isLast   = idx === sorted.length - 1
-                  return (
-                    <View key={item._id ?? `${month}-${idx}`} style={[s.tableRow, idx % 2 !== 0 ? s.tableRowAlt : {}, isLast ? s.tableRowLast : {}]}>
-                      {/* Title column */}
-                      <View style={{ width: COL.title }}>
-                        <Text style={s.cellText} >{item.title}</Text>
-                        {item.category === 'Event'   && item.eventName   && <Text style={s.cellMuted}>{item.eventName}{item.eventLocation ? ` · ${item.eventLocation}` : ''}</Text>}
-                        {item.category === 'Podcast' && item.podcastName && <Text style={s.cellMuted}>{item.podcastName}</Text>}
-                        {item.category === 'Package' && item.packageName && <Text style={s.cellMuted}>{item.packageName}</Text>}
-                        {item.category === 'Demo'    && (item.stack || item.repoUrl) && <Text style={s.cellMuted}>{[item.stack, item.repoUrl].filter(Boolean).join(' · ')}</Text>}
-                        {reshares > 0 && <Text style={s.cellAccent}>{reshares} reshare{reshares > 1 ? 's' : ''}</Text>}
-                      </View>
-                      {/* Category */}
-                      <View style={{ width: COL.category }}>
-                        <Text style={[s.cellText, { color: catColor }]}>{cat}</Text>
-                      </View>
-                      {/* Platform */}
-                      <Text style={[s.cellText, { width: COL.platform }]} >{item.platform}</Text>
-                      {/* Status */}
-                      <View style={{ width: COL.status }}>
-                        <StatusBadge status={item.status} />
-                      </View>
-                      {/* Metric */}
-                      <Text style={[s.cellText, { width: COL.metric }]}>{getMetric(item)}</Text>
-                      {/* Date */}
-                      <Text style={[s.cellText, { width: COL.date }]}>{fmtDate(item.publicationDate)}</Text>
-                    </View>
-                  )
-                })}
-              </View>
+      {/* ── Appendix: the proof ─────────────────────────────────────────── */}
+      {evidence.length > 0 && (
+        <Page size="A4" style={s.page}>
+          <Text style={s.eyebrow}>Appendix</Text>
+          <Text style={s.h1}>Platform evidence</Text>
+          {evidence.map((stat) => (
+            <View key={stat.platform} style={s.evidence} wrap={false}>
+              <Image src={stat.evidenceImage as never} style={s.evidenceImage} />
+              <Text style={s.caption}>
+                {stat.platform} dashboard, {data.period}.
+                {stat.views != null ? ` ${n(stat.views)} views` : ''}
+                {stat.reads != null ? `, ${n(stat.reads)} reads or reactions.` : stat.views != null ? '.' : ''}
+              </Text>
             </View>
-          )
-        })}
-
-        <Footer client={clientName} />
-      </Page>
+          ))}
+          {platformStats
+            .filter((stat) => !stat.evidenceImage && stat.evidenceUrl)
+            .map((stat) => (
+              <Text key={stat.platform} style={s.small}>
+                {stat.platform} export for {data.period}:{' '}
+                <Link src={stat.evidenceUrl!} style={s.link}>
+                  {stat.evidenceName ?? 'download'}
+                </Link>
+              </Text>
+            ))}
+          <Footer s={s} client={data.client} period={data.period} />
+        </Page>
+      )}
     </Document>
   )
 }

@@ -24,6 +24,12 @@ const nextConfig = {
   },
 
   serverExternalPackages: ['@react-pdf/renderer'],
+
+  // The report PDF is set in Inter, read from disk by the export route. Files
+  // outside the import graph are not bundled into a function unless named here.
+  outputFileTracingIncludes: {
+    '/api/export-report': ['./app/api/export-report/fonts/**'],
+  },
 }
 
 export default nextConfig

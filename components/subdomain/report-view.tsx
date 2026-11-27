@@ -297,29 +297,12 @@ export function ReportView({ data }: { data: ReportData }) {
       const response = await fetch('/api/export-report', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        // Asking the route to rebuild from the slug would be a second source of
-        // truth for the same page. It already has everything on screen.
+        // Built on the server from the slug, the same way the emailed copy is,
+        // so the download carries the platform evidence, social posts and the
+        // month-on-month change that this page does not hold.
         body: JSON.stringify({
-          client: data.client.name,
-          period: report.label,
-          content: report.published,
-          notes: data.notes ?? null,
-          targets: data.targets ?? null,
-          highlights: report.highlights.map(({ entry, metric }) => ({
-            title: entry.title,
-            platform: entry.platform,
-            category: entry.category,
-            metric,
-          })),
-          stats: {
-            published: report.totals.published,
-            inProgress: report.upcoming.length,
-            totalViews: report.totals.views,
-            totalDownloads: report.totals.downloads,
-            totalAttendees: report.totals.attendees,
-            totalStars: report.totals.stars,
-            totalReshares: report.totals.reshares,
-          },
+          slug: data.client.slug,
+          month: data.period,
         }),
       })
 
