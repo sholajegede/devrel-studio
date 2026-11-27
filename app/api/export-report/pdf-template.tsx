@@ -113,8 +113,10 @@ export interface ReportData {
   highlights?: ReportHighlight[]
   platformStats?: ReportPlatformStat[]
   social?: ReportSocialPost[]
+  /** Visits and sign-ups from the client's own analytics, as they reported them. */
+  clientResults?: { visits?: number | null; signups?: number | null; note?: string | null } | null
   /** How many of the period's pieces carry a tracking link in the agreed format. */
-  linkCoverage?: { tagged: number; checked: number } | null
+  linkCoverage?: { tagged: number; checked: number; verified?: number } | null
   branding?: { logoUrl?: string | null; brandColor?: string | null } | null
   /** The day the document was generated, `YYYY-MM-DD`. Defaults to today. */
   generatedOn?: string
@@ -572,6 +574,33 @@ export function createReportDocument(data: ReportData, options: ReportOptions = 
           })}
         </View>
 
+        {data.clientResults && (data.clientResults.visits != null || data.clientResults.signups != null || data.clientResults.note) && (
+          <View style={s.section} wrap={false}>
+            <SectionTitle s={s} eyebrow={`From ${data.client}'s analytics`} title="What the tracked links brought in" />
+            {(data.clientResults.visits != null || data.clientResults.signups != null) && (
+              <View style={[s.figures, { marginBottom: 10 }]}>
+                {data.clientResults.visits != null && (
+                  <View style={s.figure}>
+                    <Text style={s.figureValue}>{n(data.clientResults.visits)}</Text>
+                    <Text style={s.figureLabel}>Visits to {data.client}</Text>
+                  </View>
+                )}
+                {data.clientResults.signups != null && (
+                  <View style={s.figure}>
+                    <Text style={s.figureValue}>{n(data.clientResults.signups)}</Text>
+                    <Text style={s.figureLabel}>Sign-ups</Text>
+                  </View>
+                )}
+                <View style={s.figure} />
+              </View>
+            )}
+            {data.clientResults.note ? <Text style={s.body}>{data.clientResults.note}</Text> : null}
+            <Text style={s.small}>
+              Reported by {data.client} from visits that arrived through the tagged links.
+            </Text>
+          </View>
+        )}
+
         {summary.length > 0 && (
           <View style={s.section}>
             <SectionTitle s={s} eyebrow="Summary" title="What happened" />
@@ -640,6 +669,9 @@ export function createReportDocument(data: ReportData, options: ReportOptions = 
               <Text style={[s.small, { marginTop: 8 }]}>
                 {coverage.tagged} of {coverage.checked} pieces this period carry a tracking link in the agreed
                 format, so the visits and sign-ups they send are counted in {data.client}&apos;s own analytics.
+                {coverage.verified
+                  ? ` ${coverage.verified} of them ${coverage.verified === 1 ? 'was' : 'were'} confirmed on the live page.`
+                  : ''}
               </Text>
             ) : null}
           </View>

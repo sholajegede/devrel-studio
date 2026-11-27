@@ -36,6 +36,7 @@ import type * as jobKit from "../jobKit.js";
 import type * as jobPro from "../jobPro.js";
 import type * as jobSync from "../jobSync.js";
 import type * as jobs from "../jobs.js";
+import type * as linkVerify from "../linkVerify.js";
 import type * as managerAccess from "../managerAccess.js";
 import type * as members from "../members.js";
 import type * as migrations from "../migrations.js";
@@ -96,6 +97,7 @@ declare const fullApi: ApiFromModules<{
   jobPro: typeof jobPro;
   jobSync: typeof jobSync;
   jobs: typeof jobs;
+  linkVerify: typeof linkVerify;
   managerAccess: typeof managerAccess;
   members: typeof members;
   migrations: typeof migrations;

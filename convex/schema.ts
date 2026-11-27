@@ -203,6 +203,25 @@ export default defineSchema({
     stack: v.optional(v.string()),          // free-text tech stack
     stars: v.optional(v.number()),          // GitHub stars
 
+    // ── Live-link check ───────────────────────────────────────────────────────
+    // Whether the published article, README or npm page actually carries the
+    // tracking link. Written by convex/linkVerify.ts; one result per place.
+    linkVerification: v.optional(v.object({
+      status: v.union(v.literal("checking"), v.literal("done")),
+      checkedAt: v.number(),
+      results: v.array(v.object({
+        place: v.string(),
+        label: v.string(),
+        url: v.string(),
+        result: v.union(
+          v.literal("found"),
+          v.literal("old_link"),
+          v.literal("not_found"),
+          v.literal("could_not_check"),
+        ),
+      })),
+    })),
+
     // ── Auto-sync bookkeeping ─────────────────────────────────────────────────
     // Set by the npm / GitHub sync job. `statsSyncError` holds the last failure
     // so the UI can show "couldn't reach npm" instead of a silently stale number.
@@ -586,6 +605,17 @@ export default defineSchema({
     /** Overrides the client's standing goal for this period only. */
     reachTarget: v.optional(v.number()),
     publishedTarget: v.optional(v.number()),
+
+    /**
+     * What the client's own analytics saw from the tracked links: visits and
+     * sign-ups the client sends back. Only the client can see these numbers,
+     * so they are entered by hand and labelled as the client's in the report.
+     */
+    clientResults: v.optional(v.object({
+      visits: v.optional(v.number()),
+      signups: v.optional(v.number()),
+      note: v.optional(v.string()),
+    })),
 
     updatedAt: v.string(),
     /** Who last wrote it, for a workspace with several people in it. */

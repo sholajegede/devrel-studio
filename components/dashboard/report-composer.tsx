@@ -144,6 +144,9 @@ export function ReportComposer({
   const [quotes, setQuotes] = useState<Quote[]>([])
   const [reachTarget, setReachTarget] = useState('')
   const [publishedTarget, setPublishedTarget] = useState('')
+  const [resultVisits, setResultVisits] = useState('')
+  const [resultSignups, setResultSignups] = useState('')
+  const [resultNote, setResultNote] = useState('')
   const [saving, setSaving] = useState(false)
   const [drafting, setDrafting] = useState(false)
   const [drafted, setDrafted] = useState(false)
@@ -189,6 +192,9 @@ export function ReportComposer({
     setPublishedTarget(
       notes.publishedTarget === null ? '' : String(notes.publishedTarget),
     )
+    setResultVisits(notes.clientResults.visits === null ? '' : String(notes.clientResults.visits))
+    setResultSignups(notes.clientResults.signups === null ? '' : String(notes.clientResults.signups))
+    setResultNote(notes.clientResults.note)
   }, [notes, period])
 
   const submit = async () => {
@@ -203,6 +209,11 @@ export function ReportComposer({
         quotes: quotes.filter((quote) => quote.text.trim().length > 0),
         reachTarget: numberOrNull(reachTarget),
         publishedTarget: numberOrNull(publishedTarget),
+        clientResults: {
+          visits: numberOrNull(resultVisits),
+          signups: numberOrNull(resultSignups),
+          note: resultNote,
+        },
       })
       toast.success(`Write-up saved for ${periodLabel(period)}`)
       onOpenChange(false)
@@ -334,6 +345,41 @@ export function ReportComposer({
                 maxLength={600}
                 placeholder="Reach nearly doubled on the back of the launch post, which HN picked up."
                 className="mt-2 text-sm"
+              />
+            </div>
+
+            {/* What the client's analytics saw */}
+            <div>
+              <Label className="text-sm">Results from the client</Label>
+              <p className="mt-1 text-xs text-muted-foreground">
+                The visits and sign-ups the client sends back from their own analytics. Only they
+                can see these, so the report labels them as theirs. Leave blank until you have them.
+              </p>
+              <div className="mt-2 grid grid-cols-2 gap-2">
+                <Input
+                  type="number"
+                  min={0}
+                  aria-label="Visits from tracked links"
+                  placeholder="Visits"
+                  value={resultVisits}
+                  onChange={(event) => setResultVisits(event.target.value)}
+                />
+                <Input
+                  type="number"
+                  min={0}
+                  aria-label="Sign-ups from tracked links"
+                  placeholder="Sign-ups"
+                  value={resultSignups}
+                  onChange={(event) => setResultSignups(event.target.value)}
+                />
+              </div>
+              <Input
+                className="mt-2 text-sm"
+                aria-label="Note on the client's results"
+                placeholder="Optional note, e.g. most sign-ups came from the billing article"
+                maxLength={600}
+                value={resultNote}
+                onChange={(event) => setResultNote(event.target.value)}
               />
             </div>
 

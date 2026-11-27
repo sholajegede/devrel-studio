@@ -189,8 +189,9 @@ async function reportForMonths(slug: string, months: string[]): Promise<ReportDa
     (total, row) => ({
       tagged: total.tagged + (row!.linkCoverage?.tagged ?? 0),
       checked: total.checked + (row!.linkCoverage?.checked ?? 0),
+      verified: total.verified + (row!.linkCoverage?.verified ?? 0),
     }),
-    { tagged: 0, checked: 0 },
+    { tagged: 0, checked: 0, verified: 0 },
   )
 
   // The month before, for the change under each headline number. Only for a
@@ -216,6 +217,21 @@ async function reportForMonths(slug: string, months: string[]): Promise<ReportDa
     social,
     platformStats,
     linkCoverage: coverage.checked > 0 ? coverage : null,
+    // The client's own numbers, summed across the months covered. A month the
+    // client sent nothing for adds nothing, and no months at all means no section.
+    clientResults: (() => {
+      const sent = rows.map((row) => row!.clientResults).filter(Boolean)
+      if (sent.length === 0) return null
+      const sum = (pick: (r: NonNullable<(typeof sent)[number]>) => number | undefined) => {
+        const values = sent.map((r) => pick(r!)).filter((value): value is number => typeof value === 'number')
+        return values.length ? values.reduce((a, b) => a + b, 0) : null
+      }
+      return {
+        visits: sum((r) => r.visits),
+        signups: sum((r) => r.signups),
+        note: sent.map((r) => r!.note).filter(Boolean).join(' ') || null,
+      }
+    })(),
     branding: {
       logoUrl: first.client.logoUrl ?? null,
       brandColor: first.client.brandColor ?? null,

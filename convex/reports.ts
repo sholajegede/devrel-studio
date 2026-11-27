@@ -207,17 +207,20 @@ export const getReport = query({
     // only: the links themselves stay internal.
     let tagged = 0
     let checked = 0
+    let verified = 0
     for (const entry of entries) {
       if (entry.status !== 'Published' || !entry.publicationDate.startsWith(args.period)) continue
       const check = checkTrackingLink(entry, client)
       if (check.status === 'not_applicable' || check.status === 'unconfigured') continue
       checked++
       if (check.status === 'correct') tagged++
+      const results = entry.linkVerification?.results ?? []
+      if (results.length > 0 && results.every((r) => r.result === 'found')) verified++
     }
 
     return {
       preparedBy,
-      linkCoverage: checked > 0 ? { tagged, checked } : null,
+      linkCoverage: checked > 0 ? { tagged, checked, verified } : null,
       client: {
         id: client._id,
         name: client.company || client.name,
@@ -249,6 +252,7 @@ export const getReport = query({
             quotes: notes.quotes ?? [],
           }
         : null,
+      clientResults: notes?.clientResults ?? null,
       // A period may set its own goal; otherwise the engagement's standing one
       // applies. Resolved here so the page and the PDF cannot disagree.
       targets: {
@@ -402,6 +406,11 @@ export const getNotes = query({
       // goal as a placeholder and saving a blank keeps inheriting it.
       reachTarget: notes?.reachTarget ?? null,
       publishedTarget: notes?.publishedTarget ?? null,
+      clientResults: {
+        visits: notes?.clientResults?.visits ?? null,
+        signups: notes?.clientResults?.signups ?? null,
+        note: notes?.clientResults?.note ?? '',
+      },
       inheritedReachTarget: client.reachTarget ?? null,
       inheritedPublishedTarget: client.publishedTarget ?? null,
       updatedAt: notes?.updatedAt ?? null,
@@ -440,6 +449,11 @@ export const saveNotes = mutation({
     }))),
     reachTarget: v.optional(v.union(v.number(), v.null())),
     publishedTarget: v.optional(v.union(v.number(), v.null())),
+    clientResults: v.optional(v.object({
+      visits: v.union(v.number(), v.null()),
+      signups: v.union(v.number(), v.null()),
+      note: v.string(),
+    })),
   },
   handler: async (ctx, args) => {
     const { user, doc: client } = await requireInWorkspace(ctx, args.clientId, 'editor')
@@ -487,6 +501,18 @@ export const saveNotes = mutation({
       quotes: quotes.length > 0 ? quotes : undefined,
       reachTarget: target(args.reachTarget),
       publishedTarget: target(args.publishedTarget),
+      // Left untouched when the caller does not send it, so a save from
+      // somewhere that does not know about these numbers cannot erase them.
+      ...(args.clientResults === undefined
+        ? {}
+        : {
+            clientResults: (() => {
+              const visits = target(args.clientResults.visits)
+              const signups = target(args.clientResults.signups)
+              const note = text(args.clientResults.note, MAX_LINE)
+              return visits !== undefined || signups !== undefined || note ? { visits, signups, note } : undefined
+            })(),
+          }),
       updatedAt: new Date().toISOString(),
       updatedBy: user._id,
     }

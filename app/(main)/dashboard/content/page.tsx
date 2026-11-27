@@ -20,6 +20,7 @@ import {
 import { categoryOf } from '@/lib/metrics'
 import { statusLabel } from '@/lib/status'
 import { checkTrackingLink, needsFix, type LinkCheck } from '@/lib/tracking'
+import { VERIFY_TEXT, verifyTargets } from '@/lib/link-verify'
 import type { Category } from '@/lib/types'
 import { CATEGORY_META, getCategoryColor } from '@/lib/category-meta'
 import { PlatformIcon } from '@/lib/platform-meta'
@@ -129,6 +130,7 @@ export default function ContentListPage() {
   const duplicateEntry = useMutation(api.content.duplicateContent)
   const restoreEntry = useMutation(api.content.restoreContent)
   const rewriteLinks = useMutation(api.content.rewriteTrackingLinks)
+  const startVerify = useMutation(api.linkVerify.start)
   const clients = useQuery(api.clients.getClients)
 
   // Each entry's link compared with its client's agreed format. Entries hold
@@ -140,6 +142,16 @@ export default function ContentListPage() {
       checks.set(entry._id as string, checkTrackingLink(entry, bySlug.get(entry.client ?? '') ?? null))
     }
     return checks
+  }, [content, clients])
+
+  // Entries with at least one live page to check: an article, a README, an npm page.
+  const verifiable = useMemo(() => {
+    const bySlug = new Map((clients ?? []).filter((c) => c.slug).map((c) => [c.slug!, c]))
+    const ids = new Set<string>()
+    for (const entry of (content as ContentEntry[] | undefined) ?? []) {
+      if (verifyTargets(entry, bySlug.get(entry.client ?? '') ?? null).length > 0) ids.add(entry._id as string)
+    }
+    return ids
   }, [content, clients])
 
   useEffect(() => {
@@ -253,6 +265,17 @@ export default function ContentListPage() {
     ).length
   }, [content])
 
+  // Saved views are read once on mount. See "Saved views" below.
+  useEffect(() => {
+    try {
+      const raw = window.localStorage.getItem(VIEWS_KEY)
+      if (raw) setViews(JSON.parse(raw) as SavedView[])
+    } catch {
+      // No saved views, then. Everything else on the page still works.
+    }
+    setViewsReady(true)
+  }, [])
+
   if (!profile) return <PageLoader />
 
   const handleDelete = async (id: Id<"contentEntries">) => {
@@ -315,15 +338,8 @@ export default function ContentListPage() {
   // change. Wrapped because storage throws outright in a browser configured to
   // block it, and a filter shortcut is not worth taking the page down for.
 
-  useEffect(() => {
-    try {
-      const raw = window.localStorage.getItem(VIEWS_KEY)
-      if (raw) setViews(JSON.parse(raw) as SavedView[])
-    } catch {
-      // No saved views, then. Everything else on the page still works.
-    }
-    setViewsReady(true)
-  }, [])
+  // (The effect that reads them sits above the loading return, so the page
+  // calls the same hooks on every render.)
 
   const persistViews = (next: SavedView[]) => {
     setViews(next)
@@ -419,6 +435,32 @@ export default function ContentListPage() {
     a.click()
     URL.revokeObjectURL(url)
   }
+
+  const verify = async (ids: Id<'contentEntries'>[]) => {
+    try {
+      await startVerify({ ids: ids.slice(0, 50) })
+      toast.success(
+        ids.length === 1 ? 'Checking the live page' : `Checking ${Math.min(ids.length, 50)} live pages`,
+      )
+    } catch (error) {
+      toast.error(error instanceof ConvexError ? String(error.data) : 'Could not start the check')
+    }
+  }
+
+  // The most recent entries first, so "check all" covers the work that matters now.
+  const verifiableInScope = scopedEntries
+    .filter((e) => verifiable.has(e._id as string))
+    .sort((a, b) => b.publicationDate.localeCompare(a.publicationDate))
+  const verifiedCounts = verifiableInScope.reduce(
+    (counts, e) => {
+      const results = (e as ContentEntry & { linkVerification?: { results: { result: string }[] } }).linkVerification?.results ?? []
+      if (results.length === 0) return counts
+      if (results.every((r) => r.result === 'found')) counts.found++
+      else counts.attention++
+      return counts
+    },
+    { found: 0, attention: 0 },
+  )
 
   const rewriteAll = async () => {
     setConfirmRewrite(false)
@@ -540,12 +582,14 @@ export default function ContentListPage() {
       </div>
 
       {/* Link check */}
-      {checkedEntries.length > 0 && (
+      {(checkedEntries.length > 0 || verifiableInScope.length > 0) && (
         <Card className="mb-4">
           <CardContent className="flex flex-col gap-3 py-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-2 text-sm">
               <Link2 className="h-4 w-4 text-muted-foreground" />
-              {toFix.length === 0 ? (
+              {checkedEntries.length === 0 ? (
+                <span className="text-muted-foreground">Packages and demos carry their links on GitHub and npm.</span>
+              ) : toFix.length === 0 ? (
                 <span className="text-muted-foreground">
                   All {checkedEntries.length} tracking links match the agreed format.
                 </span>
@@ -554,6 +598,27 @@ export default function ContentListPage() {
                   <span className="font-medium">{toFix.length}</span>
                   <span className="text-muted-foreground"> of {checkedEntries.length} tracking links need a fix.</span>
                 </span>
+              )}
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              {verifiableInScope.length > 0 && can.edit && (
+                <>
+                  {verifiedCounts.found + verifiedCounts.attention > 0 && (
+                    <span className="text-xs text-muted-foreground">
+                      Live pages: {verifiedCounts.found} confirmed
+                      {verifiedCounts.attention > 0 ? `, ${verifiedCounts.attention} need a look` : ''}
+                    </span>
+                  )}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="bg-transparent"
+                    onClick={() => verify(verifiableInScope.map((e) => e._id))}
+                    title="Read each published page and check the tracking link is on it"
+                  >
+                    Check live pages
+                  </Button>
+                </>
               )}
             </div>
             {toFix.length > 0 && (
@@ -869,6 +934,57 @@ export default function ContentListPage() {
                         <p className="text-xs text-amber-600">
                           {check.status === 'missing' ? 'No tracking link.' : check.reason}
                         </p>
+                      )
+                    })()}
+
+                    {(() => {
+                      const check = (entry as ContentEntry & {
+                        linkVerification?: {
+                          status: 'checking' | 'done'
+                          checkedAt: number
+                          results: { place: string; label: string; url: string; result: keyof typeof VERIFY_TEXT }[]
+                        }
+                      }).linkVerification
+                      if (!verifiable.has(entry._id as string)) return null
+                      return (
+                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
+                          {check?.status === 'checking' ? (
+                            <span className="text-muted-foreground">Checking the live page…</span>
+                          ) : check?.results.length ? (
+                            check.results.map((result) => (
+                              <a
+                                key={result.place}
+                                href={result.url}
+                                target="_blank"
+                                rel="noreferrer"
+                                className={
+                                  result.result === 'found'
+                                    ? 'text-emerald-600 hover:underline'
+                                    : result.result === 'could_not_check'
+                                      ? 'text-muted-foreground hover:underline'
+                                      : 'text-amber-600 hover:underline'
+                                }
+                              >
+                                {check.results.length > 1 ? `${result.label}: ` : ''}
+                                {VERIFY_TEXT[result.result]}
+                              </a>
+                            ))
+                          ) : null}
+                          {check?.status === 'done' && (
+                            <span className="text-muted-foreground">
+                              checked {new Date(check.checkedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                            </span>
+                          )}
+                          {can.edit && check?.status !== 'checking' && (
+                            <button
+                              type="button"
+                              className="text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+                              onClick={() => verify([entry._id])}
+                            >
+                              {check ? 'Check again' : 'Verify live link'}
+                            </button>
+                          )}
+                        </div>
                       )
                     })()}
 
