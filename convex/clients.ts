@@ -191,6 +191,16 @@ export const pruneOrphanedLogos = internalMutation({
       if (client.logoDarkStorageId) claimed.add(client.logoDarkStorageId)
     }
 
+    // Other tables keep files in the same store. A file any of them points at
+    // is not an orphan, however old it is.
+    for (const row of await ctx.db.query('platformStats').collect()) {
+      if (row.evidenceStorageId) claimed.add(row.evidenceStorageId)
+      for (const old of row.history ?? []) claimed.add(old.storageId)
+    }
+    for (const profile of await ctx.db.query('jobProfiles').collect()) {
+      if (profile.cvStorageId) claimed.add(profile.cvStorageId)
+    }
+
     const files = await ctx.db.system.query('_storage').take(500)
 
     let deleted = 0

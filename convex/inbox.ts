@@ -2,6 +2,7 @@ import { ConvexError, v } from 'convex/values'
 import { Id } from './_generated/dataModel'
 import { MutationCtx, mutation, query } from './_generated/server'
 import { recordAudit } from './model/audit'
+import { withTrackingLink } from './model/tracking'
 import { planOf } from './model/plans'
 import { getCurrentWorkspace, planHolder, requireWorkspace } from './model/workspaces'
 import {
@@ -167,11 +168,12 @@ async function executeEntryProposal(
     platform: final.platform.trim(),
     publicationDate: final.publicationDate,
   }
+  const tagged = await withTrackingLink(ctx, who.workspaceId, { ...clean, trackingLink: '' })
   const entryId = await ctx.db.insert('contentEntries', {
     userId: who.user._id,
     workspaceId: who.workspaceId,
     ...clean,
-    trackingLink: '',
+    trackingLink: tagged.trackingLink,
     status: 'Published',
     tags: [],
     contentType: '',

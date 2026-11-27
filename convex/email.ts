@@ -773,3 +773,47 @@ export const sendTalentContact = internalAction({
     })
   },
 })
+
+/**
+ * On the 1st, asks for last month's platform screenshots that are still missing.
+ *
+ * Sent only when something is missing, and only lists the platforms each client
+ * actually publishes on — so a month with everything uploaded gets no email.
+ */
+export const sendStatsReminder = internalAction({
+  args: {
+    email: v.string(),
+    firstName: v.optional(v.string()),
+    monthLabel: v.string(),
+    clients: v.array(v.object({ name: v.string(), platforms: v.array(v.string()) })),
+    statsUrl: v.string(),
+  },
+  handler: async (_ctx, args): Promise<SendResult> => {
+    const greeting = args.firstName ? `Hi ${escapeHtml(args.firstName)},` : 'Hi,'
+    const rows = args.clients
+      .map(
+        (client) =>
+          `<tr>
+             <td style="padding:6px 0;font-size:14px;color:#180102;">${escapeHtml(client.name)}</td>
+             <td style="padding:6px 0;font-size:14px;color:#6e625b;text-align:right;">${client.platforms.map(escapeHtml).join(', ')}</td>
+           </tr>`,
+      )
+      .join('')
+    const textRows = args.clients.map((client) => `- ${client.name}: ${client.platforms.join(', ')}`).join('\n')
+
+    return await send({
+      to: args.email,
+      subject: `Add your ${args.monthLabel} platform screenshots`,
+      html: layout(`
+        <p style="margin:0 0 14px;font-size:15px;line-height:1.6;">${greeting}</p>
+        <p style="margin:0 0 14px;font-size:15px;line-height:1.6;">
+          These platforms have no screenshot or export for ${escapeHtml(args.monthLabel)} yet. Your
+          clients can't see these numbers themselves, so the report needs them.
+        </p>
+        <table style="width:100%;border-collapse:collapse;margin:0 0 22px;">${rows}</table>
+        <p style="margin:0 0 22px;">${button(args.statsUrl, 'Upload them')}</p>
+      `),
+      text: `${greeting}\n\nThese platforms have no screenshot or export for ${args.monthLabel} yet:\n\n${textRows}\n\nUpload them: ${args.statsUrl}`,
+    })
+  },
+})

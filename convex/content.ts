@@ -12,6 +12,7 @@ import {
 import { planOf } from './model/plans'
 import { ensurePersonalWorkspace } from './model/workspaces'
 import { recordAudit } from './model/audit'
+import { withTrackingLink } from './model/tracking'
 import { checkTrackingLink, needsFix } from '../lib/tracking'
 
 const categoryValidator = v.optional(v.union(
@@ -212,7 +213,7 @@ export const createContent = mutation({
 
     const now = new Date().toISOString()
     const id = await ctx.db.insert('contentEntries', {
-      ...args,
+      ...(await withTrackingLink(ctx, workspaceId, args)),
       userId: user._id,
       workspaceId,
       updatedAt: now,
@@ -358,10 +359,11 @@ export const importContent = mutation({
     }
 
     const now = new Date().toISOString()
+    const clientCache = new Map<string, { trackingBase?: string; utmCampaign?: string } | null>()
 
     for (const entry of args.entries) {
       await ctx.db.insert('contentEntries', {
-        ...entry,
+        ...(await withTrackingLink(ctx, workspaceId, entry, clientCache)),
         userId: user._id,
         workspaceId,
         updatedAt: now,

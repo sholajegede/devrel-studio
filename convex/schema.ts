@@ -1227,4 +1227,40 @@ export default defineSchema({
     updatedBy: v.id("users"),
     updatedAt: v.number(),
   }).index("by_workspace", ["workspaceId"]),
+
+  /**
+   * A platform's own numbers for one client and one month, with the proof.
+   *
+   * A client cannot see Dev.to, Medium or Hashnode dashboards, so the monthly
+   * report carries the platform's totals and the screenshot or export they were
+   * read from. One row per client, platform and month: uploading again replaces
+   * the current file and keeps the old one in `history`.
+   */
+  platformStats: defineTable({
+    workspaceId: v.id("workspaces"),
+    /** The client's slug, the same value content entries hold. */
+    client: v.string(),
+    /** "Dev.to", "Medium", "Hashnode". */
+    platform: v.string(),
+    /** `YYYY-MM`. */
+    month: v.string(),
+    /** Total views the platform shows for the month. */
+    views: v.optional(v.number()),
+    /** Reads, reactions or claps, where the platform shows them. */
+    reads: v.optional(v.number()),
+    evidenceStorageId: v.optional(v.id("_storage")),
+    evidenceName: v.optional(v.string()),
+    evidenceType: v.optional(v.string()),
+    /** Files this one replaced, newest last. */
+    history: v.optional(v.array(v.object({
+      storageId: v.id("_storage"),
+      name: v.string(),
+      replacedAt: v.number(),
+    }))),
+    note: v.optional(v.string()),
+    updatedBy: v.id("users"),
+    updatedAt: v.number(),
+  })
+    .index("by_workspace_and_month", ["workspaceId", "month"])
+    .index("by_workspace_client_month", ["workspaceId", "client", "month"]),
 });

@@ -133,4 +133,13 @@ crons.cron(
   {},
 )
 
+// Last month's platform screenshots, asked for on the 1st once the month has
+// closed. Only sent when something is missing.
+crons.monthly(
+  'platform stats: ask for last month',
+  { day: 1, hourUTC: 8, minuteUTC: 0 },
+  internal.platformStats.sendReminders,
+  {},
+)
+
 export default crons

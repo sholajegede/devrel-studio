@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import { useAction, useMutation, useQuery } from 'convex/react'
 import { api } from '@/convex/_generated/api'
 import { Id } from '@/convex/_generated/dataModel'
@@ -574,6 +575,9 @@ export default function ReportsPage() {
           Who receives each client&apos;s monthly report, when it goes out, and a way to send
           any month by hand.
         </p>
+        <Link href="/dashboard/reports/stats" className="mt-3 inline-block text-sm text-foreground underline underline-offset-4">
+          Platform stats and screenshots
+        </Link>
       </div>
 
       {schedules.length === 0 ? (
